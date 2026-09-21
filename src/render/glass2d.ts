@@ -56,6 +56,24 @@ export function smoothTo(
 const mix = (a: readonly number[], b: readonly number[], t: number): number[] =>
   [a[0]! + (b[0]! - a[0]!) * t, a[1]! + (b[1]! - a[1]!) * t, a[2]! + (b[2]! - a[2]!) * t]
 
+/**
+ * Un pegote de espuma resbalando por FUERA del vaso.
+ *
+ * Tiene estado, a diferencia de todo lo demás del renderer, y hace falta: la
+ * espuma que ya salió por el borde no puede quedarse ahí cuando el jugador
+ * endereza el móvil. Tiene que seguir cayendo, y para eso hay que recordar
+ * dónde está.
+ */
+interface OuterFoam {
+  x: number
+  y: number
+  r: number
+  /** Velocidad a lo largo de la gravedad, px/s. Arranca lenta: es pegajosa. */
+  v: number
+  /** 1 → 0. Al llegar a 0 desaparece. */
+  life: number
+}
+
 interface Bubble {
   x: number
   y: number
@@ -145,13 +163,7 @@ export class Glass2D implements GlassRenderer {
    * golpe. También alimenta la amplitud del oleaje.
    */
   #activity = 0
-  /**
-   * Cuánta espuma hay resbalando por FUERA del vaso, 0..1, suavizada.
-   *
-   * Sube rápido y baja despacio: la espuma que se ha ido por el borde sigue
-   * bajando por el cristal un rato después de que deje de desbordar.
-   */
-  #overflow = 0
+  #outer: OuterFoam[] = []
 
   constructor(canvas: HTMLCanvasElement, variety: BakedVariety) {
     const ctx = canvas.getContext('2d', { alpha: false })
@@ -253,9 +265,6 @@ export class Glass2D implements GlassRenderer {
     this.#activity += (target - this.#activity) * k
     const act = this.#activity
 
-    const ovTarget = f.spillingOver ? 1 : 0
-    this.#overflow += (ovTarget - this.#overflow) * (ovTarget > this.#overflow ? 0.10 : 0.006)
-    const ov = this.#overflow
 
     /** Superficie de un nivel de llenado, en coordenadas de PANTALLA. */
     const surfaceOf = (fill: number): { x: number; y: number } => {
@@ -670,140 +679,128 @@ export class Glass2D implements GlassRenderer {
     // mismo por el que desborda: el borde superior de la pantalla es la boca,
     // y su punto más bajo es la esquina hacia la que tira la gravedad.
     // ================================================================
-    if (ov > 0.01) {
+    {
+      const FOAM_OUT = mix(FOAM, BEER, 0.14)
       ctx.save()
       ctx.translate(cx, cy)
 
       // ----------------------------------------------------------------
-      // Reparto a lo largo del borde: perfil de vertedero.
+      // ¿Está pasando líquido por encima del borde? Lo decide la GEOMETRÍA,
+      // no la señal del núcleo.
       //
-      // No se va todo por una esquina. Sobre un vertedero el caudal por
-      // unidad de ancho va con la **profundidad^1,5** del labio bajo la
-      // superficie, así que la esquina más baja se lleva la mayor parte y el
-      // resto del borde aporta cada vez menos hasta donde la superficie
-      // corta el borde, donde el caudal es cero.
+      // Antes se dibujaba a partir de `spillingOver` suavizada, y eso
+      // producía dos mentiras: espuma asomando con el vaso derecho y el
+      // líquido lejos del borde, y espuma que se quedaba pegada al canto
+      // segundos después de enderezar. Si el líquido no llega al borde, no
+      // sale nada; y punto.
       //
-      // La FORMA sale de la geometría; la CANTIDAD, de `ov`. Así el mismo
-      // dibujo vale para las dos causas: rebose por lleno (perfil real, el
-      // borde entero sumergido) y exceso de inclinación (donde la superficie
-      // ni toca el borde y hace falta el perfil de reserva).
+      // Reparto a lo largo del borde: sobre un vertedero el caudal por unidad
+      // de ancho va con la **profundidad^1,5** del labio bajo la superficie,
+      // así que el labio más bajo se lleva el grueso y el resto aporta cada
+      // vez menos hasta donde la superficie corta el borde, donde es cero.
       // ----------------------------------------------------------------
       const RIM = 26
       const rimY = -H / 2
-      const depthAt = (x: number): number =>
-        (x - foamTop.x) * -st + (rimY - foamTop.y) * ct
-
       const xs: number[] = []
       const ds: number[] = []
       let maxD = -Infinity
-      let xLow = 0
       for (let i = 0; i <= RIM; i++) {
         const x = -W / 2 + (W * i) / RIM
-        const d = depthAt(x)
+        // Profundidad del labio por debajo de la superficie del líquido.
+        const d = (x - foamTop.x) * -st + (rimY - foamTop.y) * ct
         xs.push(x); ds.push(d)
-        if (d > maxD) { maxD = d; xLow = x }
+        if (d > maxD) maxD = d
       }
-      const weir: number[] = maxD > 1e-3
-        ? ds.map((d) => (d > 0 ? Math.pow(d / maxD, 1.5) : 0))
-        // Reserva: la superficie no llega al borde (derrame por inclinación),
-        // así que el perfil se centra en el labio más bajo y decae.
-        : xs.map((x) => Math.pow(Math.max(0, 1 - Math.abs(x - xLow) / (W * 0.55)), 1.5))
+      const over = maxD > 0
+      const weir = ds.map((d) => (over && d > 0 ? Math.pow(d / maxD, 1.5) : 0))
+      // Cuánto asoma: 4% del alto de pantalla ya es un rebose de los gordos.
+      const strength = over ? Math.min(1, maxD / (H * 0.04)) : 0
 
-      const side = xLow <= 0 ? -1 : 1
-      const edgeX = side * (W / 2)
-      const bandW = (10 + 22 * ov) * (0.85 + 0.15 * Math.sin(f.t * 6))
-      const curtain = H * 0.13 * ov
-      // La espuma que se ha ido por el borde arrastra cerveza, así que por
-      // fuera está teñida. Y hace falta distinguirla de la corona del propio
-      // vaso, que también es blanca y queda justo detrás.
-      const OUT = mix(FOAM, BEER, 0.14)
-      const runLen = H * (0.12 + 0.72 * ov)
+      const grav = gravityOnScreen(f.phi)
+      const dt = 1 / 60
 
-      // La cortina que cuelga del borde, con el frente irregular: la espuma
-      // avanza a tirones, no como una barra.
-      const front: number[][] = []
-      for (let i = RIM; i >= 0; i--) {
-        const jag = 1 + 0.18 * Math.sin(i * 1.7 - f.t * 3.4) + 0.10 * Math.sin(i * 4.1 + f.t * 2.2)
-        front.push([xs[i]!, rimY + curtain * weir[i]! * jag])
-      }
-      ctx.beginPath()
-      ctx.moveTo(-W / 2, rimY)
-      ctx.lineTo(W / 2, rimY)
-      smoothTo(ctx, front)
-      ctx.closePath()
-      // Sombra bajo el frente: es la pista que dice "esto está DELANTE del
-      // cristal". Sin ella la cortina se funde con la corona de dentro y el
-      // conjunto se lee como una mancha blanca sin profundidad.
-      ctx.save()
-      ctx.shadowColor = 'rgba(0,0,0,0.45)'
-      ctx.shadowBlur = 7
-      ctx.shadowOffsetY = 3
-      const cg = ctx.createLinearGradient(0, rimY, 0, rimY + curtain)
-      cg.addColorStop(0, rgba(OUT, 0.96))
-      cg.addColorStop(1, rgba(OUT, 0.72))
-      ctx.fillStyle = cg
-      ctx.fill()
-      ctx.restore()
-
-      // Lengüeta que dobla la esquina por la que se va el grueso.
-      ctx.save()
-      ctx.shadowColor = 'rgba(0,0,0,0.4)'
-      ctx.shadowBlur = 6
-      ctx.shadowOffsetX = -side * 3
-      ctx.fillStyle = rgba(OUT, 0.94 * Math.min(1, ov * 2))
-      ctx.beginPath()
-      ctx.ellipse(edgeX, rimY, bandW * 0.85, bandW * 0.5, 0, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.restore()
-
-      // Y el reguero que baja pegado al canto.
-      const flank: number[][] = []
-      for (let i = 0; i <= 22; i++) {
-        const sN = i / 22
-        const jag = Math.sin(sN * 11 - f.t * 3.1) * bandW * 0.16
-          + Math.sin(sN * 27 + f.t * 1.7) * bandW * 0.09
-        flank.push([edgeX - side * (bandW * (1 - sN * 0.25) + jag), rimY + sN * runLen])
-      }
-      ctx.beginPath()
-      ctx.moveTo(edgeX + side * bandW, rimY)
-      smoothTo(ctx, flank)
-      ctx.lineTo(edgeX + side * bandW, rimY + runLen)
-      ctx.closePath()
-      ctx.save()
-      ctx.shadowColor = 'rgba(0,0,0,0.4)'
-      ctx.shadowBlur = 6
-      ctx.shadowOffsetX = -side * 3
-      const run = ctx.createLinearGradient(0, rimY, 0, rimY + runLen)
-      run.addColorStop(0, rgba(OUT, 0.94))
-      run.addColorStop(0.75, rgba(OUT, 0.8))
-      run.addColorStop(1, rgba(OUT, 0))
-      ctx.fillStyle = run
-      ctx.fill()
-      ctx.restore()
-
-      // Goterones que se descuelgan y resbalan, repartidos según el mismo
-      // perfil: muchos cerca del labio bajo, alguno suelto por el centro.
-      for (let i = 0; i < 9; i++) {
-        const life = (f.t * 0.42 + i / 9) % 1
-        const h = Math.sin(i * 78.233) * 43758.5453
-        const pick = h - Math.floor(h)
-        // Se elige una x del borde con probabilidad proporcional al perfil.
-        let idx = Math.floor(pick * RIM)
-        for (let n = 0; n < RIM && weir[idx]! < pick * 0.9; n++) idx = (idx + 7) % RIM
-        const w = weir[idx]!
-        if (w < 0.04) continue
-        const r = (2.5 + ((i * 7) % 4) * 1.5) * ov * (0.5 + 0.5 * w)
-        const wob = Math.sin(life * 9 + i) * bandW * 0.35
-        ctx.fillStyle = rgba(OUT, 0.9 * (1 - life * 0.7) * Math.min(1, ov * 1.5))
+      // --- Lo que está saliendo ahora: la cortina sobre el borde ---------
+      if (over) {
+        const curtain = H * 0.075 * strength
+        const front: number[][] = []
+        for (let i = RIM; i >= 0; i--) {
+          const jag = 1 + 0.2 * Math.sin(i * 1.7 - f.t * 3.4) + 0.11 * Math.sin(i * 4.1 + f.t * 2.2)
+          front.push([xs[i]!, rimY + curtain * weir[i]! * jag])
+        }
+        ctx.save()
+        ctx.shadowColor = 'rgba(0,0,0,0.45)'
+        ctx.shadowBlur = 7
+        ctx.shadowOffsetY = 3
         ctx.beginPath()
-        ctx.ellipse(xs[idx]! + wob, rimY + life * (curtain + runLen * w + H * 0.2),
-          r, r * 1.5, 0, 0, Math.PI * 2)
+        ctx.moveTo(-W / 2, rimY)
+        ctx.lineTo(W / 2, rimY)
+        smoothTo(ctx, front)
+        ctx.closePath()
+        const cg = ctx.createLinearGradient(0, rimY, 0, rimY + curtain)
+        cg.addColorStop(0, rgba(FOAM_OUT, 0.96))
+        cg.addColorStop(1, rgba(FOAM_OUT, 0.74))
+        ctx.fillStyle = cg
         ctx.fill()
+        ctx.restore()
+
+        // Y se desprenden pegotes, repartidos según el mismo perfil.
+        const cap = Math.max(8, this.#tier.bubbles)
+        const births = strength > 0.55 ? 2 : 1
+        for (let b = 0; b < births && this.#outer.length < cap; b++) {
+          // Rechazo por el perfil: nace donde de verdad está saliendo.
+          for (let tryN = 0; tryN < 8; tryN++) {
+            const i = Math.floor(this.#rnd() * (RIM + 1))
+            if (this.#rnd() > weir[i]!) continue
+            this.#outer.push({
+              x: xs[i]! + (this.#rnd() - 0.5) * (W / RIM),
+              y: rimY + H * 0.05 * weir[i]!,
+              r: (3 + this.#rnd() * 5) * (0.5 + 0.5 * weir[i]!),
+              v: 8 + this.#rnd() * 14,
+              life: 1,
+            })
+            break
+          }
+        }
       }
+
+      // --- Lo que ya salió: resbala, siempre según la gravedad ACTUAL -----
+      //
+      // Aquí está la corrección: la espuma derramada no pertenece al borde,
+      // pertenece a la pared. Si el jugador endereza el móvil, lo que había
+      // salido sigue bajando por donde tire la gravedad en ese momento.
+      ctx.save()
+      ctx.shadowColor = 'rgba(0,0,0,0.38)'
+      ctx.shadowBlur = 6
+      for (let i = this.#outer.length - 1; i >= 0; i--) {
+        const o = this.#outer[i]!
+        // Acelera despacio y con tope: es espuma pegada al cristal, no una
+        // gota en caída libre.
+        o.v = Math.min(150, o.v + 150 * dt)
+        o.x += grav.x * o.v * dt
+        o.y += grav.y * o.v * dt
+        o.r += 3 * dt              // se extiende al resbalar
+        o.life -= dt / 2.6
+        if (o.life <= 0 || Math.abs(o.x) > W / 2 + o.r * 2 || o.y > H / 2 + o.r * 2) {
+          this.#outer.splice(i, 1)
+          continue
+        }
+        // Se estira en la dirección de la caída: eso es lo que lo lee como
+        // "resbalando" y no como "una pelota".
+        const stretch = 1 + o.v / 90
+        ctx.save()
+        ctx.translate(o.x, o.y)
+        ctx.rotate(Math.atan2(grav.y, grav.x))
+        ctx.fillStyle = rgba(FOAM_OUT, 0.9 * Math.min(1, o.life * 1.6))
+        ctx.beginPath()
+        ctx.ellipse(0, 0, o.r * stretch, o.r, 0, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.restore()
+      }
+      ctx.restore()
       ctx.restore()
     }
     // (La UI va en DOM, no en canvas: texto nítido gratis y no cuesta fillrate.)
   }
 
-  dispose(): void { this.#bubbles = [] }
+  dispose(): void { this.#bubbles = []; this.#outer = [] }
 }

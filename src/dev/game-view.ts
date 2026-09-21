@@ -311,6 +311,7 @@ export function mountGameView(
         ['φ / objetivo', `${f.phi.toFixed(1)}° / ${f.targetPhi.toFixed(1)}°`],
         ['confianza', `${(fusion.planarConfidence * 100).toFixed(0)}%`],
         ['lado', f.pourSide > 0 ? '+1 (izquierda)' : '−1 (derecha)'],
+        ['derramando', f.spillingOver ? 'sí' : 'no'],
         ['calidad', f.quality.toFixed(3)],
         ['llenado', `${(f.fill * 100).toFixed(1)}% · espuma ${(f.foam * 100).toFixed(1)}%`],
         ['chapoteo', `${f.sloshDeg.toFixed(2)}°`],

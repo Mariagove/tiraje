@@ -331,38 +331,35 @@ del cristal** y la cerveza se ve a través de él. Así que lo que está por fue
 va dibujado ENCIMA de todo, bisel incluido. No hay que inventar un exterior:
 es la misma superficie, en otra capa.
 
-Se va por el punto del borde que queda más bajo en el mundo, que es el mismo
-por el que desborda: el borde superior de la pantalla es la boca, y su punto
-más bajo es la esquina hacia la que tira la gravedad. Lengüeta sobre la
-esquina, reguero pegado al canto con el frente irregular —la espuma avanza a
-tirones, no como una barra— y cinco goterones descolgándose, otra vez sin
-estado.
+### Lo decide la geometría, no la señal del núcleo
 
-**Se reparte a lo largo del borde, no se va todo por una esquina.** Sobre un
-vertedero el caudal por unidad de ancho va con la **profundidad^1,5** del
-labio bajo la superficie, así que la esquina más baja se lleva el grueso y el
-resto del borde aporta cada vez menos hasta donde la superficie corta el
-borde, donde es cero. La FORMA sale de la geometría; la CANTIDAD, de la señal
-suavizada. Con eso el mismo dibujo sirve para las dos causas: en el rebose por
-lleno el borde entero está sumergido y el perfil es el real; en el derrame por
-inclinación la superficie ni toca el borde, y entra un perfil de reserva
-centrado en el labio bajo.
+La primera versión dibujaba a partir de `spillingOver` suavizada, y producía
+dos mentiras que el estudio cazó en el móvil:
 
-Dos pistas visuales que hicieron falta: la espuma de fuera va **teñida** de
-cerveza (arrastra líquido) y lleva **sombra bajo el frente**. Sin la sombra se
-fundía con la corona del propio vaso —las dos blancas, una justo detrás de la
-otra— y el conjunto se leía como una mancha sin profundidad.
+- espuma asomando por el borde **con el vaso derecho y el líquido lejos del
+  borde**, porque la señal seguía encendida;
+- espuma **pegada al canto** segundos después de enderezar, porque el reguero
+  era una banda estática anclada al borde.
 
-**Las dos causas se unen en una sola señal** (`spillingOver` en el frame):
-rebosar por lleno y pasarse de inclinación son la misma cosa vista desde
-fuera, líquido pasando por encima del borde.
+Ahora se calcula la profundidad de cada punto del labio por debajo de la
+superficie. Si ninguno está sumergido, **no sale nada**. Reparto: sobre un
+vertedero el caudal por unidad de ancho va con la **profundidad^1,5**, así que
+el labio más bajo se lleva el grueso y el resto aporta cada vez menos hasta
+donde la superficie corta el borde, donde es cero. Eso hace que rebose también
+por el centro, en menor medida, como pedía la física.
 
-Y un hallazgo del test: **el derrame por inclinación se autolimita** —derrama,
-pierde volumen, baja del umbral, deja de derramar, se vuelve a llenar— así que
-la señal parpadea. Por eso el renderer la suaviza con ataque rápido y caída
-lenta en vez de leerla en crudo, y por eso el test muestrea una ventana y no
-un instante. El rebose por lleno, en cambio, es sostenido, y ahí el reguero
-sale a plena intensidad.
+### Y lo que ya salió obedece a la gravedad
+
+La espuma derramada **no pertenece al borde, pertenece a la pared**. Es la
+única parte del renderer con estado: pegotes con posición, radio y vida, que
+resbalan según la gravedad **del instante**, aceleran despacio con tope —es
+espuma pegada al cristal, no una gota en caída libre—, se estiran en la
+dirección de la caída y se extienden al bajar. Si el jugador endereza el
+móvil, lo que había salido sigue cayendo por donde tire la gravedad ahora.
+
+La espuma de fuera va **teñida** de cerveza (arrastra líquido) y lleva
+**sombra**: sin ella se fundía con la corona del propio vaso —las dos
+blancas, una justo detrás de la otra— y quedaba una mancha sin profundidad.
 
 ## Bug del enganche de rebose
 
