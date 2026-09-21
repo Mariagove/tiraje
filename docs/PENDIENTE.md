@@ -374,10 +374,37 @@ queda **exactamente** en 1, así que no se cumplía ninguna de las dos ramas y
 el flag no se limpiaba nunca. Con un `else` a secas, al cerrar el grifo ya no
 entra nada, `f` se queda en 1, y la rama else lo apaga. Con test.
 
-**Lo que sigue sin modelarse:** al cerrar con el vaso rebosando, el nivel no
-baja. La espuma de fuera se acaba yendo, pero dentro `f` se queda en 1 porque
-**el colapso de la espuma no está en el modelo**. Añadirlo cambia el bono de
-llenado del resultado, así que es decisión de diseño, no mecánica.
+## La puntuación se congela en el tercer toque
+
+Decisión del estudio, y es mejor diseño que lo que había: **la puntuación es
+la que hay al cerrar el grifo**, no la del final del reposo. La física de
+después no puede cambiar lo que ya hiciste.
+
+Eso desbloquea lo que antes era un conflicto. Ahora un vaso que ha rebosado
+**se asienta y pierde nivel** tras cerrar —la corona que sobresalía del borde
+se va, que es lo que pasa de verdad— y se ve en pantalla sin tocar el
+marcador. Antes no se podía añadir porque habría cambiado el bono de llenado.
+
+Implementación: `step()` congela el resultado en el primer paso con la fase ya
+cerrada —nada se ha añadido desde el toque, así que ese estado ES el del
+cierre— y `finalize()` devuelve el congelado si existe. El servidor de la fase
+2 reproduce lo mismo recorriendo la traza entera, asentamiento incluido, y hay
+test que lo comprueba. Los diez fixtures no se mueven.
+
+Parámetros nuevos en el JSON de cada variedad, y son conjetura mía:
+`settle.drainRatePerSec` (0,055 Especial / 0,040 Negra) y
+`settle.overflowSettleFrac` (0,09, o sea el nivel baja 9 puntos de vaso). Lo
+que se va es espuma, no cerveza, y hay test que lo fija.
+
+## Bordes de líquido suavizados
+
+Todas las fronteras de líquido se trazaban con `lineTo` entre muestras, y se
+veían angulosas — la espuma que rebosa quedaba con los bordes a picos.
+
+Ahora pasan por `smoothTo`, que usa los puntos dados como puntos de CONTROL y
+los puntos medios como puntos de la curva: una cadena de cuadráticas continua
+en tangente, sin una sola esquina. Aplicado a la superficie del líquido, la
+cortina del rebose, el reguero por el canto y la cinta del chorro.
 
 ## Desviaciones deliberadas del plan (fase 3)
 
