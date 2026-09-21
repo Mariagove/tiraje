@@ -1,0 +1,57 @@
+{
+  "id": "especial",
+  "name": "Ambar Especial",
+  "glass": {
+    "heightMm": 140,
+    "radiusMm": 32
+  },
+  "pour": {
+    "beerRatePerSec": 0.105,
+    "foamRatePerSec": 0.0186,
+    "foamExpansion": 2.0,
+    "foamBase": 0.05,
+    "foamPerDegree": 0.009,
+    "spillRatePerSec": 0.06
+  },
+  "targets": {
+    "fill": 0.95,
+    "foam": 0.2,
+    "fillTolerancePp": 5,
+    "foamTolerancePp": 6
+  },
+  "settle": {
+    "drainRatePerSec": 0.055,
+    "overflowSettleFrac": 0.09
+  },
+  "difficulty": {
+    "kSafe": 0.55,
+    "maxTargetDeg": 48
+  },
+  "look": {
+    "beer": [
+      232,
+      163,
+      61
+    ],
+    "foam": [
+      244,
+      239,
+      228
+    ]
+  },
+  "scoring": {
+    "sigmaDeg": 5,
+    "rhoScaleDeg": 14,
+    "omegaScaleDegPerSec": 30,
+    "pointsPerSecBeer": 900,
+    "pointsPerSecFoam": 1300,
+    "bonusFill": 2500,
+    "bonusFoam": 2500,
+    "bonusClean": 1000,
+    "finalMultiplier": 10,
+    "spillPenalty": 1500,
+    "spillMaxEvents": 3,
+    "spillMaxFrac": 0.15,
+    "spilledMultiplier": 0.35
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "tiraje",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run bake && tsc --noEmit && vite build",
+    "bake": "node tools/bake-tables.ts",
+    "preview": "vite preview --host",
+    "lint": "oxlint src tools",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lab": "node tools/trace-lab/cli.ts"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.6.2",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "oxlint": "^1.83.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^4.1.11"
+  },
+  "private": true
+}

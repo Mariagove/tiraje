@@ -1,0 +1,62 @@
+{
+  "especial-perfect": {
+    "score": 169630,
+    "verdict": "ok",
+    "err": 0,
+    "steps": 1076
+  },
+  "especial-good": {
+    "score": 153243,
+    "verdict": "ok",
+    "err": 1.18,
+    "steps": 1042
+  },
+  "especial-mediocre": {
+    "score": 89579,
+    "verdict": "ok",
+    "err": 5.11,
+    "steps": 903
+  },
+  "especial-spiller": {
+    "score": 0,
+    "verdict": "spilled",
+    "err": 22.07,
+    "steps": 2000
+  },
+  "especial-fake": {
+    "score": 170060,
+    "verdict": "ok",
+    "err": 0,
+    "steps": 1079
+  },
+  "negra-perfect": {
+    "score": 169770,
+    "verdict": "ok",
+    "err": 0,
+    "steps": 1082
+  },
+  "negra-good": {
+    "score": 154152,
+    "verdict": "ok",
+    "err": 1.19,
+    "steps": 1056
+  },
+  "negra-mediocre": {
+    "score": 94128,
+    "verdict": "ok",
+    "err": 4.96,
+    "steps": 954
+  },
+  "negra-spiller": {
+    "score": 2721,
+    "verdict": "spilled",
+    "err": 22.07,
+    "steps": 2000
+  },
+  "negra-fake": {
+    "score": 169900,
+    "verdict": "ok",
+    "err": 0,
+    "steps": 1083
+  }
+}

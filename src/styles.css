@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+/* Tokens de marca: PLACEHOLDER.
+   Los reales viven en dakota-durango-redesign/app, que no está en este Mac.
+   Ver docs/PENDIENTE.md — nada de esto es arte final. */
+@theme {
+  --color-ambar-ink: #0b0b0c;
+  --color-ambar-beer: #e8a33d;
+  --color-ambar-foam: #f4efe4;
+  --color-ambar-dim: #6b6b70;
+  --font-display: ui-sans-serif, system-ui, sans-serif;
+}
+
+html, body {
+  margin: 0;
+  background: var(--color-ambar-ink);
+  color: var(--color-ambar-foam);
+  font-family: var(--font-display);
+  /* El móvil se inclina: que no rebote ni haga scroll de goma. */
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}

@@ -1,0 +1,57 @@
+{
+  "id": "negra",
+  "name": "Ambar Negra",
+  "glass": {
+    "heightMm": 150,
+    "radiusMm": 38
+  },
+  "pour": {
+    "beerRatePerSec": 0.098,
+    "foamRatePerSec": 0.023,
+    "foamExpansion": 2.0,
+    "foamBase": 0.07,
+    "foamPerDegree": 0.009,
+    "spillRatePerSec": 0.06
+  },
+  "targets": {
+    "fill": 0.95,
+    "foam": 0.25,
+    "fillTolerancePp": 5,
+    "foamTolerancePp": 6
+  },
+  "settle": {
+    "drainRatePerSec": 0.04,
+    "overflowSettleFrac": 0.09
+  },
+  "difficulty": {
+    "kSafe": 0.55,
+    "maxTargetDeg": 48
+  },
+  "look": {
+    "beer": [
+      58,
+      30,
+      16
+    ],
+    "foam": [
+      206,
+      178,
+      136
+    ]
+  },
+  "scoring": {
+    "sigmaDeg": 5,
+    "rhoScaleDeg": 14,
+    "omegaScaleDegPerSec": 30,
+    "pointsPerSecBeer": 900,
+    "pointsPerSecFoam": 1300,
+    "bonusFill": 2500,
+    "bonusFoam": 2500,
+    "bonusClean": 1000,
+    "finalMultiplier": 10,
+    "spillPenalty": 1500,
+    "spillMaxEvents": 3,
+    "spillMaxFrac": 0.15,
+    "spilledMultiplier": 0.35
+  }
+}
