@@ -348,25 +348,48 @@ el labio más bajo se lleva el grueso y el resto aporta cada vez menos hasta
 donde la superficie corta el borde, donde es cero. Eso hace que rebose también
 por el centro, en menor medida, como pedía la física.
 
-### Y lo que ya salió es UNA LENGUA, no pegotes
+### Y lo que ya salió: de hilo a lámina según el caudal
 
-Corregido con referencia fotográfica que aportó el estudio. Yo había apostado
-por regueros finos y luego por pegotes redondos sueltos; **las dos cosas están
-mal**. Lo que se ve en la realidad:
+Corregido dos veces con referencias del estudio, una foto y un vídeo. Yo había
+apostado primero por regueros finos y luego por pegotes redondos sueltos; las
+dos cosas estaban mal. Y **las dos referencias son ciertas: la diferencia es
+el caudal.**
 
-- **Una masa continua y única**, no varias ni desprendida: sigue unida a la
-  corona, pasa el labio y baja.
-- **Cuello fino y bulbo redondeado en el extremo** — tensión superficial
-  acumulando masa en el frente. Es lo que la hace leerse como espesa.
-- **Ancha**: como un quinto del ancho del vaso, así que el radio va escalado
-  al ancho de pantalla y no a píxeles fijos.
-- **Casi blanca**: el 14% de tinte que le había puesto era demasiado; está en
-  el 5%.
-- **Lenta**: tope de 52 px/s, con aceleración corta.
+| | Poco caudal (la foto) | Mucho caudal (el vídeo) |
+|---|---|---|
+| Forma | hilo | **lámina** |
+| Ancho | ~20% del vaso | **40-60%** |
+| Punta | **bulbo** redondeado | sin cabeza, se va por abajo |
+| Borde | curvo | casi **recto** |
+| Velocidad | repta y se para | recubre el vaso en ~1 s |
 
-Aviso para quien mire la misma foto: el segundo bulto que asoma al otro lado
-del labio **es el reflejo del cristal, no espuma**. Lo aclaró el estudio. Sale
-una sola lengua.
+Es la transición de rivulete a lámina: con poco flujo manda la tensión
+superficial y el líquido se recoge en un hilo con cabeza capilar; con mucho
+manda la inercia y se extiende. El parámetro `sheet` de la lengua interpola
+entre las dos, y el ancho y la velocidad escalan con él.
+
+En las dos es **casi blanca** (el 14% de tinte que le había puesto era
+demasiado; está en el 5%) y **opaca**.
+
+Dos avisos para quien mire las mismas referencias:
+
+- En la foto, el segundo bulto que asoma al otro lado del labio **es el
+  reflejo del cristal, no espuma**. Lo aclaró el estudio.
+- En el vídeo **el vaso está prácticamente vertical**, así que la lámina baja
+  por la cara visible y se ve entera. En el juego, a 48°, baja pegada al canto
+  y se ve menos ancha. Es geometría, no un fallo: al enderezar el vaso al
+  final de la tirada se parece más al vídeo.
+
+El ancho **se recalcula mientras la alimenten**, no se congela al nacer. La
+lengua nace en cuanto asoma el primer hilo, con el caudal aún bajo; si el
+radio quedara fijo, se vería fina para siempre por mucho que después estuviera
+rebosando a chorro.
+
+Y si hay caudal pero no hay lengua, nace **sin azar**. El 3% por frame que
+tenía dejaba huecos de segundos con el caudal al máximo y nada en pantalla.
+Eso se vio con el panel de depuración, que ahora muestra
+`caudal · ancho de lengua en px y en % del vaso · lámina`: el ancho se venía
+estimando a ojo desde capturas y así no se puede calibrar.
 
 Implementación: es la única parte del renderer con estado. Una lengua guarda
 su recorrido depositado sobre el cristal, y la punta avanza según la gravedad

@@ -282,6 +282,14 @@ describe('la puntuación se congela en el tercer toque', () => {
   })
 })
 
+/** Una tirada entera sosteniendo un ángulo fijo. */
+  const run = (phiDdeg: number): { f: number; foam: number; spilled: number } => {
+    const st = createState()
+    tap(st)
+    for (let i = 0; i < 700; i++) step(ESPECIAL, st, { phiDdeg, rhoDdeg: 0 })
+    return { f: st.f, foam: st.foam, spilled: st.spilled }
+  }
+
 describe('lo que sale por el borde se pierde, y sale de arriba', () => {
   it('rebosar baja la corona: no sale espuma infinita del vaso lleno', () => {
     // Antes el rebose dejaba `f` clavado en 1 y no tocaba la espuma, así que
@@ -305,12 +313,6 @@ describe('lo que sale por el borde se pierde, y sale de arriba', () => {
     // llenándose, sólo que más despacio y perdiendo la corona. Ver
     // docs/PENDIENTE.md: `spillRatePerSec` es constante y probablemente
     // debería crecer con lo pasado que vas de ángulo.
-    const run = (phiDdeg: number): { f: number; foam: number; spilled: number } => {
-      const st = createState()
-      tap(st)
-      for (let i = 0; i < 700; i++) step(ESPECIAL, st, { phiDdeg, rhoDdeg: 0 })
-      return { f: st.f, foam: st.foam, spilled: st.spilled }
-    }
     const limpio = run(480)   // en el objetivo de salida
     const pasado = run(750)   // muy pasado: derrama
 

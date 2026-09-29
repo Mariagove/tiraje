@@ -59,11 +59,19 @@ const mix = (a: readonly number[], b: readonly number[], t: number): number[] =>
 /**
  * Una lengua de espuma bajando por FUERA del vaso.
  *
- * El modelo sale de una referencia fotográfica, y corrige el anterior. No son
- * pegotes sueltos que resbalan: es **una masa continua y única**, que sigue
- * unida a la corona, pasa el labio y baja despacio dejando un cuello fino y un
- * **bulbo redondeado en el extremo** —tensión superficial acumulando masa en
- * el frente—.
+ * El modelo sale de dos referencias del estudio, una foto y un vídeo, y las
+ * dos son ciertas: **la diferencia es el caudal**.
+ *
+ *   - Poco caudal (la foto): reguero estrecho, ~20% del ancho del vaso, lento,
+ *     con cuello fino y **bulbo redondeado en el extremo** —tensión
+ *     superficial acumulando masa en el frente— que se para a medio camino.
+ *   - Mucho caudal (el vídeo): **lámina ancha**, del 40 al 60% del ancho, de
+ *     borde casi recto, **sin bulbo**, que recubre el vaso en un segundo y se
+ *     va por abajo.
+ *
+ * Es la transición de rivulete a lámina: con poco flujo manda la tensión
+ * superficial y el líquido se recoge en un hilo con cabeza; con mucho manda la
+ * inercia y se extiende. `sheet` interpola entre las dos.
  *
  * Es la única parte del renderer con estado, y hace falta por dos motivos: el
  * recorrido ya depositado se queda pegado al cristal, y la punta avanza según
@@ -79,6 +87,8 @@ interface Tongue {
   r: number
   /** Velocidad de la punta, px/s. Arranca muy lenta: es espesa. */
   v: number
+  /** 0 = hilo con bulbo, 1 = lámina ancha. Lo fija el caudal del labio. */
+  sheet: number
   /** Si la corona sigue alimentándola. */
   fed: boolean
   /** 1 → 0 una vez deja de alimentarse. */
@@ -99,11 +109,17 @@ const TONGUE_STEP_PX = 8
 
 /**
  * Perfil de grosor a lo largo de la lengua, de 0 en el labio a 1 en la punta.
- * Ancha al salir, cuello fino, y bulbo al final.
+ *
+ * Con `sheet` a 0 sale el hilo de la foto: cuello que afina y bulbo capilar al
+ * final. Con `sheet` a 1, la lámina del vídeo: ancho casi constante y sin
+ * cabeza, porque a ese caudal la inercia gana a la tensión superficial.
  */
-function tongueProfile(sN: number): number {
-  const neck = 0.62 + 0.38 * Math.pow(1 - sN, 0.7)
-  const bulb = sN > 0.8 ? 1 + 1.25 * Math.pow((sN - 0.8) / 0.2, 1.5) : 1
+function tongueProfile(sN: number, sheet: number): number {
+  const thread = 0.62 + 0.38 * Math.pow(1 - sN, 0.7)
+  const neck = thread + (1 - thread) * sheet
+  const bulb = sN > 0.8
+    ? 1 + 1.25 * Math.pow((sN - 0.8) / 0.2, 1.5) * (1 - sheet)
+    : 1
   return neck * bulb
 }
 
@@ -197,6 +213,17 @@ export class Glass2D implements GlassRenderer {
    */
   #activity = 0
   #tongues: Tongue[] = []
+  /** Última medida del rebose, para el panel de depuración. */
+  #spillInfo = 'no'
+
+  /**
+   * Qué está haciendo el rebose ahora mismo, en números.
+   *
+   * Está aquí porque el ancho de la lengua se venía estimando a ojo desde
+   * capturas y eso no sirve para calibrar: el caudal del labio y el ancho en
+   * píxeles son dos números y hay que poder leerlos, también en el móvil.
+   */
+  get spillInfo(): string { return this.#spillInfo }
 
   constructor(canvas: HTMLCanvasElement, variety: BakedVariety) {
     const ctx = canvas.getContext('2d', { alpha: false })
@@ -753,6 +780,14 @@ export class Glass2D implements GlassRenderer {
       const grav = gravityOnScreen(f.phi)
       const dt = 1 / 60
 
+      this.#spillInfo = over
+        ? `caudal ${strength.toFixed(2)}` +
+          (this.#tongues.length > 0
+            ? ` · lengua ${(this.#tongues[0]!.r * 2).toFixed(0)}px (${((this.#tongues[0]!.r * 2 / W) * 100).toFixed(0)}% del vaso)` +
+              ` · lámina ${this.#tongues[0]!.sheet.toFixed(2)}`
+            : ' · sin lengua')
+        : this.#tongues.length > 0 ? 'escurriendo' : 'no'
+
       // --- El copete que asoma por encima del labio ----------------------
       if (over) {
         const curtain = H * 0.055 * strength
@@ -788,15 +823,19 @@ export class Glass2D implements GlassRenderer {
             if (this.#tongues.some((t) => Math.abs(t.anchor - xs[i]!) < W * 0.2)) continue
             if (best < 0 || Math.abs(xs[i]!) < Math.abs(xs[best]!)) best = i
           }
-          if (best >= 0 && this.#rnd() < 0.03) {
+          // Sin azar cuando no hay ninguna: si está rebosando tiene que
+          // haber lengua. El 3% por frame que había antes dejaba huecos de
+          // varios segundos con el caudal al máximo y nada en pantalla.
+          if (best >= 0 && (this.#tongues.length === 0 || this.#rnd() < 0.03)) {
             const x = xs[best]!
             this.#tongues.push({
               anchor: x,
               path: [[x, rimY], [x + grav.x * 4, rimY + grav.y * 4]],
-              // Al ancho de la PANTALLA, no a píxeles fijos: en la referencia
-              // la lengua se come como un quinto del ancho del vaso.
-              r: W * (0.032 + 0.055 * weir[best]!) * (0.7 + 0.5 * strength),
+              // Al ancho de la PANTALLA, no a píxeles fijos, y muy sensible al
+              // caudal: un quinto del vaso con poco, la mitad con mucho.
+              r: W * (0.035 + 0.05 * weir[best]!) * (0.8 + 2.2 * strength),
               v: 6,
+              sheet: strength,
               fed: true,
               life: 1,
             })
@@ -815,11 +854,21 @@ export class Glass2D implements GlassRenderer {
         // propia posición, no en general.
         const lip = Math.max(0, Math.min(RIM, Math.round(((t.anchor + W / 2) / W) * RIM)))
         t.fed = over && weir[lip]! > 0.06
-        if (!t.fed) t.life -= dt / 3.2
+        if (t.fed) {
+          // Se ENSANCHA mientras la alimenten. El caudal del labio crece
+          // conforme sube el nivel, y la lengua nace en cuanto asoma el
+          // primer hilo: si el radio se congela al nacer, se queda fina para
+          // siempre por mucho que después esté rebosando a chorro.
+          const rWanted = W * (0.035 + 0.05 * weir[lip]!) * (0.8 + 2.2 * strength)
+          t.r += (rWanted - t.r) * 0.03
+          t.sheet += (strength - t.sheet) * 0.03
+        } else {
+          t.life -= dt / 3.2
+        }
 
-        // La punta avanza según la gravedad ACTUAL. Acelera poco y con tope:
-        // es espuma espesa agarrada al cristal, no una gota cayendo.
-        t.v = Math.min(52, t.v + 20 * dt)
+        // La punta avanza según la gravedad ACTUAL. Un hilo repta; una lámina
+        // baja rápido — en el vídeo recubre el vaso en poco más de un segundo.
+        t.v = Math.min(52 + 200 * t.sheet, t.v + (20 + 220 * t.sheet) * dt)
         const tip = t.path[t.path.length - 1]!
         tip[0]! += grav.x * t.v * dt
         tip[1]! += grav.y * t.v * dt
@@ -852,7 +901,7 @@ export class Glass2D implements GlassRenderer {
         ctx.beginPath()
         for (let j = 0; j < n; j++) {
           const sN = n > 1 ? j / (n - 1) : 0
-          const r = t.r * tongueProfile(sN) * (t.fed ? 1 : 0.55 + 0.45 * t.life)
+          const r = t.r * tongueProfile(sN, t.sheet) * (t.fed ? 1 : 0.55 + 0.45 * t.life)
           const p = t.path[j]!
           ctx.moveTo(p[0]! + r, p[1]!)
           ctx.arc(p[0]!, p[1]!, r, 0, Math.PI * 2)
