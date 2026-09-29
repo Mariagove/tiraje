@@ -57,21 +57,51 @@ const mix = (a: readonly number[], b: readonly number[], t: number): number[] =>
   [a[0]! + (b[0]! - a[0]!) * t, a[1]! + (b[1]! - a[1]!) * t, a[2]! + (b[2]! - a[2]!) * t]
 
 /**
- * Un pegote de espuma resbalando por FUERA del vaso.
+ * Una lengua de espuma bajando por FUERA del vaso.
  *
- * Tiene estado, a diferencia de todo lo demás del renderer, y hace falta: la
- * espuma que ya salió por el borde no puede quedarse ahí cuando el jugador
- * endereza el móvil. Tiene que seguir cayendo, y para eso hay que recordar
- * dónde está.
+ * El modelo sale de una referencia fotográfica, y corrige el anterior. No son
+ * pegotes sueltos que resbalan: es **una masa continua y única**, que sigue
+ * unida a la corona, pasa el labio y baja despacio dejando un cuello fino y un
+ * **bulbo redondeado en el extremo** —tensión superficial acumulando masa en
+ * el frente—.
+ *
+ * Es la única parte del renderer con estado, y hace falta por dos motivos: el
+ * recorrido ya depositado se queda pegado al cristal, y la punta avanza según
+ * la gravedad **del instante**. Si el jugador endereza el móvil a media
+ * caída, la lengua se dobla ahí — que es justo lo que haría.
  */
-interface OuterFoam {
-  x: number
-  y: number
+interface Tongue {
+  /** Posición en el labio por la que salió. */
+  anchor: number
+  /** Recorrido depositado sobre el cristal. La punta es el último punto. */
+  path: number[][]
+  /** Radio base, en píxeles. */
   r: number
-  /** Velocidad a lo largo de la gravedad, px/s. Arranca lenta: es pegajosa. */
+  /** Velocidad de la punta, px/s. Arranca muy lenta: es espesa. */
   v: number
-  /** 1 → 0. Al llegar a 0 desaparece. */
+  /** Si la corona sigue alimentándola. */
+  fed: boolean
+  /** 1 → 0 una vez deja de alimentarse. */
   life: number
+}
+
+/**
+ * Una sola lengua a la vez.
+ *
+ * En la referencia se ve un segundo bulto al otro lado del labio, pero es el
+ * REFLEJO DEL CRISTAL, no espuma — lo aclaró el estudio. Sale una lengua, la
+ * que se lleva el caudal; cuando muere puede salir otra.
+ */
+const MAX_TONGUES = 1
+
+/**
+ * Perfil de grosor a lo largo de la lengua, de 0 en el labio a 1 en la punta.
+ * Ancha al salir, cuello fino, y bulbo al final.
+ */
+function tongueProfile(sN: number): number {
+  const neck = 0.62 + 0.38 * Math.pow(1 - sN, 0.7)
+  const bulb = sN > 0.8 ? 1 + 1.25 * Math.pow((sN - 0.8) / 0.2, 1.5) : 1
+  return neck * bulb
 }
 
 interface Bubble {
@@ -163,7 +193,7 @@ export class Glass2D implements GlassRenderer {
    * golpe. También alimenta la amplitud del oleaje.
    */
   #activity = 0
-  #outer: OuterFoam[] = []
+  #tongues: Tongue[] = []
 
   constructor(canvas: HTMLCanvasElement, variety: BakedVariety) {
     const ctx = canvas.getContext('2d', { alpha: false })
@@ -680,7 +710,8 @@ export class Glass2D implements GlassRenderer {
     // y su punto más bajo es la esquina hacia la que tira la gravedad.
     // ================================================================
     {
-      const FOAM_OUT = mix(FOAM, BEER, 0.14)
+      // Casi blanca: en la referencia apenas está teñida de cerveza.
+      const FOAM_OUT = mix(FOAM, BEER, 0.05)
       ctx.save()
       ctx.translate(cx, cy)
 
@@ -719,16 +750,16 @@ export class Glass2D implements GlassRenderer {
       const grav = gravityOnScreen(f.phi)
       const dt = 1 / 60
 
-      // --- Lo que está saliendo ahora: la cortina sobre el borde ---------
+      // --- El copete que asoma por encima del labio ----------------------
       if (over) {
-        const curtain = H * 0.075 * strength
+        const curtain = H * 0.055 * strength
         const front: number[][] = []
         for (let i = RIM; i >= 0; i--) {
-          const jag = 1 + 0.2 * Math.sin(i * 1.7 - f.t * 3.4) + 0.11 * Math.sin(i * 4.1 + f.t * 2.2)
+          const jag = 1 + 0.16 * Math.sin(i * 1.7 - f.t * 2.2) + 0.09 * Math.sin(i * 4.1 + f.t * 1.4)
           front.push([xs[i]!, rimY + curtain * weir[i]! * jag])
         }
         ctx.save()
-        ctx.shadowColor = 'rgba(0,0,0,0.45)'
+        ctx.shadowColor = 'rgba(0,0,0,0.42)'
         ctx.shadowBlur = 7
         ctx.shadowOffsetY = 3
         ctx.beginPath()
@@ -736,65 +767,87 @@ export class Glass2D implements GlassRenderer {
         ctx.lineTo(W / 2, rimY)
         smoothTo(ctx, front)
         ctx.closePath()
-        const cg = ctx.createLinearGradient(0, rimY, 0, rimY + curtain)
-        cg.addColorStop(0, rgba(FOAM_OUT, 0.96))
-        cg.addColorStop(1, rgba(FOAM_OUT, 0.74))
-        ctx.fillStyle = cg
+        ctx.fillStyle = rgba(FOAM_OUT, 0.96)
         ctx.fill()
         ctx.restore()
 
-        // Y se desprenden pegotes, repartidos según el mismo perfil.
-        const cap = Math.max(8, this.#tier.bubbles)
-        const births = strength > 0.55 ? 2 : 1
-        for (let b = 0; b < births && this.#outer.length < cap; b++) {
-          // Rechazo por el perfil: nace donde de verdad está saliendo.
-          for (let tryN = 0; tryN < 8; tryN++) {
-            const i = Math.floor(this.#rnd() * (RIM + 1))
-            if (this.#rnd() > weir[i]!) continue
-            this.#outer.push({
-              x: xs[i]! + (this.#rnd() - 0.5) * (W / RIM),
-              y: rimY + H * 0.05 * weir[i]!,
-              r: (3 + this.#rnd() * 5) * (0.5 + 0.5 * weir[i]!),
-              v: 8 + this.#rnd() * 14,
+        // Nace dentro de la franja del labio con más caudal, en su punto más
+        // interior. No en el máximo exacto: ése es la esquina, y una lengua
+        // que nace en la esquina se va medio fuera de pantalla en cuanto la
+        // gravedad la empuja. El rebose ocurre sobre un TRAMO del labio, no
+        // sobre un punto, así que elegir el borde interior de ese tramo es
+        // igual de cierto y se ve entero.
+        if (this.#tongues.length < MAX_TONGUES) {
+          const MIN_FLOW = 0.65
+          let best = -1
+          for (let i = 0; i <= RIM; i++) {
+            if (weir[i]! < MIN_FLOW) continue
+            if (this.#tongues.some((t) => Math.abs(t.anchor - xs[i]!) < W * 0.2)) continue
+            if (best < 0 || Math.abs(xs[i]!) < Math.abs(xs[best]!)) best = i
+          }
+          if (best >= 0 && this.#rnd() < 0.03) {
+            const x = xs[best]!
+            this.#tongues.push({
+              anchor: x,
+              path: [[x, rimY], [x + grav.x * 4, rimY + grav.y * 4]],
+              // Al ancho de la PANTALLA, no a píxeles fijos: en la referencia
+              // la lengua se come como un quinto del ancho del vaso.
+              r: W * (0.032 + 0.055 * weir[best]!) * (0.7 + 0.5 * strength),
+              v: 6,
+              fed: true,
               life: 1,
             })
-            break
           }
         }
       }
 
-      // --- Lo que ya salió: resbala, siempre según la gravedad ACTUAL -----
-      //
-      // Aquí está la corrección: la espuma derramada no pertenece al borde,
-      // pertenece a la pared. Si el jugador endereza el móvil, lo que había
-      // salido sigue bajando por donde tire la gravedad en ese momento.
+      // --- Las lenguas ---------------------------------------------------
       ctx.save()
-      ctx.shadowColor = 'rgba(0,0,0,0.38)'
-      ctx.shadowBlur = 6
-      for (let i = this.#outer.length - 1; i >= 0; i--) {
-        const o = this.#outer[i]!
-        // Acelera despacio y con tope: es espuma pegada al cristal, no una
-        // gota en caída libre.
-        o.v = Math.min(150, o.v + 150 * dt)
-        o.x += grav.x * o.v * dt
-        o.y += grav.y * o.v * dt
-        o.r += 3 * dt              // se extiende al resbalar
-        o.life -= dt / 2.6
-        if (o.life <= 0 || Math.abs(o.x) > W / 2 + o.r * 2 || o.y > H / 2 + o.r * 2) {
-          this.#outer.splice(i, 1)
+      ctx.shadowColor = 'rgba(0,0,0,0.4)'
+      ctx.shadowBlur = 8
+      for (let i = this.#tongues.length - 1; i >= 0; i--) {
+        const t = this.#tongues[i]!
+
+        // ¿La sigue alimentando la corona? Se mira el caudal del labio en su
+        // propia posición, no en general.
+        const lip = Math.max(0, Math.min(RIM, Math.round(((t.anchor + W / 2) / W) * RIM)))
+        t.fed = over && weir[lip]! > 0.06
+        if (!t.fed) t.life -= dt / 3.2
+
+        // La punta avanza según la gravedad ACTUAL. Acelera poco y con tope:
+        // es espuma espesa agarrada al cristal, no una gota cayendo.
+        t.v = Math.min(52, t.v + 20 * dt)
+        const tip = t.path[t.path.length - 1]!
+        const nx = tip[0]! + grav.x * t.v * dt
+        const ny = tip[1]! + grav.y * t.v * dt
+        // Se deposita un punto nuevo cada pocos píxeles; entre medias sólo se
+        // mueve la punta. Así el recorrido ya pegado al cristal no se mueve.
+        if (Math.hypot(nx - tip[0]!, ny - tip[1]!) > 5 && t.path.length < 90) {
+          t.path.push([nx, ny])
+        } else {
+          tip[0] = nx; tip[1] = ny
+        }
+
+        const last = t.path[t.path.length - 1]!
+        if (t.life <= 0 || last[1]! > H / 2 + 40 || Math.abs(last[0]!) > W / 2 + 40) {
+          this.#tongues.splice(i, 1)
           continue
         }
-        // Se estira en la dirección de la caída: eso es lo que lo lee como
-        // "resbalando" y no como "una pelota".
-        const stretch = 1 + o.v / 90
-        ctx.save()
-        ctx.translate(o.x, o.y)
-        ctx.rotate(Math.atan2(grav.y, grav.x))
-        ctx.fillStyle = rgba(FOAM_OUT, 0.9 * Math.min(1, o.life * 1.6))
+
+        // Se dibuja como una cadena de círculos en UN SOLO path: la unión sale
+        // suave y sin costuras, y el bulbo del extremo es sólo un radio mayor.
+        const n = t.path.length
+        const fade = Math.min(1, t.life * 1.4)
         ctx.beginPath()
-        ctx.ellipse(0, 0, o.r * stretch, o.r, 0, 0, Math.PI * 2)
+        for (let j = 0; j < n; j++) {
+          const sN = n > 1 ? j / (n - 1) : 0
+          const r = t.r * tongueProfile(sN) * (t.fed ? 1 : 0.55 + 0.45 * t.life)
+          const p = t.path[j]!
+          ctx.moveTo(p[0]! + r, p[1]!)
+          ctx.arc(p[0]!, p[1]!, r, 0, Math.PI * 2)
+        }
+        ctx.fillStyle = rgba(FOAM_OUT, 0.95 * fade)
         ctx.fill()
-        ctx.restore()
       }
       ctx.restore()
       ctx.restore()
@@ -802,5 +855,5 @@ export class Glass2D implements GlassRenderer {
     // (La UI va en DOM, no en canvas: texto nítido gratis y no cuesta fillrate.)
   }
 
-  dispose(): void { this.#bubbles = []; this.#outer = [] }
+  dispose(): void { this.#bubbles = []; this.#tongues = [] }
 }

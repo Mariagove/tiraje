@@ -348,17 +348,39 @@ el labio más bajo se lleva el grueso y el resto aporta cada vez menos hasta
 donde la superficie corta el borde, donde es cero. Eso hace que rebose también
 por el centro, en menor medida, como pedía la física.
 
-### Y lo que ya salió obedece a la gravedad
+### Y lo que ya salió es UNA LENGUA, no pegotes
 
-La espuma derramada **no pertenece al borde, pertenece a la pared**. Es la
-única parte del renderer con estado: pegotes con posición, radio y vida, que
-resbalan según la gravedad **del instante**, aceleran despacio con tope —es
-espuma pegada al cristal, no una gota en caída libre—, se estiran en la
-dirección de la caída y se extienden al bajar. Si el jugador endereza el
-móvil, lo que había salido sigue cayendo por donde tire la gravedad ahora.
+Corregido con referencia fotográfica que aportó el estudio. Yo había apostado
+por regueros finos y luego por pegotes redondos sueltos; **las dos cosas están
+mal**. Lo que se ve en la realidad:
 
-La espuma de fuera va **teñida** de cerveza (arrastra líquido) y lleva
-**sombra**: sin ella se fundía con la corona del propio vaso —las dos
+- **Una masa continua y única**, no varias ni desprendida: sigue unida a la
+  corona, pasa el labio y baja.
+- **Cuello fino y bulbo redondeado en el extremo** — tensión superficial
+  acumulando masa en el frente. Es lo que la hace leerse como espesa.
+- **Ancha**: como un quinto del ancho del vaso, así que el radio va escalado
+  al ancho de pantalla y no a píxeles fijos.
+- **Casi blanca**: el 14% de tinte que le había puesto era demasiado; está en
+  el 5%.
+- **Lenta**: tope de 52 px/s, con aceleración corta.
+
+Aviso para quien mire la misma foto: el segundo bulto que asoma al otro lado
+del labio **es el reflejo del cristal, no espuma**. Lo aclaró el estudio. Sale
+una sola lengua.
+
+Implementación: es la única parte del renderer con estado. Una lengua guarda
+su recorrido depositado sobre el cristal, y la punta avanza según la gravedad
+**del instante**. Eso da gratis dos cosas correctas: lo ya depositado se queda
+pegado donde estaba, y si el jugador endereza el móvil a media caída, **la
+lengua se dobla ahí**. Se dibuja como una cadena de círculos en un solo path,
+así la unión sale sin costuras y el bulbo es sólo un radio mayor.
+
+Nace en el punto más INTERIOR de la franja del labio con caudal alto, no en el
+máximo exacto: ése es la esquina, y una lengua que nace en la esquina se va
+medio fuera de pantalla en cuanto la gravedad la empuja. El rebose ocurre
+sobre un tramo del labio, no sobre un punto, así que es igual de cierto.
+
+Lleva **sombra**: sin ella se fundía con la corona del propio vaso —las dos
 blancas, una justo detrás de la otra— y quedaba una mancha sin profundidad.
 
 ## Bug del enganche de rebose
