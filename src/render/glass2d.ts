@@ -94,6 +94,9 @@ interface Tongue {
  */
 const MAX_TONGUES = 1
 
+/** Separación entre puntos del recorrido. Con radios de ~30 px solapan de sobra. */
+const TONGUE_STEP_PX = 8
+
 /**
  * Perfil de grosor a lo largo de la lengua, de 0 en el labio a 1 en la punta.
  * Ancha al salir, cuello fino, y bulbo al final.
@@ -818,14 +821,22 @@ export class Glass2D implements GlassRenderer {
         // es espuma espesa agarrada al cristal, no una gota cayendo.
         t.v = Math.min(52, t.v + 20 * dt)
         const tip = t.path[t.path.length - 1]!
-        const nx = tip[0]! + grav.x * t.v * dt
-        const ny = tip[1]! + grav.y * t.v * dt
-        // Se deposita un punto nuevo cada pocos píxeles; entre medias sólo se
-        // mueve la punta. Así el recorrido ya pegado al cristal no se mueve.
-        if (Math.hypot(nx - tip[0]!, ny - tip[1]!) > 5 && t.path.length < 90) {
-          t.path.push([nx, ny])
-        } else {
-          tip[0] = nx; tip[1] = ny
+        tip[0]! += grav.x * t.v * dt
+        tip[1]! += grav.y * t.v * dt
+
+        // Se deposita un punto nuevo cuando la punta se ha separado lo
+        // suficiente **del último punto YA DEPOSITADO**, no de sí misma.
+        //
+        // Ésa era la comparación mal hecha: medía lo que avanza la punta en
+        // un frame, unos 0,87 px, que nunca llega al umbral. No se depositaba
+        // nada, el recorrido se quedaba en dos puntos —el ancla en el labio y
+        // la punta— y se dibujaban dos círculos sueltos: uno clavado en el
+        // borde y otro alejándose. De ahí los dos síntomas a la vez, que la
+        // lengua no deslizaba y que salía cortada.
+        const prev = t.path[t.path.length - 2]
+        if (prev && Math.hypot(tip[0]! - prev[0]!, tip[1]! - prev[1]!) > TONGUE_STEP_PX
+            && t.path.length < 140) {
+          t.path.push([tip[0]!, tip[1]!])
         }
 
         const last = t.path[t.path.length - 1]!

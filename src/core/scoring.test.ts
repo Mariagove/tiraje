@@ -246,11 +246,14 @@ describe('la puntuación se congela en el tercer toque', () => {
     expect(after.fill).toBe(1)
   })
 
-  it('lo que se va al asentarse es espuma, no cerveza', () => {
+  it('al asentarse baja el nivel y la corona nunca sube', () => {
+    // Tras un rebose largo la corona ya se ha ido entera por el borde, así
+    // que aquí lo que queda por comprobar es que el asentamiento sigue
+    // bajando el nivel y que la espuma nunca crece sola.
     const { st, fAtClose, foamAtClose } = overflowThen(400)
-    const perdido = fAtClose - st.f
-    expect(perdido).toBeGreaterThan(0.05)
-    expect(foamAtClose - st.foam).toBeCloseTo(perdido, 9)
+    expect(fAtClose - st.f).toBeGreaterThan(0.05)
+    expect(st.foam).toBeLessThanOrEqual(foamAtClose)
+    expect(st.foam).toBeLessThanOrEqual(st.f)
   })
 
   it('un vaso que no rebosó no se asienta', () => {
@@ -276,6 +279,47 @@ describe('la puntuación se congela en el tercer toque', () => {
     }
     const corto: GameTrace = { ...trace, samples: pour }
     expect(replay(ESPECIAL, trace).score).toBe(replay(ESPECIAL, corto).score)
+  })
+})
+
+describe('lo que sale por el borde se pierde, y sale de arriba', () => {
+  it('rebosar baja la corona: no sale espuma infinita del vaso lleno', () => {
+    // Antes el rebose dejaba `f` clavado en 1 y no tocaba la espuma, así que
+    // se veía salir espuma sin fin mientras el vaso seguía igual de lleno.
+    const st = createState()
+    tap(st)
+    for (let i = 0; i < 1100; i++) step(ESPECIAL, st, { phiDdeg: 0, rhoDdeg: 0 })
+    expect(st.f).toBeCloseTo(1, 6)
+    const foamAlLlenar = st.foam
+    expect(foamAlLlenar).toBeGreaterThan(0.05)
+
+    for (let i = 0; i < 400; i++) step(ESPECIAL, st, { phiDdeg: 0, rhoDdeg: 0 })
+    expect(st.foam).toBeLessThan(foamAlLlenar)
+    expect(st.spilled).toBeGreaterThan(0)
+  })
+
+  it('derramar cuesta llenado y corona frente a no derramar', () => {
+    // Comparativo a propósito, y esto es un hallazgo del propio test: con el
+    // grifo abierto, pasarse de inclinación NO vacía el vaso. El caudal de
+    // entrada (0,105/s) supera al de derrame (0,06/s), así que sigue
+    // llenándose, sólo que más despacio y perdiendo la corona. Ver
+    // docs/PENDIENTE.md: `spillRatePerSec` es constante y probablemente
+    // debería crecer con lo pasado que vas de ángulo.
+    const run = (phiDdeg: number): { f: number; foam: number; spilled: number } => {
+      const st = createState()
+      tap(st)
+      for (let i = 0; i < 700; i++) step(ESPECIAL, st, { phiDdeg, rhoDdeg: 0 })
+      return { f: st.f, foam: st.foam, spilled: st.spilled }
+    }
+    const limpio = run(480)   // en el objetivo de salida
+    const pasado = run(750)   // muy pasado: derrama
+
+    // Ojo: el "limpio" también derrama un pelín. Al llegar al 76% de llenado
+    // el límite baja a 46°, así que quedarse en el ángulo de salida acaba
+    // derramando — que es exactamente la premisa del juego.
+    expect(pasado.spilled).toBeGreaterThan(limpio.spilled * 10)
+    expect(pasado.f).toBeLessThan(limpio.f)
+    expect(pasado.foam).toBeLessThan(limpio.foam)
   })
 })
 

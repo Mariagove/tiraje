@@ -383,6 +383,36 @@ sobre un tramo del labio, no sobre un punto, así que es igual de cierto.
 Lleva **sombra**: sin ella se fundía con la corona del propio vaso —las dos
 blancas, una justo detrás de la otra— y quedaba una mancha sin profundidad.
 
+### El bug que hacía que no deslizase y saliera cortada
+
+Un error de una línea con dos síntomas. El recorrido se depositaba comparando
+la distancia recorrida por la punta **consigo misma**, o sea lo que avanza en
+un frame: unos 0,87 px, que nunca llega al umbral de 5. No se depositaba ni un
+punto, el recorrido se quedaba en dos —el ancla del labio, que no se mueve
+nunca, y la punta— y se dibujaban dos círculos sueltos. De ahí que pareciera a
+la vez que la espuma se quedaba pegada al borde y que salía cortada.
+
+La comparación correcta es contra el último punto **ya depositado**.
+
+### Lo que sale por el borde se pierde, y sale de arriba
+
+También corregido. `loseOverRim` baja llenado y corona a la vez, con la espuma
+primero: lo que pasa por encima del borde es lo de arriba.
+
+Antes el rebose dejaba `f` clavado en 1 sin tocar la espuma —se veía salir
+espuma sin fin con el vaso igual de lleno— y el derrame por inclinación bajaba
+el nivel pero dejaba la corona intacta, que es justo al revés. De los diez
+fixtures sólo se movió `negra-spiller`, −160 puntos, que es la consecuencia
+esperada.
+
+**Hallazgo de un test, sin resolver:** con el grifo abierto, pasarse de
+inclinación **no vacía el vaso**. El caudal de entrada (0,105/s) supera al de
+derrame (`spillRatePerSec` 0,06/s), así que a 75° el vaso sigue llenándose,
+sólo que hasta el 43% en vez del 76% y sin corona. `spillRatePerSec` es
+constante y probablemente debería crecer con lo pasado que vas de ángulo —más
+inclinación, más ancha la boca de salida—. Es conjetura mía desde el principio
+y cambiarlo mueve el equilibrio, así que lo dejo anotado.
+
 ## Bug del enganche de rebose
 
 `overflowing` se quedaba pegado a `true` para siempre, así que el vaso seguía

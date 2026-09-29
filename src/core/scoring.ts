@@ -116,6 +116,21 @@ export function createState(): ScoreState {
 const clampInt = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v)
 
 /**
+ * Se va `amount` de vaso por encima del borde.
+ *
+ * Lo que sale es lo de ARRIBA, o sea espuma antes que cerveza. Y sale del
+ * vaso: baja el llenado. Antes el rebose dejaba `f` clavado en 1 y no tocaba
+ * la espuma, así que se veía salir espuma sin fin mientras el vaso seguía
+ * igual de lleno; y el derrame por inclinación bajaba el nivel pero dejaba la
+ * corona intacta, que es al revés de lo que pasa.
+ */
+function loseOverRim(st: ScoreState, amount: number): void {
+  st.f = st.f > amount ? st.f - amount : 0
+  st.foam = st.foam > amount ? st.foam - amount : 0
+  st.spilled += amount
+}
+
+/**
  * Un toque. Avanza la fase y abre la ventana de blanking.
  * `ready → beer → foam → closed`; más toques no hacen nada.
  */
@@ -159,10 +174,7 @@ export function step(v: BakedVariety, st: ScoreState, smp: TraceSample): void {
   if (st.phase === 'closed' && st.overflowedAtClose) {
     const settled = 1 - cfg.settle.overflowSettleFrac
     if (st.f > settled) {
-      const d = Math.min(cfg.settle.drainRatePerSec * STEP_S, st.f - settled)
-      st.f -= d
-      st.foam = st.foam > d ? st.foam - d : 0   // lo que se va es espuma
-      st.spilled += d
+      loseOverRim(st, Math.min(cfg.settle.drainRatePerSec * STEP_S, st.f - settled))
     }
   }
 
@@ -185,9 +197,7 @@ export function step(v: BakedVariety, st: ScoreState, smp: TraceSample): void {
   // temblor del propio toque: la ventana de puntuación acaba al cerrar.
   if (st.phase !== 'closed' && st.f > 0 && aPhi > v.SPILL_DDEG[fi]!) {
     if (!st.spilling) { st.spilling = true; st.spillEvents++ }
-    const lost = p.spillRatePerSec * STEP_S
-    st.f = st.f > lost ? st.f - lost : 0
-    st.spilled += lost
+    loseOverRim(st, p.spillRatePerSec * STEP_S)
   } else {
     st.spilling = false
   }
@@ -257,9 +267,7 @@ export function step(v: BakedVariety, st: ScoreState, smp: TraceSample): void {
   // sin límite y el resultado llega a decir «120% lleno», que además rompe el
   // bono de llenado y la marca grabada en el cristal.
   if (st.f > 1) {
-    const over = st.f - 1
-    st.f = 1
-    st.spilled += over
+    loseOverRim(st, st.f - 1)
     if (!st.overflowing) { st.overflowing = true; st.spillEvents++ }
   } else {
     // `else`, no `else if (st.f < 1)`. Tras recortar, `f` queda EXACTAMENTE
