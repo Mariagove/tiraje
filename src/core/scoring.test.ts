@@ -296,6 +296,14 @@ describe('la puntuación se congela en el tercer toque', () => {
     return { f: st.f, foam: st.foam, spilled: st.spilled }
   }
 
+/** Fracción de vaso perdida sosteniendo un ángulo 7 s. */
+const perdido = (phiDdeg: number): number => {
+  const st = createState()
+  tap(st)
+  for (let i = 0; i < 700; i++) step(ESPECIAL, st, { phiDdeg, rhoDdeg: 0 })
+  return st.spilled
+}
+
 describe('derramar baja el nivel', () => {
   it('pasarse de inclinación con el vaso lleno lo vacía, no lo frena', () => {
     // Con caudal de derrame CONSTANTE esto no pasaba: la entrada (~0,12 de
@@ -315,12 +323,6 @@ describe('derramar baja el nivel', () => {
   })
 
   it('el caudal crece con el exceso de ángulo, no es constante', () => {
-    const perdido = (phiDdeg: number): number => {
-      const st = createState()
-      tap(st)
-      for (let i = 0; i < 700; i++) step(ESPECIAL, st, { phiDdeg, rhoDdeg: 0 })
-      return st.spilled
-    }
     const poco = perdido(550)
     const medio = perdido(620)
     const mucho = perdido(750)

@@ -91,8 +91,15 @@ interface Tongue {
   sheet: number
   /** Si la corona sigue alimentándola. */
   fed: boolean
-  /** 1 → 0 una vez deja de alimentarse. */
-  life: number
+  /**
+   * Índice del primer punto que aún existe.
+   *
+   * Mientras la alimenten vale 0: la lengua está pegada al labio. Cuando deja
+   * de alimentarse, **avanza**, así que la espuma desaparece desde el borde
+   * hacia la base mientras la punta sigue resbalando. El segmento visible se
+   * desplaza hacia abajo y se consume, en vez de esfumarse entero a la vez.
+   */
+  from: number
 }
 
 /**
@@ -106,6 +113,16 @@ const MAX_TONGUES = 1
 
 /** Separación entre puntos del recorrido. Con radios de ~30 px solapan de sobra. */
 const TONGUE_STEP_PX = 8
+
+/**
+ * Intensidad mínima para que haya rebose en pantalla.
+ *
+ * El mismo número decide tres cosas —si se dibuja la cortina, si puede nacer
+ * una lengua y si la lengua se alimenta— y tiene que ser el mismo para las
+ * tres: una lengua que puede nacer pero no alimentarse entra en un ciclo de
+ * nacer en el labio y consumirse, que se lee como espuma que vuelve a subir.
+ */
+const SPILL_ON = 0.08
 
 /**
  * Perfil de grosor a lo largo de la lengua, de 0 en el labio a 1 en la punta.
@@ -790,7 +807,13 @@ export class Glass2D implements GlassRenderer {
       const raw = wet ? Math.min(1, maxD / (H * 0.04)) : 0
       this.#spill += (raw - this.#spill) * (raw > this.#spill ? 0.25 : 0.06)
       const strength = this.#spill
-      const over = strength > 0.02
+      // UN solo umbral para dibujar, para engendrar y para alimentar.
+      //
+      // Con dos umbrales distintos quedaba una franja en la que había rebose
+      // —así que podía nacer una lengua— pero no alimento, así que la lengua
+      // se consumía, moría, y nacía otra en el labio. Se ve como si la espuma
+      // volviera a subir en lugar de acabar de caer.
+      const over = strength > SPILL_ON
 
       // El perfil se guarda mientras haya rebose, y se reutiliza mientras se
       // desvanece: si no, la cortina se quedaría sin forma en cuanto el labio
@@ -858,7 +881,7 @@ export class Glass2D implements GlassRenderer {
               v: 6,
               sheet: strength,
               fed: true,
-              life: 1,
+              from: 0,
             })
           }
         }
@@ -876,8 +899,9 @@ export class Glass2D implements GlassRenderer {
         // Se alimenta de la intensidad suavizada, no del booleano crudo: con
         // el derrame autolimitándose, la lengua se moría y renacía varias
         // veces por segundo.
-        t.fed = strength > 0.08
+        t.fed = over
         if (t.fed) {
+          t.from = 0
           // Se ENSANCHA mientras la alimenten. El caudal crece conforme sube
           // el nivel, y la lengua nace en cuanto asoma el primer hilo: si el
           // radio se congela al nacer, se queda fina para siempre por mucho
@@ -885,8 +909,6 @@ export class Glass2D implements GlassRenderer {
           const rWanted = W * 0.068 * (0.8 + 2.2 * strength)
           t.r += (rWanted - t.r) * 0.03
           t.sheet += (strength - t.sheet) * 0.03
-        } else {
-          t.life -= dt / 3.2
         }
 
         // La punta avanza según la gravedad ACTUAL. Un hilo repta; una lámina
@@ -906,30 +928,44 @@ export class Glass2D implements GlassRenderer {
         // borde y otro alejándose. De ahí los dos síntomas a la vez, que la
         // lengua no deslizaba y que salía cortada.
         const prev = t.path[t.path.length - 2]
-        if (prev && Math.hypot(tip[0]! - prev[0]!, tip[1]! - prev[1]!) > TONGUE_STEP_PX
-            && t.path.length < 140) {
+        const onScreen = tip[1]! < H / 2 + 60 && Math.abs(tip[0]!) < W / 2 + 60
+        if (prev && onScreen && t.path.length < 200
+            && Math.hypot(tip[0]! - prev[0]!, tip[1]! - prev[1]!) > TONGUE_STEP_PX) {
           t.path.push([tip[0]!, tip[1]!])
         }
 
-        const last = t.path[t.path.length - 1]!
-        if (t.life <= 0 || last[1]! > H / 2 + 40 || Math.abs(last[0]!) > W / 2 + 40) {
+        // Sin alimento, se consume desde el LABIO hacia abajo, al mismo ritmo
+        // al que resbala. Mientras la alimenten no se consume nunca: una
+        // lengua alimentada llega del labio a la base y ahí se queda, que es
+        // lo que hace un rebose continuo.
+        //
+        // Esto sustituye al ciclo de vida anterior, que la mataba al llegar
+        // abajo y hacía nacer otra en el labio al instante: se veía como si
+        // la espuma volviera a subir en vez de acabar de caer.
+        if (!t.fed) t.from += (t.v * dt) / TONGUE_STEP_PX
+
+        if (t.from >= t.path.length - 1) {
           this.#tongues.splice(i, 1)
           continue
         }
 
         // Se dibuja como una cadena de círculos en UN SOLO path: la unión sale
         // suave y sin costuras, y el bulbo del extremo es sólo un radio mayor.
+        // Se dibuja sólo lo que queda, del punto `from` a la punta, y el
+        // perfil se mide sobre ESE tramo: así el bulbo sigue en la punta
+        // aunque la lengua se esté consumiendo por arriba.
         const n = t.path.length
-        const fade = Math.min(1, t.life * 1.4)
+        const j0 = Math.floor(t.from)
+        const span = Math.max(1, n - 1 - j0)
         ctx.beginPath()
-        for (let j = 0; j < n; j++) {
-          const sN = n > 1 ? j / (n - 1) : 0
-          const r = t.r * tongueProfile(sN, t.sheet) * (t.fed ? 1 : 0.55 + 0.45 * t.life)
+        for (let j = j0; j < n; j++) {
+          const sN = (j - j0) / span
+          const r = t.r * tongueProfile(sN, t.sheet) * (t.fed ? 1 : 0.88)
           const p = t.path[j]!
           ctx.moveTo(p[0]! + r, p[1]!)
           ctx.arc(p[0]!, p[1]!, r, 0, Math.PI * 2)
         }
-        ctx.fillStyle = rgba(FOAM_OUT, 0.95 * fade)
+        ctx.fillStyle = rgba(FOAM_OUT, 0.95)
         ctx.fill()
       }
       ctx.restore()

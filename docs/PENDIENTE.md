@@ -459,6 +459,37 @@ episodio largo en vez de tres cortos, así que la regla de `spillMaxEvents ≥ 3
 casi no dispara y lo que declara la caña derramada es la fracción perdida. Es
 lo que importa, pero conviene saberlo si algún día se toca el umbral.
 
+### La lengua va del labio a la base, y se consume desde el labio
+
+Se veía como si la espuma **volviera a subir** en lugar de acabar de caer.
+Eran dos ciclos de nacimiento y muerte, uno detrás de otro:
+
+1. La lengua se mataba al llegar abajo y, con una sola permitida, nacía otra
+   en el labio **al instante**. Eso es literalmente un salto a lo alto.
+2. Corregido lo anterior, quedaba una franja de intensidad en la que **sí se
+   dibujaba y sí podía nacer una lengua, pero no se alimentaba**: se consumía,
+   moría, y nacía otra. El mismo salto por otra puerta.
+
+Ahora **un solo umbral** (`SPILL_ON`) decide las tres cosas: si se dibuja la
+cortina, si puede nacer una lengua y si la lengua se alimenta. Una lengua
+alimentada **no se mata nunca**: llega del labio a la base y ahí se queda, que
+es lo que hace un rebose continuo.
+
+Y al dejar de alimentarse **se consume desde el labio hacia abajo**, al mismo
+ritmo al que resbala: el índice `from` avanza, así que el tramo visible migra
+hacia la base y se acaba. No se esfuma entero de golpe.
+
+### Consecuencia del caudal de vertedero que conviene evaluar
+
+Con el derrame ahora tan sensible al ángulo, **sostener 48° ya no llega a
+rebosar**: el vaso se autolimita en el 76% de llenado. Para que rebose de
+verdad hay que estar casi vertical, que es cuando el límite de derrame es
+alto y el vaso sí se llena hasta el borde.
+
+Tiene sentido físico y refuerza la premisa del juego —hay que enderezar— pero
+cambia bastante cuándo se ve el rebose. Si se quiere que aparezca más a
+menudo, la palanca es `spillRatePerSec` (0,015) o el exponente.
+
 ### Parpadeo del rebose
 
 Todo el dibujo del rebose colgaba del booleano `maxD > 0`, sin suavizar. Como
