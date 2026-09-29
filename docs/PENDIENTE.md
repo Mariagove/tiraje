@@ -495,10 +495,16 @@ menudo, la palanca es `spillRatePerSec` (0,015) o el exponente.
 Aparecía una línea oscura entre la lengua y el borde del rebose. En un líquido
 no hay cortes: son la misma masa.
 
-La causa era que se dibujaban como **dos rellenos con dos sombras**, y la
-sombra de la lengua caía sobre la cortina justo donde se tocan. Ahora van en
-**un único trazado con un solo relleno y una sola sombra**, así que la unión no
-tiene borde interior.
+Dos causas, una detrás de otra:
+
+1. Se dibujaban como **dos rellenos con dos sombras**, y la sombra de la
+   lengua caía sobre la cortina justo donde se tocan. Ahora van en un único
+   trazado, un relleno.
+2. Aun fundidos, **la sombra del conjunto caía sobre la corona del propio
+   vaso**, que está justo detrás y también es blanca, y volvía a dibujar un
+   corte. La sombra estaba ahí para decir "esto está delante del cristal";
+   ahora eso lo dice el **tinte** (11% de cerveza sobre el blanco), que por
+   fuera queda más cálido que el blanco de dentro.
 
 Requisito que hay que respetar si se toca: los arcos de la lengua y el
 polígono de la cortina se trazan con el **mismo sentido de giro** (horario en
@@ -523,6 +529,11 @@ Ahora es una **graduación a un solo lado**, como la de una probeta:
 
 Va en el lado **contrario al que se sirve**, para no comerse con la espuma que
 rebosa, que siempre cae por el lado hacia el que tira la gravedad.
+
+Y va con **halo oscuro debajo y trazo claro encima**, como la marca mayor. Con
+un solo trazo translúcido se leía sobre el fondo negro pero desaparecía en
+cuanto le pasaba la cerveza por detrás. Está impresa en el cristal: tiene que
+verse sobre lo que sea.
 
 ### Parpadeo del rebose
 

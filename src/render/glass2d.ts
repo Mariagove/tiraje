@@ -699,14 +699,21 @@ export class Glass2D implements GlassRenderer {
 
     // Graduación menor cada 10% de llenado. Grabada, discreta.
     ctx.setLineDash([])
-    ctx.strokeStyle = 'rgba(255,255,255,0.16)'
-    ctx.lineWidth = 1
     ctx.beginPath()
     for (let tick = 1; tick < 10; tick++) {
       const y = yOfFill(tick / 10)
       ctx.moveTo(railX, y)
       ctx.lineTo(railX + inward * W * (tick === 5 ? 0.05 : 0.028), y)
     }
+    // Halo oscuro debajo y trazo claro encima, como la marca mayor: con un
+    // solo trazo translúcido la graduación se leía sobre el fondo negro pero
+    // desaparecía en cuanto le pasaba la cerveza por detrás. Está impresa en
+    // el cristal, así que tiene que verse sobre lo que sea.
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)'
+    ctx.lineWidth = 3
+    ctx.stroke()
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'
+    ctx.lineWidth = 1.2
     ctx.stroke()
 
     // Marca mayor: el llenado objetivo. Como la línea de medida de un vaso de
@@ -718,8 +725,8 @@ export class Glass2D implements GlassRenderer {
     ctx.strokeStyle = 'rgba(0,0,0,0.35)'
     ctx.lineWidth = 3.5
     ctx.stroke()
-    ctx.strokeStyle = 'rgba(255,255,255,0.62)'
-    ctx.lineWidth = 1.5
+    ctx.strokeStyle = 'rgba(255,255,255,0.82)'
+    ctx.lineWidth = 1.8
     ctx.stroke()
 
     // Y el marcador vivo: a qué altura DEBERÍA cortar la superficie esta pared
@@ -791,7 +798,7 @@ export class Glass2D implements GlassRenderer {
     // ================================================================
     {
       // Casi blanca: en la referencia apenas está teñida de cerveza.
-      const FOAM_OUT = mix(FOAM, BEER, 0.05)
+      const FOAM_OUT = mix(FOAM, BEER, 0.11)
       ctx.save()
       ctx.translate(cx, cy)
 
@@ -861,18 +868,7 @@ export class Glass2D implements GlassRenderer {
           const jag = 1 + 0.16 * Math.sin(i * 1.7 - f.t * 2.2) + 0.09 * Math.sin(i * 4.1 + f.t * 1.4)
           front.push([xs[i]!, rimY + curtain * weir[i]! * jag])
         }
-        ctx.save()
-        ctx.shadowColor = 'rgba(0,0,0,0.42)'
-        ctx.shadowBlur = 7
-        ctx.shadowOffsetY = 3
-        ctx.beginPath()
-        ctx.moveTo(-W / 2, rimY)
-        ctx.lineTo(W / 2, rimY)
-        smoothTo(ctx, front)
-        ctx.closePath()
-        ctx.fillStyle = rgba(FOAM_OUT, 0.96)
-        ctx.fill()
-        ctx.restore()
+        curtainFront = front
 
         // Nace dentro de la franja del labio con más caudal, en su punto más
         // interior. No en el máximo exacto: ése es la esquina, y una lengua
@@ -997,10 +993,12 @@ export class Glass2D implements GlassRenderer {
       // de restarlos. Si algún día se invierte el orden de los puntos de la
       // cortina, aparecerían agujeros donde se solapan.
       if (curtainFront || circles.length > 0) {
+        // Sin sombra. La tenía para decir "esto está DELANTE del cristal",
+        // pero detrás está la corona del propio vaso, también blanca, y la
+        // sombra caía sobre ella dibujando un corte. En un líquido no hay
+        // cortes: la separación la hace el TINTE, que por fuera arrastra
+        // cerveza y queda más cálido que el blanco de dentro.
         ctx.save()
-        ctx.shadowColor = 'rgba(0,0,0,0.42)'
-        ctx.shadowBlur = 8
-        ctx.shadowOffsetY = 2
         ctx.beginPath()
         if (curtainFront) {
           ctx.moveTo(-W / 2, rimY)
