@@ -490,6 +490,40 @@ Tiene sentido físico y refuerza la premisa del juego —hay que enderezar— pe
 cambia bastante cuándo se ve el rebose. Si se quiere que aparezca más a
 menudo, la palanca es `spillRatePerSec` (0,015) o el exponente.
 
+### La costura entre la cortina y la lengua
+
+Aparecía una línea oscura entre la lengua y el borde del rebose. En un líquido
+no hay cortes: son la misma masa.
+
+La causa era que se dibujaban como **dos rellenos con dos sombras**, y la
+sombra de la lengua caía sobre la cortina justo donde se tocan. Ahora van en
+**un único trazado con un solo relleno y una sola sombra**, así que la unión no
+tiene borde interior.
+
+Requisito que hay que respetar si se toca: los arcos de la lengua y el
+polígono de la cortina se trazan con el **mismo sentido de giro** (horario en
+pantalla), para que la regla nonzero los una en vez de restarlos. Invertir el
+orden de los puntos de la cortina abriría agujeros donde se solapan.
+
+### Las referencias son una escala lateral, no líneas que cruzan
+
+Eran dos líneas discontinuas de lado a lado del vaso —el llenado objetivo y el
+ángulo objetivo— y confundían. Sobre todo la de arriba: **se leía como el
+borde del vaso** en vez de como el nivel objetivo de cerveza. Cruzando el
+líquido, una raya parece una frontera del recipiente.
+
+Ahora es una **graduación a un solo lado**, como la de una probeta:
+
+- marcas menores cada 10% de llenado, grabadas y discretas;
+- marca mayor en el llenado objetivo, como la línea de medida de un vaso real;
+- y un **marcador vivo** en la altura a la que debería cortar la superficie esa
+  pared si el ángulo fuera el correcto. El hueco entre el marcador y donde la
+  corta de verdad sigue siendo el error, sólo que ahora se lee en una pared en
+  vez de cruzando el vaso.
+
+Va en el lado **contrario al que se sirve**, para no comerse con la espuma que
+rebosa, que siempre cae por el lado hacia el que tira la gravedad.
+
 ### Parpadeo del rebose
 
 Todo el dibujo del rebose colgaba del booleano `maxD > 0`, sin suavizar. Como

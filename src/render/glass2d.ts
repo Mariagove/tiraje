@@ -681,45 +681,65 @@ export class Glass2D implements GlassRenderer {
     }
 
     // ================================================================
-    // La línea de referencia: el ángulo objetivo.
+    // Escala de referencia, a UN SOLO LADO, como las marcas de una probeta.
     //
-    // Va al ángulo objetivo CON EL SIGNO del lado por el que se sirve: el
-    // objetivo horneado es una magnitud, y dibujarlo siempre en positivo lo
-    // dejaba espejado al servir inclinando hacia el otro lado.
+    // Antes eran dos líneas discontinuas que cruzaban el vaso de lado a lado y
+    // confundían: la de arriba se leía como el BORDE del vaso en vez de como
+    // el nivel objetivo de cerveza. Cruzando el líquido, una raya parece una
+    // frontera del recipiente; pegada a una pared, parece lo que es, una
+    // graduación.
+    //
+    // Va en el lado contrario al que se sirve, para no comerse con la espuma
+    // que rebosa, que siempre cae por el lado hacia el que tira la gravedad.
     // ================================================================
-    if (f.pouring) {
-      ctx.save()
-      ctx.translate(beerTop.x, beerTop.y)
-      ctx.rotate(surfaceTilt(f.pourSide * f.targetPhi))
-      ctx.beginPath()
-      ctx.moveTo(-R / 2, 0)
-      ctx.lineTo(R / 2, 0)
-      ctx.strokeStyle = 'rgba(0,0,0,0.30)'
-      ctx.lineWidth = 4
-      ctx.stroke()
-      ctx.strokeStyle = 'rgba(255,255,255,0.62)'
-      ctx.lineWidth = 2
-      ctx.setLineDash([9, 7])
-      ctx.stroke()
-      ctx.restore()
-    }
+    const railSide = f.pourSide > 0 ? 1 : -1
+    const railX = railSide * (W / 2 - W * 0.055)
+    const inward = -railSide
+    const yOfFill = (fill: number): number => (H / 2) * (1 - 2 * fill)
 
-    // La marca grabada en el cristal, a la altura de llenado objetivo. Con la
-    // pantalla llena queda SOBRE la cerveza; con el vaso vacío, sobre el
-    // fondo. Un trazo claro con halo oscuro se lee en los dos casos.
-    const yMark = (H / 2) * (1 - 2 * f.targetFill)
-    ctx.beginPath()
-    ctx.moveTo(-W / 2, yMark)
-    ctx.lineTo(W / 2, yMark)
+    // Graduación menor cada 10% de llenado. Grabada, discreta.
     ctx.setLineDash([])
-    ctx.strokeStyle = 'rgba(0,0,0,0.35)'
-    ctx.lineWidth = 3
-    ctx.stroke()
-    ctx.strokeStyle = 'rgba(255,255,255,0.55)'
+    ctx.strokeStyle = 'rgba(255,255,255,0.16)'
     ctx.lineWidth = 1
-    ctx.setLineDash([3, 5])
+    ctx.beginPath()
+    for (let tick = 1; tick < 10; tick++) {
+      const y = yOfFill(tick / 10)
+      ctx.moveTo(railX, y)
+      ctx.lineTo(railX + inward * W * (tick === 5 ? 0.05 : 0.028), y)
+    }
     ctx.stroke()
-    ctx.setLineDash([])
+
+    // Marca mayor: el llenado objetivo. Como la línea de medida de un vaso de
+    // verdad, da el destino sin dar instrucciones.
+    const yMark = yOfFill(f.targetFill)
+    ctx.beginPath()
+    ctx.moveTo(railX, yMark)
+    ctx.lineTo(railX + inward * W * 0.13, yMark)
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)'
+    ctx.lineWidth = 3.5
+    ctx.stroke()
+    ctx.strokeStyle = 'rgba(255,255,255,0.62)'
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+
+    // Y el marcador vivo: a qué altura DEBERÍA cortar la superficie esta pared
+    // si el ángulo fuera el correcto. El hueco entre este marcador y donde la
+    // corta de verdad ES el error, y se lee igual que en una probeta.
+    if (f.pouring) {
+      const refTilt = surfaceTilt(f.pourSide * f.targetPhi)
+      const yRef = Math.max(-H / 2 + 8, Math.min(H / 2 - 8,
+        beerTop.y + (railX - beerTop.x) * Math.tan(refTilt)))
+      const w = W * 0.05
+      ctx.beginPath()
+      ctx.moveTo(railX, yRef)
+      ctx.lineTo(railX + inward * w, yRef - w * 0.42)
+      ctx.lineTo(railX + inward * w, yRef + w * 0.42)
+      ctx.closePath()
+      ctx.fillStyle = 'rgba(0,0,0,0.35)'
+      ctx.fill()
+      ctx.fillStyle = 'rgba(255,255,255,0.8)'
+      ctx.fill()
+    }
 
     // Logo grabado, placeholder.
     const sat = 0.18 + 0.72 * Math.min(1, Math.max(0, f.quality))
@@ -833,6 +853,7 @@ export class Glass2D implements GlassRenderer {
         : this.#tongues.length > 0 ? 'escurriendo' : 'no'
 
       // --- El copete que asoma por encima del labio ----------------------
+      let curtainFront: number[][] | null = null
       if (over) {
         const curtain = H * 0.055 * strength
         const front: number[][] = []
@@ -888,9 +909,13 @@ export class Glass2D implements GlassRenderer {
       }
 
       // --- Las lenguas ---------------------------------------------------
-      ctx.save()
-      ctx.shadowColor = 'rgba(0,0,0,0.4)'
-      ctx.shadowBlur = 8
+      //
+      // Se actualizan aquí y se dibujan MÁS ABAJO, junto con la cortina y en
+      // un único trazado. Dibujarlas aparte, cada una con su sombra, hacía que
+      // la sombra de la lengua cayera sobre la cortina justo donde se tocan y
+      // pintara una línea oscura entre las dos. En un líquido no hay cortes:
+      // son la misma masa y tienen que ser un solo relleno.
+      const circles: number[][] = []
       for (let i = this.#tongues.length - 1; i >= 0; i--) {
         const t = this.#tongues[i]!
 
@@ -957,18 +982,40 @@ export class Glass2D implements GlassRenderer {
         const n = t.path.length
         const j0 = Math.floor(t.from)
         const span = Math.max(1, n - 1 - j0)
-        ctx.beginPath()
         for (let j = j0; j < n; j++) {
           const sN = (j - j0) / span
           const r = t.r * tongueProfile(sN, t.sheet) * (t.fed ? 1 : 0.88)
           const p = t.path[j]!
-          ctx.moveTo(p[0]! + r, p[1]!)
-          ctx.arc(p[0]!, p[1]!, r, 0, Math.PI * 2)
+          circles.push([p[0]!, p[1]!, r])
         }
-        ctx.fillStyle = rgba(FOAM_OUT, 0.95)
-        ctx.fill()
       }
-      ctx.restore()
+
+      // --- Un solo trazado, un solo relleno, una sola sombra -------------
+      //
+      // Los arcos y el polígono de la cortina se trazan con el MISMO sentido
+      // de giro (horario en pantalla), así que la regla nonzero los une en vez
+      // de restarlos. Si algún día se invierte el orden de los puntos de la
+      // cortina, aparecerían agujeros donde se solapan.
+      if (curtainFront || circles.length > 0) {
+        ctx.save()
+        ctx.shadowColor = 'rgba(0,0,0,0.42)'
+        ctx.shadowBlur = 8
+        ctx.shadowOffsetY = 2
+        ctx.beginPath()
+        if (curtainFront) {
+          ctx.moveTo(-W / 2, rimY)
+          ctx.lineTo(W / 2, rimY)
+          smoothTo(ctx, curtainFront)
+          ctx.closePath()
+        }
+        for (const [x, y, r] of circles) {
+          ctx.moveTo(x! + r!, y!)
+          ctx.arc(x!, y!, r!, 0, Math.PI * 2)
+        }
+        ctx.fillStyle = rgba(FOAM_OUT, 0.96)
+        ctx.fill()
+        ctx.restore()
+      }
       ctx.restore()
     }
     // (La UI va en DOM, no en canvas: texto nítido gratis y no cuesta fillrate.)
