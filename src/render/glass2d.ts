@@ -100,16 +100,42 @@ interface Tongue {
    * desplaza hacia abajo y se consume, en vez de esfumarse entero a la vez.
    */
   from: number
+  /**
+   * Cuánto se ha secado ya, de 0 a 1.
+   *
+   * Sube en cuanto deja de alimentarse y adelgaza el trazo. Es lo que hace
+   * que la lengua se vaya *apagando* además de escurrirse, en lugar de
+   * mantener el mismo grosor hasta el último punto.
+   */
+  fade: number
 }
 
 /**
- * Una sola lengua a la vez.
+ * Una sola lengua ALIMENTADA a la vez.
  *
  * En la referencia se ve un segundo bulto al otro lado del labio, pero es el
  * REFLEJO DEL CRISTAL, no espuma — lo aclaró el estudio. Sale una lengua, la
- * que se lleva el caudal; cuando muere puede salir otra.
+ * que se lleva el caudal.
+ *
+ * Las que ya no se alimentan NO cuentan: siguen escurriendo por su lado
+ * mientras nace otra por donde ahora rebosa. Contarlas era lo que dejaba el
+ * vaso sin derrame al ladearlo al contrario — la lengua del primer lado se
+ * quedaba ocupando la única plaza.
  */
 const MAX_TONGUES = 1
+
+/** Tope duro del array, para que ladear de un lado a otro no acumule. */
+const MAX_TONGUES_TOTAL = 3
+
+/**
+ * Constante de tiempo con la que se seca una lengua sin alimento, en segundos.
+ *
+ * Se consume en proporción a lo que le queda, así que tarda lo mismo mida lo
+ * que mida: ~3·τ para desaparecer del todo. Antes se consumía a la velocidad
+ * a la que resbalaba, y una lengua larga tardaba más de diez segundos en
+ * irse — seguía ahí mucho después de enderezar el móvil.
+ */
+const TONGUE_FADE_S = 0.12
 
 /** Separación entre puntos del recorrido. Con radios de ~30 px solapan de sobra. */
 const TONGUE_STEP_PX = 8
@@ -806,6 +832,11 @@ export class Glass2D implements GlassRenderer {
       // ¿Está pasando líquido por encima del borde? Lo decide la GEOMETRÍA,
       // no la señal del núcleo.
       //
+      // (La bajada era de 0,06 por frame, casi 0,7 s hasta apagarse. Era la
+      // parte más lenta de todo el derrame: la lengua no podía empezar a
+      // secarse hasta que se apagara. A 0,12 quedan ~0,3 s, de sobra para
+      // tapar el parpadeo del derrame autolimitado.)
+      //
       // Antes se dibujaba a partir de `spillingOver` suavizada, y eso
       // producía dos mentiras: espuma asomando con el vaso derecho y el
       // líquido lejos del borde, y espuma que se quedaba pegada al canto
@@ -832,7 +863,7 @@ export class Glass2D implements GlassRenderer {
       const wet = maxD > 0
       // Cuánto asoma: 4% del alto de pantalla ya es un rebose de los gordos.
       const raw = wet ? Math.min(1, maxD / (H * 0.04)) : 0
-      this.#spill += (raw - this.#spill) * (raw > this.#spill ? 0.25 : 0.06)
+      this.#spill += (raw - this.#spill) * (raw > this.#spill ? 0.25 : 0.12)
       const strength = this.#spill
       // UN solo umbral para dibujar, para engendrar y para alimentar.
       //
@@ -876,18 +907,19 @@ export class Glass2D implements GlassRenderer {
         // gravedad la empuja. El rebose ocurre sobre un TRAMO del labio, no
         // sobre un punto, así que elegir el borde interior de ese tramo es
         // igual de cierto y se ve entero.
-        if (this.#tongues.length < MAX_TONGUES) {
+        const fedCount = this.#tongues.reduce((n, t) => n + (t.fed ? 1 : 0), 0)
+        if (fedCount < MAX_TONGUES && this.#tongues.length < MAX_TONGUES_TOTAL) {
           const MIN_FLOW = 0.65
           let best = -1
           for (let i = 0; i <= RIM; i++) {
             if (weir[i]! < MIN_FLOW) continue
-            if (this.#tongues.some((t) => Math.abs(t.anchor - xs[i]!) < W * 0.2)) continue
+            if (this.#tongues.some((t) => t.fed && Math.abs(t.anchor - xs[i]!) < W * 0.2)) continue
             if (best < 0 || Math.abs(xs[i]!) < Math.abs(xs[best]!)) best = i
           }
           // Sin azar cuando no hay ninguna: si está rebosando tiene que
           // haber lengua. El 3% por frame que había antes dejaba huecos de
           // varios segundos con el caudal al máximo y nada en pantalla.
-          if (best >= 0 && (this.#tongues.length === 0 || this.#rnd() < 0.03)) {
+          if (best >= 0 && (fedCount === 0 || this.#rnd() < 0.03)) {
             const x = xs[best]!
             this.#tongues.push({
               anchor: x,
@@ -899,6 +931,7 @@ export class Glass2D implements GlassRenderer {
               sheet: strength,
               fed: true,
               from: 0,
+              fade: 0,
             })
           }
         }
@@ -915,12 +948,26 @@ export class Glass2D implements GlassRenderer {
       for (let i = this.#tongues.length - 1; i >= 0; i--) {
         const t = this.#tongues[i]!
 
-        // ¿La sigue alimentando la corona? Se mira el caudal del labio en su
-        // propia posición, no en general.
+        // ¿La sigue alimentando la corona? Se mira el caudal del labio en SU
+        // PROPIA posición, no el del vaso en general — que es lo que decía el
+        // comentario y no lo que hacía el código.
+        //
+        // De ahí venía el fallo de ladear: rebosas por la izquierda, inclinas
+        // al otro lado, y la lengua de la izquierda seguía "alimentada"
+        // porque el vaso seguía rebosando — en el lado contrario. No moría
+        // nunca, ocupaba la única plaza y por la derecha no salía nada.
+        //
+        // El perfil `weir` se renormaliza cada frame al labio más hundido, así
+        // que en cuanto el derrame se muda de lado el valor en el ancla cae a
+        // cero solo.
+        const ai = (t.anchor + W / 2) / W * RIM
+        const a0 = Math.max(0, Math.min(RIM, Math.floor(ai)))
+        const a1 = Math.min(RIM, a0 + 1)
+        const flowHere = weir[a0]! + (weir[a1]! - weir[a0]!) * (ai - a0)
         // Se alimenta de la intensidad suavizada, no del booleano crudo: con
         // el derrame autolimitándose, la lengua se moría y renacía varias
         // veces por segundo.
-        t.fed = over
+        t.fed = over && flowHere > 0.3
         if (t.fed) {
           t.from = 0
           // Se ENSANCHA mientras la alimenten. El caudal crece conforme sube
@@ -934,7 +981,10 @@ export class Glass2D implements GlassRenderer {
 
         // La punta avanza según la gravedad ACTUAL. Un hilo repta; una lámina
         // baja rápido — en el vídeo recubre el vaso en poco más de un segundo.
-        t.v = Math.min(52 + 200 * t.sheet, t.v + (20 + 220 * t.sheet) * dt)
+        // Sin alimento pierde el agarre del labio y se descuelga: la punta
+        // acelera en vez de quedarse reptando a la velocidad de antes.
+        const vMax = (52 + 200 * t.sheet) * (t.fed ? 1 : 2.4)
+        t.v = Math.min(vMax, t.v + (20 + 220 * t.sheet) * (t.fed ? 1 : 4) * dt)
         const tip = t.path[t.path.length - 1]!
         tip[0]! += grav.x * t.v * dt
         tip[1]! += grav.y * t.v * dt
@@ -950,20 +1000,28 @@ export class Glass2D implements GlassRenderer {
         // lengua no deslizaba y que salía cortada.
         const prev = t.path[t.path.length - 2]
         const onScreen = tip[1]! < H / 2 + 60 && Math.abs(tip[0]!) < W / 2 + 60
-        if (prev && onScreen && t.path.length < 200
+        if (t.fed && prev && onScreen && t.path.length < 200
             && Math.hypot(tip[0]! - prev[0]!, tip[1]! - prev[1]!) > TONGUE_STEP_PX) {
           t.path.push([tip[0]!, tip[1]!])
         }
 
-        // Sin alimento, se consume desde el LABIO hacia abajo, al mismo ritmo
-        // al que resbala. Mientras la alimenten no se consume nunca: una
+        // Sin alimento se consume desde el LABIO hacia abajo, y deprisa:
+        // lo que queda se va en proporción a lo que queda, así que tarda lo
+        // mismo sea larga o corta (~3·τ, medio segundo) y desaparece nada más
+        // enderezar el móvil. Mientras la alimenten no se consume nunca: una
         // lengua alimentada llega del labio a la base y ahí se queda, que es
         // lo que hace un rebose continuo.
         //
-        // Esto sustituye al ciclo de vida anterior, que la mataba al llegar
-        // abajo y hacía nacer otra en el labio al instante: se veía como si
-        // la espuma volviera a subir en vez de acabar de caer.
-        if (!t.fed) t.from += (t.v * dt) / TONGUE_STEP_PX
+        // Antes se consumía a la velocidad a la que resbalaba, unos 6 puntos
+        // por segundo sobre un recorrido de cien: se quedaba pegada al
+        // cristal más de diez segundos después de dejar de rebosar.
+        if (!t.fed) {
+          const left = t.path.length - 1 - t.from
+          t.from += Math.max(left, 2) * (dt / TONGUE_FADE_S)
+          t.fade = Math.min(1, t.fade + dt / TONGUE_FADE_S)
+        } else {
+          t.fade = 0
+        }
 
         if (t.from >= t.path.length - 1) {
           this.#tongues.splice(i, 1)
@@ -980,7 +1038,7 @@ export class Glass2D implements GlassRenderer {
         const span = Math.max(1, n - 1 - j0)
         for (let j = j0; j < n; j++) {
           const sN = (j - j0) / span
-          const r = t.r * tongueProfile(sN, t.sheet) * (t.fed ? 1 : 0.88)
+          const r = t.r * tongueProfile(sN, t.sheet) * (1 - 0.5 * t.fade)
           const p = t.path[j]!
           circles.push([p[0]!, p[1]!, r])
         }

@@ -549,6 +549,55 @@ del labio se guarda mientras hay rebose y se reutiliza mientras se desvanece,
 porque si no la cortina se quedaría sin forma al dejar de estar sumergido el
 labio y volvería el parpadeo por otra vía.
 
+### La lengua tardaba demasiado en irse
+
+Al enderezar el móvil la espuma seguía pegada al cristal **1,47 s** medidos, y
+en partida real bastante más, porque la lengua se consumía a la velocidad a la
+que resbalaba: unos 6 puntos de recorrido por segundo sobre un trazado de
+cien. Tres cosas la frenaban, y las tres estaban:
+
+1. La intensidad del rebose bajaba a 0,06 por frame, casi **0,7 s** sólo en
+   apagarse, y hasta que no se apagaba la lengua ni empezaba a secarse. Ahora
+   baja a 0,12, ~0,3 s, que sigue siendo de sobra para tapar el parpadeo del
+   derrame autolimitado.
+2. Sin alimento, la punta seguía depositando recorrido nuevo: la lengua crecía
+   por abajo mientras se consumía por arriba. Ahora, en cuanto deja de
+   alimentarse, deja de alargarse; la punta sigue moviéndose, pero estirando
+   el último tramo.
+3. El consumo era a velocidad fija. Ahora va **en proporción a lo que queda**,
+   con τ = 0,12 s, así que tarda lo mismo sea larga o corta. Además la punta
+   se descuelga —acelera, porque ya no la sujeta el labio— y el trazo adelgaza
+   hasta la mitad conforme se seca.
+
+Medido con el banco nuevo: **0,67 s** desde que se endereza hasta que no queda
+ni un círculo en pantalla.
+
+### Rebosaba por un lado y al ladear al contrario ya no rebosaba
+
+Bug de verdad, y viejo: el comentario del código decía que la lengua se
+alimenta «del caudal del labio en su propia posición, no en general», y lo que
+hacía era `t.fed = over` — el rebose **del vaso entero**.
+
+Así que al inclinar al otro lado la lengua vieja se seguía dando por
+alimentada, y una lengua alimentada no se consume nunca: ocupaba la única
+plaza que hay y por el labio nuevo no salía nada.
+
+Dos arreglos, los dos necesarios:
+
+- El alimento se mira **en el ancla**, interpolando el perfil de vertedero en
+  esa x. Como el perfil se renormaliza cada frame al labio más hundido, al
+  mudarse el derrame de lado el valor en el ancla cae a cero solo.
+- El tope de una sola lengua cuenta sólo las **alimentadas**. Las que ya se
+  están secando siguen escurriendo por su lado mientras nace otra por donde
+  ahora rebosa, que es lo que hace un vaso de verdad. Tope duro de 3 en el
+  array para que ladear de un lado a otro no acumule.
+
+Medido: la lengua nueva asoma por el labio nuevo en **menos de 1 s**.
+
+Los dos fallos tienen banco propio, `src/render/tongue.test.ts`, con un
+contexto 2D falso que apunta los `arc` y mide cuántos círculos de lengua hay y
+dónde. Los dos tests fallan contra el código anterior.
+
 ## Bug del enganche de rebose
 
 `overflowing` se quedaba pegado a `true` para siempre, así que el vaso seguía
