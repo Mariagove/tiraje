@@ -39,6 +39,8 @@ export const STEP_S = 0.01
  * bonito y es honesto: lo que se congela es la puntuación, no la imagen.
  */
 export const TAP_BLANKING_MS = 180
+/** Tope del caudal de derrame. Por encima, el vaso se vaciaría en un frame. */
+export const MAX_SPILL_RATE_PER_SEC = 2.5
 export const BLANKING_MEAN_WINDOW_MS = 100
 
 const BLANKING_STEPS = TAP_BLANKING_MS / STEP_MS
@@ -197,7 +199,15 @@ export function step(v: BakedVariety, st: ScoreState, smp: TraceSample): void {
   // temblor del propio toque: la ventana de puntuación acaba al cerrar.
   if (st.phase !== 'closed' && st.f > 0 && aPhi > v.SPILL_DDEG[fi]!) {
     if (!st.spilling) { st.spilling = true; st.spillEvents++ }
-    loseOverRim(st, p.spillRatePerSec * STEP_S)
+    // Caudal de vertedero: crece con `exceso^1,5`. Con un caudal constante,
+    // la entrada (~0,12 de vaso por segundo) superaba a la salida y el vaso
+    // seguía llenándose por mucho que te pasaras de inclinación.
+    //
+    // `exceso^1,5` es `e · √e`: ni una trascendente, que aquí están prohibidas.
+    const e = (aPhi - v.SPILL_DDEG[fi]!) / 10
+    let rate = p.spillRatePerSec * e * Math.sqrt(e)
+    if (rate > MAX_SPILL_RATE_PER_SEC) rate = MAX_SPILL_RATE_PER_SEC
+    loseOverRim(st, rate * STEP_S)
   } else {
     st.spilling = false
   }

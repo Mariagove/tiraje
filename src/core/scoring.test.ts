@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { ESPECIAL } from '@/core/baked/especial'
 import { NEGRA } from '@/core/baked/negra'
 import {
-  TAP_BLANKING_MS, createState, finalize, replay, step, tap,
+  MAX_SPILL_RATE_PER_SEC, TAP_BLANKING_MS, createState, finalize, replay, step, tap,
   type GameTrace, type ScoreState, type TraceSample,
 } from '@/core/scoring'
 import type { BakedVariety } from '@/core/types'
@@ -61,7 +61,13 @@ describe('fixtures dorados', () => {
   it('derramar se castiga y se declara', () => {
     const r = replay(ESPECIAL, load('especial-spiller'))
     expect(r.verdict).toBe('spilled')
-    expect(r.spillEvents).toBeGreaterThanOrEqual(ESPECIAL.cfg.scoring.spillMaxEvents)
+    // Por la vía de la FRACCIÓN, no la de los eventos. Con el caudal de
+    // vertedero el derrame es continuo, así que es UN episodio largo y no
+    // tres cortos: antes el derrame flojo dejaba que el nivel oscilara sobre
+    // el umbral y contaba varios. Lo que lo declara derramada es cuánto se ha
+    // ido, que es lo que importa.
+    expect(r.spilled).toBeGreaterThan(ESPECIAL.cfg.scoring.spillMaxFrac)
+    expect(r.spillEvents).toBeGreaterThan(0)
   })
 })
 
@@ -289,6 +295,48 @@ describe('la puntuación se congela en el tercer toque', () => {
     for (let i = 0; i < 700; i++) step(ESPECIAL, st, { phiDdeg, rhoDdeg: 0 })
     return { f: st.f, foam: st.foam, spilled: st.spilled }
   }
+
+describe('derramar baja el nivel', () => {
+  it('pasarse de inclinación con el vaso lleno lo vacía, no lo frena', () => {
+    // Con caudal de derrame CONSTANTE esto no pasaba: la entrada (~0,12 de
+    // vaso por segundo) superaba a la salida (0,06), así que por mucho que te
+    // pasaras el vaso seguía llenándose. Ahora el caudal va con `exceso^1,5`,
+    // como un vertedero.
+    const st = createState()
+    tap(st)
+    while (st.f < 0.8 && st.steps < 2000) {
+      step(ESPECIAL, st, { phiDdeg: ESPECIAL.TARGET_DDEG[Math.round(st.f * 1000)]!, rhoDdeg: 0 })
+    }
+    const lleno = st.f
+    expect(lleno).toBeGreaterThanOrEqual(0.8)
+
+    for (let i = 0; i < 10; i++) step(ESPECIAL, st, { phiDdeg: 750, rhoDdeg: 0 })
+    expect(st.f).toBeLessThan(lleno - 0.1)   // en 100 ms ya se ve
+  })
+
+  it('el caudal crece con el exceso de ángulo, no es constante', () => {
+    const perdido = (phiDdeg: number): number => {
+      const st = createState()
+      tap(st)
+      for (let i = 0; i < 700; i++) step(ESPECIAL, st, { phiDdeg, rhoDdeg: 0 })
+      return st.spilled
+    }
+    const poco = perdido(550)
+    const medio = perdido(620)
+    const mucho = perdido(750)
+    expect(medio).toBeGreaterThan(poco * 2)
+    expect(mucho).toBeGreaterThan(medio * 2)
+  })
+
+  it('el caudal tiene tope: el vaso no se vacía en un solo paso', () => {
+    const st = createState()
+    tap(st)
+    for (let i = 0; i < 400; i++) step(ESPECIAL, st, { phiDdeg: 400, rhoDdeg: 0 })
+    const antes = st.f
+    step(ESPECIAL, st, { phiDdeg: 890, rhoDdeg: 0 })   // exceso brutal
+    expect(antes - st.f).toBeLessThanOrEqual(MAX_SPILL_RATE_PER_SEC * 0.01 + 1e-9)
+  })
+})
 
 describe('lo que sale por el borde se pierde, y sale de arriba', () => {
   it('rebosar baja la corona: no sale espuma infinita del vaso lleno', () => {

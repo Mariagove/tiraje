@@ -215,6 +215,19 @@ export class Glass2D implements GlassRenderer {
   #tongues: Tongue[] = []
   /** Última medida del rebose, para el panel de depuración. */
   #spillInfo = 'no'
+  /**
+   * Intensidad del rebose, suavizada.
+   *
+   * La GEOMETRÍA sigue mandando en si hay rebose o no, pero el derrame se
+   * autolimita —derrama, baja el nivel, para, se vuelve a llenar— así que el
+   * booleano cruza el cero varias veces por segundo. Dibujar directamente de
+   * él hacía parpadear la cortina. Se suaviza la intensidad, con subida
+   * rápida y bajada de ~0,3 s: lo justo para tapar el parpadeo sin que la
+   * espuma se quede colgada del borde cuando ya no rebosa.
+   */
+  #spill = 0
+  /** Último perfil de vertedero conocido, para que la cortina se desvanezca. */
+  #weir: number[] = []
 
   /**
    * Qué está haciendo el rebose ahora mismo, en números.
@@ -772,10 +785,18 @@ export class Glass2D implements GlassRenderer {
         xs.push(x); ds.push(d)
         if (d > maxD) maxD = d
       }
-      const over = maxD > 0
-      const weir = ds.map((d) => (over && d > 0 ? Math.pow(d / maxD, 1.5) : 0))
+      const wet = maxD > 0
       // Cuánto asoma: 4% del alto de pantalla ya es un rebose de los gordos.
-      const strength = over ? Math.min(1, maxD / (H * 0.04)) : 0
+      const raw = wet ? Math.min(1, maxD / (H * 0.04)) : 0
+      this.#spill += (raw - this.#spill) * (raw > this.#spill ? 0.25 : 0.06)
+      const strength = this.#spill
+      const over = strength > 0.02
+
+      // El perfil se guarda mientras haya rebose, y se reutiliza mientras se
+      // desvanece: si no, la cortina se quedaría sin forma en cuanto el labio
+      // deja de estar sumergido y volvería el parpadeo por otra vía.
+      if (wet) this.#weir = ds.map((d) => (d > 0 ? Math.pow(d / maxD, 1.5) : 0))
+      const weir = this.#weir.length === ds.length ? this.#weir : ds.map(() => 0)
 
       const grav = gravityOnScreen(f.phi)
       const dt = 1 / 60
@@ -852,14 +873,16 @@ export class Glass2D implements GlassRenderer {
 
         // ¿La sigue alimentando la corona? Se mira el caudal del labio en su
         // propia posición, no en general.
-        const lip = Math.max(0, Math.min(RIM, Math.round(((t.anchor + W / 2) / W) * RIM)))
-        t.fed = over && weir[lip]! > 0.06
+        // Se alimenta de la intensidad suavizada, no del booleano crudo: con
+        // el derrame autolimitándose, la lengua se moría y renacía varias
+        // veces por segundo.
+        t.fed = strength > 0.08
         if (t.fed) {
-          // Se ENSANCHA mientras la alimenten. El caudal del labio crece
-          // conforme sube el nivel, y la lengua nace en cuanto asoma el
-          // primer hilo: si el radio se congela al nacer, se queda fina para
-          // siempre por mucho que después esté rebosando a chorro.
-          const rWanted = W * (0.035 + 0.05 * weir[lip]!) * (0.8 + 2.2 * strength)
+          // Se ENSANCHA mientras la alimenten. El caudal crece conforme sube
+          // el nivel, y la lengua nace en cuanto asoma el primer hilo: si el
+          // radio se congela al nacer, se queda fina para siempre por mucho
+          // que después esté rebosando a chorro.
+          const rWanted = W * 0.068 * (0.8 + 2.2 * strength)
           t.r += (rWanted - t.r) * 0.03
           t.sheet += (strength - t.sheet) * 0.03
         } else {

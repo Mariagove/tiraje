@@ -428,13 +428,50 @@ el nivel pero dejaba la corona intacta, que es justo al revés. De los diez
 fixtures sólo se movió `negra-spiller`, −160 puntos, que es la consecuencia
 esperada.
 
-**Hallazgo de un test, sin resolver:** con el grifo abierto, pasarse de
-inclinación **no vacía el vaso**. El caudal de entrada (0,105/s) supera al de
-derrame (`spillRatePerSec` 0,06/s), así que a 75° el vaso sigue llenándose,
-sólo que hasta el 43% en vez del 76% y sin corona. `spillRatePerSec` es
-constante y probablemente debería crecer con lo pasado que vas de ángulo —más
-inclinación, más ancha la boca de salida—. Es conjetura mía desde el principio
-y cambiarlo mueve el equilibrio, así que lo dejo anotado.
+### El caudal de derrame es de vertedero, no constante
+
+Estaba anotado como hallazgo sin resolver y el estudio lo reportó dos veces,
+así que se ha hecho: con caudal **constante** (0,06/s) la entrada (~0,12 de
+vaso por segundo) superaba a la salida, de modo que por mucho que te pasaras
+de inclinación el vaso seguía llenándose y el nivel no bajaba nunca.
+
+Ahora crece con **`exceso^1,5`** —el caudal por unidad de ancho de un
+vertedero va con la potencia 3/2 de lo sumergido que está el labio— y
+`spillRatePerSec` (0,015) pasa a significar *fracción de vaso por segundo a 1°
+por encima del límite*. Con tope de 2,5/s, para que no se vacíe en un frame.
+`exceso^1,5` se calcula como `e·√e`: ni una trascendente, que en `core/` están
+prohibidas.
+
+Medido, sosteniendo el ángulo 7 s con el grifo abierto:
+
+| ángulo | llenado final | derramado |
+|---|---|---|
+| 48° | 76,6% | 0,5% |
+| 55° | 71,4% | 5,7% |
+| 62° | 63,0% | 14,1% |
+| 75° | 32,7% | 44,5% |
+
+Y el nivel **baja de verdad**: llegando al 80% y pasándose a 75°, cae al 63,7%
+en 100 ms. Sólo se movieron los dos fixtures de derrame.
+
+**Efecto secundario en el veredicto:** al ser el derrame continuo, ahora es UN
+episodio largo en vez de tres cortos, así que la regla de `spillMaxEvents ≥ 3`
+casi no dispara y lo que declara la caña derramada es la fracción perdida. Es
+lo que importa, pero conviene saberlo si algún día se toca el umbral.
+
+### Parpadeo del rebose
+
+Todo el dibujo del rebose colgaba del booleano `maxD > 0`, sin suavizar. Como
+el derrame se autolimita —derrama, baja el nivel, para, se vuelve a llenar— el
+booleano cruza el cero varias veces por segundo y la cortina parpadeaba con
+él, y la lengua se moría y renacía.
+
+La **geometría sigue mandando** en si hay rebose, pero se suaviza la
+INTENSIDAD: subida rápida, bajada de ~0,3 s. Lo justo para tapar el parpadeo
+sin que vuelva la espuma colgada del borde que se corrigió antes. El perfil
+del labio se guarda mientras hay rebose y se reutiliza mientras se desvanece,
+porque si no la cortina se quedaría sin forma al dejar de estar sumergido el
+labio y volvería el parpadeo por otra vía.
 
 ## Bug del enganche de rebose
 

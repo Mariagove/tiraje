@@ -18,9 +18,9 @@
     "steps": 903
   },
   "especial-spiller": {
-    "score": 0,
+    "score": 1499,
     "verdict": "spilled",
-    "err": 22.07,
+    "err": 19.66,
     "steps": 2000
   },
   "especial-fake": {
@@ -48,9 +48,9 @@
     "steps": 954
   },
   "negra-spiller": {
-    "score": 2561,
+    "score": 560,
     "verdict": "spilled",
-    "err": 22.07,
+    "err": 19.15,
     "steps": 2000
   },
   "negra-fake": {

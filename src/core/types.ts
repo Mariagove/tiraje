@@ -21,7 +21,16 @@ export interface VarietyConfig {
     /** Plan §1.3: espumaGen = flujo · (foamBase + foamPerDegree · δ) */
     foamBase: number
     foamPerDegree: number
-    /** Fracción de vaso por segundo que se pierde mientras derrama. */
+    /**
+     * Fracción de vaso por segundo que se pierde derramando, **a 1° por
+     * encima del límite**. El caudal crece con `exceso^1,5`, como un
+     * vertedero: el caudal por unidad de ancho va con la potencia 3/2 de lo
+     * sumergido que está el labio.
+     *
+     * Constante no vale: el caudal de entrada (~0,12 de vaso por segundo)
+     * superaba al de salida, así que por mucho que te pasaras de inclinación
+     * el vaso seguía llenándose y el nivel no bajaba nunca.
+     */
     spillRatePerSec: number
   }
   targets: {
