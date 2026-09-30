@@ -154,7 +154,7 @@ export function mountGameView(
              cuerpo y el peso, igual que en las demás pantallas. -->
         <div class="text-center">
           <div class="text-[0.6rem] tracking-widest">PUNTUACIÓN</div>
-          <div id="score" class="font-mono text-4xl tabular-nums">0</div>
+          <div id="score" class="font-mono text-5xl tabular-nums">0</div>
           <div id="verdict" class="mt-0.5 text-[0.7rem]"></div>
         </div>
         <div class="flex items-center justify-center gap-3">
@@ -244,7 +244,8 @@ export function mountGameView(
         // tarjeta. Se vacía para no dejar un ángulo obsoleto en el DOM.
         hud.style.opacity = '0'
         hud.textContent = ''
-        $('#score').textContent = r.score.toLocaleString('es-ES')
+        // Una nota de 0 a 100: sin separador de miles y sin decimales.
+        $('#score').textContent = String(r.score)
         $('#verdict').innerHTML = (r.verdict === 'spilled' ? '<b>CAÑA DERRAMADA</b> · ' : '') +
           `error medio ${r.meanErrorDeg.toFixed(0)}° · ${(r.fill * 100).toFixed(0)}% lleno, ` +
           `${(r.foam * 100).toFixed(0)}% de corona`
@@ -352,7 +353,7 @@ export function mountGameView(
       `<li class="mb-1 tracking-widest">${src.practice ? 'RANKING DE PRÁCTICA' : 'RANKING OFICIAL'}</li>` +
       mine.slice(0, 5).map((r, i) =>
         `<li class="flex justify-between"><span>${i + 1}. ${r.initials} · ${r.variety}</span>` +
-        `<span class="font-bold">${r.score.toLocaleString('es-ES')}</span></li>`).join('')
+        `<span class="font-bold">${r.score}</span></li>`).join('')
   }
 
   $('#save').addEventListener('click', () => {

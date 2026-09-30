@@ -129,10 +129,14 @@ export function mountShell(root: HTMLElement): void {
    * El logotipo va sin fondo: se le quitó el blanco del PNG deshaciendo la
    * composición sobre blanco, así que conserva el antialias.
    *
-   * Siempre en su granate, en las dos pieles. Hubo una versión calada en
-   * blanco para el rojo del vaso —ahí el granate da 1,04:1 de contraste— y el
-   * estudio decidió que la marca no cambia de color. Queda dicho: sobre el
-   * vaso vacío se lee poco, y sobre la cerveza sube a 3,11:1.
+   * La palabra va en el rojo de marca EXACTO, el mismo `#B02C31` del fondo
+   * del vaso, y eso es a propósito: con el vaso vacío no se lee, y va
+   * apareciendo conforme la cerveza le pasa por detrás. El triángulo dorado
+   * no se toca, así que la marca sigue estando ahí desde el primer momento.
+   *
+   * Por eso el color tiene que ser el mismo **bit a bit** y no parecido: a
+   * dos unidades de distancia la palabra se insinúa, y eso se lee como un
+   * error de impresión, no como una intención.
    */
   function paintStatus(s: SensorStatus): void {
     if (s.kind === 'live' || s.kind === 'probing') {

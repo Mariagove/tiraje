@@ -989,6 +989,66 @@ justo cuando el jugador no sabe qué hacer—. Ahora se pinta el estado actual a
 montar, y también al reconstruir el bucle por cambio de variedad, que es el
 mismo caso.
 
+## La nota va de 0 a 100
+
+La puntuación que se enseña es ahora la **fracción del techo teórico** de la
+variedad, redondeada a entero. Una caña perfecta es 100.
+
+Se entiende sin explicar nada y —esto es lo que la hace correcta— se puede
+comparar entre variedades, que tienen techos distintos en puntos brutos porque
+tardan distinto en llenarse. Los puntos siguen ahí, en `breakdown`, que es
+donde hay que mirar cuando alguien pregunte por qué le falta un punto.
+
+Se acota a 100: el techo es el de una caña perfecta, pero una partida
+larguísima puede arañar más puntos de vertido a cambio de fallar el llenado, y
+un 101 en pantalla no significaría nada. Hay un test que lo fija.
+
+Cómo quedan los perfiles, con los fixtures regenerados:
+
+| perfil | Especial | Negra |
+|---|---|---|
+| perfecta | 97 | 97 |
+| buena | 90 | 90 |
+| mediocre | 50 | 48 |
+| derramador | 0 | 1 |
+
+Y la traza real del iPhone: **44**.
+
+## La flecha marca el volumen, no el error de ángulo
+
+Marcaba a qué altura debería cortar la superficie la pared si el ángulo fuera
+el correcto, o sea el error de inclinación. Dos problemas:
+
+1. Con el vaso muy tumbado la superficie corta la pared por abajo, así que la
+   flecha se quedaba pegada al suelo con el vaso ya medio lleno. No marcaba
+   ningún volumen mientras el líquido entraba, que es justo lo que se le pedía
+   con la vista.
+2. Decía lo mismo que la línea de referencia, sólo que peor.
+
+Ahora marca **el nivel que tendría el líquido con el vaso derecho**: el
+volumen de verdad, la única lectura que no depende de cómo estés sujetando el
+móvil. Sube desde la primera gota y se lee contra las marcas de la
+graduación, que están en esa misma escala.
+
+**Lo que se ha perdido, y conviene decirlo:** con esto ya no hay en pantalla
+ninguna pista del ÁNGULO objetivo — `targetPhi` deja de usarse en el
+renderer. El número del ángulo sigue ahí y la restricción de no derramar
+sigue empujando sola, pero si hiciera falta volver a señalar el ángulo bueno,
+tendría que ser un elemento aparte, no éste.
+
+## La palabra del logotipo, en el rojo exacto del fondo
+
+Se recolorea el granate del PNG al `#B02C31` **exacto** del fondo del vaso. Es
+a propósito: con el vaso vacío la palabra no se lee, y va apareciendo conforme
+la cerveza le pasa por detrás. El triángulo dorado no se toca, así que la
+marca está desde el primer momento.
+
+Por eso tiene que ser el mismo color **bit a bit** y no parecido: a dos
+unidades de distancia la palabra se insinúa, y eso se lee como un error de
+impresión en vez de como una intención. Verificado sobre el PNG: las tintas
+sólidas son exactamente `#B02C31` y `#B69E6C`, y el alfa del antialias se
+conserva.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

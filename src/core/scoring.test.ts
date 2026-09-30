@@ -31,26 +31,31 @@ const varietyOf = (t: GameTrace): BakedVariety => V[t.varietyId] ?? ESPECIAL
 // ---------------------------------------------------------------------------
 
 describe('fixtures dorados', () => {
-  // Las bandas van en FRACCIÓN del máximo teórico de cada variedad, no en
-  // puntos absolutos. El plan las daba en puntos, y esos números estaban
-  // atados al grifo de dos fases: al quedarse el juego en dos toques, el
-  // máximo cambió y las bandas absolutas se volvieron mentira sin que el
-  // juego hubiera empeorado. La fracción dice lo que de verdad se quería
-  // decir: cómo de cerca del techo queda cada perfil.
-  const frac = (id: string, name: string): number =>
-    replay(V[id]!, load(name)).score / V[id]!.maxScore
+  // La puntuación YA es una nota de 0 a 100: la fracción del techo teórico de
+  // cada variedad. El plan daba estas bandas en puntos brutos, y esos números
+  // estaban atados al grifo de dos fases: al quedarse el juego en dos toques
+  // el techo cambió y las bandas absolutas se volvieron mentira sin que el
+  // juego hubiera empeorado.
+  const nota = (id: string, name: string): number => replay(V[id]!, load(name)).score
 
-  it('la traza perfecta roza el techo: entre el 92% y el 100%', () => {
+  it('la traza perfecta roza el techo: entre 92 y 100', () => {
     for (const id of Object.keys(V)) {
-      expect(frac(id, `${id}-perfect`), id).toBeGreaterThanOrEqual(0.92)
-      expect(frac(id, `${id}-perfect`), id).toBeLessThanOrEqual(1)
+      expect(nota(id, `${id}-perfect`), id).toBeGreaterThanOrEqual(92)
+      expect(nota(id, `${id}-perfect`), id).toBeLessThanOrEqual(100)
     }
   })
 
-  it('la traza mediocre se queda entre el 35% y el 65% del techo', () => {
+  it('la traza mediocre se queda entre 35 y 65', () => {
     for (const id of Object.keys(V)) {
-      expect(frac(id, `${id}-mediocre`), id).toBeGreaterThanOrEqual(0.35)
-      expect(frac(id, `${id}-mediocre`), id).toBeLessThanOrEqual(0.65)
+      expect(nota(id, `${id}-mediocre`), id).toBeGreaterThanOrEqual(35)
+      expect(nota(id, `${id}-mediocre`), id).toBeLessThanOrEqual(65)
+    }
+  })
+
+  it('nadie pasa de 100, ni siquiera regando el suelo', () => {
+    for (const name of Object.keys(expected)) {
+      const t = load(name)
+      expect(replay(varietyOf(t), t).score, name).toBeLessThanOrEqual(100)
     }
   })
 

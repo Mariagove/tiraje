@@ -661,13 +661,21 @@ export class Glass2D implements GlassRenderer {
     ctx.lineWidth = 1.8
     ctx.stroke()
 
-    // Y el marcador vivo: a qué altura DEBERÍA cortar la superficie esta pared
-    // si el ángulo fuera el correcto. El hueco entre este marcador y donde la
-    // corta de verdad ES el error, y se lee igual que en una probeta.
-    if (f.pouring) {
-      const refTilt = surfaceTilt(f.pourSide * f.targetPhi)
-      const yRef = Math.max(-H / 2 + 8, Math.min(H / 2 - 8,
-        beerTop.y + (railX - beerTop.x) * Math.tan(refTilt)))
+    // Y la flecha viva: **cuánto hay dentro**, leído contra la graduación.
+    //
+    // Antes marcaba a qué altura debería cortar la superficie esta pared si el
+    // ángulo fuera el correcto, o sea el error de inclinación. Eso tenía dos
+    // problemas: con el vaso muy tumbado la superficie corta la pared por
+    // abajo, así que la flecha se quedaba pegada al suelo con el vaso ya
+    // medio lleno —no marcaba ningún volumen mientras el líquido entraba—, y
+    // encima decía lo mismo que la línea de referencia, sólo que peor.
+    //
+    // Ahora marca el nivel que tendría el líquido **con el vaso derecho**, que
+    // es el volumen de verdad y la única lectura que no depende de cómo estés
+    // sujetando el móvil. Sube desde el primer instante y se lee contra las
+    // marcas de la graduación, que están en esa misma escala.
+    if (f.fill > 0) {
+      const yRef = yOfFill(f.fill)
       const w = W * 0.05
       ctx.beginPath()
       ctx.moveTo(railX, yRef)

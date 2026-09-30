@@ -304,7 +304,13 @@ export function step(v: BakedVariety, st: ScoreState, smp: TraceSample): void {
 }
 
 export interface ScoreResult {
-  /** Entero, siempre. Ordenar floats en un ranking con premios es pedir problemas. */
+  /**
+   * La nota, de 0 a 100. Entero, siempre: ordenar floats en un ranking con
+   * premios es pedir problemas.
+   *
+   * Es la fracción del techo teórico de la variedad. Los puntos brutos, que
+   * son los que producen las reglas, están en `breakdown`.
+   */
   score: number
   verdict: 'ok' | 'spilled'
   fill: number
@@ -346,8 +352,25 @@ function computeResult(v: BakedVariety, st: ScoreState): ScoreResult {
     st.spillEvents >= sc.spillMaxEvents || st.spilled > sc.spillMaxFrac
   if (spilledOut) raw *= sc.spilledMultiplier
 
+  // --- De puntos brutos a una nota de 0 a 100 ---------------------------
+  //
+  // Lo que se enseña es la FRACCIÓN del techo teórico, que es la puntuación de
+  // una caña perfecta calculada en el horneado. Una nota sobre 100 se entiende
+  // sin explicar nada y se compara entre variedades, que tienen techos
+  // distintos porque tardan distinto en llenarse.
+  //
+  // Los puntos brutos no desaparecen: siguen en `breakdown`, que es donde hay
+  // que mirar cuando alguien pregunte por qué le falta un punto.
+  //
+  // Se acota a 100: el techo es el de una caña perfecta, pero una partida
+  // larguísima puede arañar más puntos de vertido a cambio de fallar el
+  // llenado, y un 101 en pantalla no significaría nada.
+  let nota = Math.round((raw / v.maxScore) * 100)
+  if (nota > 100) nota = 100
+  else if (nota < 0) nota = 0
+
   return {
-    score: Math.round(raw),
+    score: nota,
     verdict: spilledOut ? 'spilled' : 'ok',
     fill: st.f,
     foam: st.foam,

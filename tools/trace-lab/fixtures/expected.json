@@ -1,66 +1,66 @@
 {
   "especial-fake": {
-    "score": 128555,
+    "score": 97,
     "verdict": "ok",
     "err": 0.54,
     "steps": 811
   },
   "especial-good": {
-    "score": 119742,
+    "score": 90,
     "verdict": "ok",
     "err": 1.78,
     "steps": 807
   },
   "especial-mediocre": {
-    "score": 66431,
+    "score": 50,
     "verdict": "ok",
     "err": 5.39,
     "steps": 779
   },
   "especial-perfect": {
-    "score": 128546,
+    "score": 97,
     "verdict": "ok",
     "err": 0.54,
     "steps": 811
   },
   "especial-spiller": {
-    "score": 488,
+    "score": 0,
     "verdict": "spilled",
     "err": 22.06,
     "steps": 2000
   },
   "negra-fake": {
-    "score": 129000,
+    "score": 97,
     "verdict": "ok",
     "err": 0.47,
     "steps": 844
   },
   "negra-good": {
-    "score": 119574,
+    "score": 90,
     "verdict": "ok",
     "err": 1.75,
     "steps": 838
   },
   "negra-mediocre": {
-    "score": 63663,
+    "score": 48,
     "verdict": "ok",
     "err": 5.39,
     "steps": 805
   },
   "negra-perfect": {
-    "score": 129003,
+    "score": 97,
     "verdict": "ok",
     "err": 0.47,
     "steps": 844
   },
   "negra-spiller": {
-    "score": 1477,
+    "score": 1,
     "verdict": "spilled",
     "err": 22.06,
     "steps": 2000
   },
   "real-iphone-1": {
-    "score": 58191,
+    "score": 44,
     "verdict": "ok",
     "err": 2.42,
     "steps": 2018

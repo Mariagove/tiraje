@@ -71,7 +71,7 @@ console.log(`
   bono espuma       ${eur(r.breakdown.foam).padStart(9)}   (${pc(r.foam)} de ${pc(v.cfg.targets.foam)})
   limpieza          ${eur(r.breakdown.clean).padStart(9)}\n  derrames          ${eur(r.breakdown.penalty).padStart(9)}
   ─────────────────────────────────────────────
-  PUNTUACIÓN        ${eur(r.score).padStart(9)}   ${r.verdict === 'spilled' ? '· CAÑA DERRAMADA' : ''}
+  NOTA              ${String(r.score).padStart(9)} / 100   ${r.verdict === 'spilled' ? '· CAÑA DERRAMADA' : ''}
   error medio       ${r.meanErrorDeg.toFixed(1)}°
   derrames          ${r.spillEvents} evento(s), ${pc(r.spilled)} del vaso
 `)
