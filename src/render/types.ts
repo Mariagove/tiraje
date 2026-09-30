@@ -80,8 +80,8 @@ export interface Tier {
 }
 
 export const TIERS: readonly Tier[] = [
-  { level: 0, bubbles: 40, animatedFoam: true, maxDpr: 2, forceCanvas2d: false },
-  { level: 1, bubbles: 12, animatedFoam: true, maxDpr: 1.5, forceCanvas2d: false },
+  { level: 0, bubbles: 84, animatedFoam: true, maxDpr: 2, forceCanvas2d: false },
+  { level: 1, bubbles: 28, animatedFoam: true, maxDpr: 1.5, forceCanvas2d: false },
   { level: 2, bubbles: 0, animatedFoam: false, maxDpr: 1, forceCanvas2d: false },
   { level: 3, bubbles: 0, animatedFoam: false, maxDpr: 1, forceCanvas2d: true },
 ]

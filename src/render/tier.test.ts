@@ -63,6 +63,6 @@ describe('TierController', () => {
     const t = new TierController()
     const seen: number[] = []
     for (let k = 0; k < 4; k++) { seen.push(t.tier.bubbles); feed(t, 60, WINDOW_FRAMES) }
-    expect(seen).toEqual([40, 12, 0, 0])
+    expect(seen).toEqual([84, 28, 0, 0])
   })
 })

@@ -82,7 +82,34 @@ interface Bubble {
 /** Segmentos con que se traza la superficie ondulada. */
 const WAVE_SEGMENTS = 72
 /** Grosor del chorro en píxeles CSS. Una caña real entra bien gorda. */
+/**
+ * Qué fracción de las burbujas sigue viva con el grifo cerrado.
+ *
+ * El resto entra y sale con el caudal. No es cero porque una cerveza en
+ * reposo sigue burbujeando: el gas sale de los puntos de nucleación del
+ * cristal, no del chorro.
+ */
+const BUBBLES_AT_REST = 0.3
+
 const STREAM_WIDTH = 28
+
+/**
+ * Inclinación a la que el chorro apunta del todo a la pared, junto a la boca.
+ *
+ * Es la misma referencia con la que el núcleo mide la espuma: a 45° o más se
+ * sirve por la pared y casi no hace corona, y de ahí hacia el vaso derecho el
+ * impacto se va al centro y la corona crece. Las dos cosas son la misma, así
+ * que comparten número.
+ */
+const AIM_REF_DEG = 45
+
+/**
+ * Capas en que se reparte cada lóbulo de sombra y de brillo del chorro, y su
+ * opacidad. Ver `lobe`: con seis al 4% el centro llega al 22% y ningún
+ * escalón pasa del 4%, que es lo que hace que no se vean bandas.
+ */
+const SHADE_LAYERS = 6
+const SHADE_ALPHA = 0.04
 /** Segmentos de la cinta del chorro. */
 const STREAM_SEGMENTS = 26
 /** Gotas de la salpicadura. */
@@ -213,7 +240,10 @@ export class Glass2D implements GlassRenderer {
 
   #spawnBubbles(): void {
     this.#bubbles = Array.from({ length: this.#tier.bubbles }, () => {
-      const r0 = 0.7 + this.#rnd() * 2.0
+      // Tamaños repartidos con sesgo a lo pequeño: muchas finas y unas pocas
+      // gordas, que es lo que se ve en un vaso. Repartidas de forma uniforme
+      // salían todas parecidas y el conjunto se leía como una trama.
+      const r0 = 0.5 + 3.4 * Math.pow(this.#rnd(), 2.5)
       return {
         x: (this.#rnd() - 0.5) * this.#w,
         y: (this.#rnd() - 0.5) * this.#h,
@@ -365,7 +395,12 @@ export class Glass2D implements GlassRenderer {
     // mientras entra cerveza.
     // ================================================================
     const beerThickness = Math.hypot(beerTop.x - surfaceOf(0).x, beerTop.y - surfaceOf(0).y)
-    const live = Math.round(this.#tier.bubbles * Math.max(0, Math.min(1, act * 1.15)))
+    // Nunca se apagan del todo: una cerveza servida sigue soltando burbujas
+    // de los puntos de nucleación del cristal, sólo que muchas menos. Antes
+    // el recuento iba directo con la actividad y al cerrar el grifo el vaso
+    // se quedaba muerto de golpe.
+    const acti = Math.max(0, Math.min(1, act * 1.15))
+    const live = Math.round(this.#tier.bubbles * (BUBBLES_AT_REST + (1 - BUBBLES_AT_REST) * acti))
     if (live > 0 && f.fill - f.foam > 0.01 && beerThickness > 6) {
       const grav = gravityOnScreen(f.phi)
       const dt = 1 / 60
@@ -448,26 +483,34 @@ export class Glass2D implements GlassRenderer {
       // inclinación es por dónde cae, no por dónde entra.
       const entry = { x: 0, y: -H / 2 }
 
-      // Cae según la gravedad hasta lo primero que encuentre: la superficie
-      // del líquido, o la pared del vaso.
-      const dir = { x: ct, y: st }
-      const rel = { x: foamTop.x - entry.x, y: foamTop.y - entry.y }
-      const den = grav.x * dir.y - grav.y * dir.x
-      const tSurfRaw = Math.abs(den) < 1e-6
-        ? Infinity : (rel.x * dir.y - rel.y * dir.x) / den
-      const tSurf = tSurfRaw > 0 ? tSurfRaw : Infinity
-
-      const wallX = grav.x < 0 ? -W / 2 : W / 2
-      const tWallRaw = Math.abs(grav.x) < 1e-6 ? Infinity : (wallX - entry.x) / grav.x
-      const tWall = tWallRaw > 0 ? tWallRaw : Infinity
-
-      const hitsWall = tWall < tSurf
-      const tEnd = Math.min(tSurf, tWall, R)
-      const land = { x: entry.x + grav.x * tEnd, y: entry.y + grav.y * tEnd }
-
       /** Altura de la superficie sobre la vertical de un `x` dado. */
       const surfaceYAt = (x: number): number => Math.abs(ct) < 1e-6
         ? foamTop.y : foamTop.y + ((x - foamTop.x) * st) / ct
+
+      // ¿Dónde golpea?
+      //
+      // Se servía trazando el rayo de la gravedad desde la boca hasta lo
+      // primero que encontrara. Es exacto y **no es lo que hace un camarero**:
+      // el chorro cae recto y quien se mueve es el vaso, así que el punto de
+      // impacto respecto al vaso lo manda la inclinación, no un rayo.
+      //
+      // Con el vaso tumbado se apunta a la pared JUNTO A LA BOCA, para que la
+      // cerveza resbale y no rompa; conforme se endereza para levantar la
+      // corona, el impacto se va al centro. El rayo daba lo contrario a medias
+      // inclinaciones: tardaba media pantalla en tocar la pared, y el chorro
+      // pegaba abajo, justo donde no tiene que pegar.
+      const lean = Math.min(1, Math.abs(f.phi) / AIM_REF_DEG)
+      const side = grav.x < 0 ? -1 : 1
+      const wallX = side * (W / 2)
+      const aimX = side * (W / 2 - STREAM_WIDTH * 0.85) * lean
+      const ySurf = surfaceYAt(aimX)
+      // Junto a la boca cuando está tumbado, sobre la superficie cuando está
+      // derecho, y nunca por debajo de la superficie: si el líquido ya llega
+      // más arriba, el chorro cae sobre el líquido y no sobre el cristal.
+      const yAim = Math.min(ySurf, (-H / 2 + H * 0.09) * lean + ySurf * (1 - lean))
+      const land = { x: aimX, y: yAim }
+      // Toca cristal si ha ido a parar a la pared con la superficie más abajo.
+      const hitsWall = lean > 0.12 && yAim < ySurf - 2
 
       // El chorro se aclara conforme hace más espuma. La mezcla no llega a
       // blanco del todo: incluso cayendo a plomo, lo que baja por el aire es
@@ -525,21 +568,45 @@ export class Glass2D implements GlassRenderer {
       }
 
       /**
-       * Volumen de cilindro: tres cintas concéntricas sobre la MISMA
-       * ondulación, en vez de un degradado transversal.
+       * Volumen de cilindro: cintas concéntricas sobre la MISMA ondulación.
        *
-       * El degradado se calcula sobre la cuerda recta, así que con el chorro
-       * ondulando el brillo se quedaba clavado en una línea, se salía de la
-       * cinta por trozos, y el conjunto se leía como un palo con una raya.
-       * Tres cintas desplazadas comparten la ondulación y la siguen.
+       * Un degradado transversal de verdad no vale: se calcula sobre la cuerda
+       * recta, así que con el chorro ondulando el brillo se queda clavado en
+       * una línea y se sale de la cinta por trozos. Estas cintas siguen la
+       * ondulación porque comparten el mismo trazado.
+       *
+       * Eran tres —núcleo, sombra y brillo— y se veían como tres bandas con el
+       * corte a la vista. Ahora la sombra y el brillo se reparten en varias
+       * capas cada vez más estrechas y con poca opacidad: cada escalón queda
+       * por debajo de lo que el ojo separa y el conjunto se lee como un
+       * degradado. Con `k` capas al `a`, el centro del lóbulo llega a
+       * `1 − (1 − a)^k`, así que el borde entra suave sin que el núcleo pierda
+       * fuerza.
        */
+      const lobe = (
+        from: { x: number; y: number }, to: { x: number; y: number },
+        w0: number, w1: number, wob: number, seed: number,
+        style: string, bias: number, wide: number,
+      ): void => {
+        // En los niveles degradados bastan dos capas: ahí lo que sobra es
+        // presupuesto de dibujo, no fidelidad del chorro.
+        const capas = this.#tier.animatedFoam ? SHADE_LAYERS : 2
+        for (let capa = 0; capa < capas; capa++) {
+          // De la más ancha a la más estrecha: la opacidad se acumula hacia
+          // dentro sin que ninguna capa tenga un borde duro.
+          const t = capa / capas
+          ribbon(from, to, w0, w1, wob, seed, style,
+            bias * (0.55 + 0.45 * t), wide * (1 - t * 0.82))
+        }
+      }
+
       const flow = (
         from: { x: number; y: number }, to: { x: number; y: number },
         w0: number, w1: number, wob: number, seed: number,
       ): void => {
         ribbon(from, to, w0, w1, wob, seed, rgba(streamColor, 0.95))
-        ribbon(from, to, w0, w1, wob, seed, 'rgba(0,0,0,0.16)', 0.34, 0.3)
-        ribbon(from, to, w0, w1, wob, seed, 'rgba(255,255,255,0.20)', -0.2, 0.26)
+        lobe(from, to, w0, w1, wob, seed, `rgba(0,0,0,${SHADE_ALPHA})`, 0.34, 0.52)
+        lobe(from, to, w0, w1, wob, seed, `rgba(255,255,255,${SHADE_ALPHA})`, -0.2, 0.44)
       }
 
       ctx.save()
@@ -581,12 +648,12 @@ export class Glass2D implements GlassRenderer {
       ctx.translate(join.x, join.y)
       ctx.rotate(tilt)
       ctx.fillStyle = rgba(FOAM, 0.92)
-      for (let lobe = 0; lobe < 3; lobe++) {
-        const off = (lobe - 1) * STREAM_WIDTH * 0.52
-        const puff = 0.08 * Math.sin(f.t * 17 + lobe * 2.1)
+      for (let bulto = 0; bulto < 3; bulto++) {
+        const off = (bulto - 1) * STREAM_WIDTH * 0.52
+        const puff = 0.08 * Math.sin(f.t * 17 + bulto * 2.1)
         ctx.beginPath()
-        ctx.ellipse(off, -STREAM_WIDTH * 0.06 * lobe,
-          STREAM_WIDTH * (0.62 + puff) * (lobe === 1 ? 1.25 : 1),
+        ctx.ellipse(off, -STREAM_WIDTH * 0.06 * bulto,
+          STREAM_WIDTH * (0.62 + puff) * (bulto === 1 ? 1.25 : 1),
           STREAM_WIDTH * (0.30 + puff), 0, 0, Math.PI * 2)
         ctx.fill()
       }

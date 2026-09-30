@@ -1049,6 +1049,71 @@ impresión en vez de como una intención. Verificado sobre el PNG: las tintas
 sólidas son exactamente `#B02C31` y `#B69E6C`, y el alfa del antialias se
 conserva.
 
+## El chorro: adónde apunta y por qué ya no se ven bandas
+
+### Apunta a la pared junto a la boca, y se va al centro al enderezar
+
+Se servía trazando el rayo de la gravedad desde la boca hasta lo primero que
+encontrara, superficie o pared. Es exacto y **no es lo que hace un camarero**:
+el chorro cae recto y quien se mueve es el vaso, así que el punto de impacto
+respecto al vaso lo manda la inclinación, no un rayo.
+
+Y el rayo daba lo contrario de lo que hace falta a medias inclinaciones. A 20°
+tarda media pantalla en llegar a la pared —`(W/2)/sen 20° = 547 px` sobre un
+alto de 812— así que el chorro pegaba **abajo**, justo donde rompe y hace
+espuma. A 45° sí llegaba cerca de la boca, pero por casualidad geométrica.
+
+Ahora el impacto se interpola con la inclinación: a 45° o más, la pared junto
+a la boca, al 9% del alto; con el vaso derecho, el centro de la superficie. Y
+nunca por debajo de la superficie —si el líquido ya llega más arriba, el
+chorro cae sobre el líquido y no sobre el cristal.
+
+Los 45° son `AIM_REF_DEG`, y es **el mismo número** con el que el núcleo mide
+la espuma. No es casualidad que coincidan: servir por la pared es justamente
+lo que evita la corona, así que el ángulo al que el chorro deja de tocar
+cristal tiene que ser el ángulo al que empieza a hacer espuma.
+
+### Tres bandas con el corte a la vista
+
+El volumen del chorro eran tres cintas concéntricas —núcleo, sombra al 16%,
+brillo al 20%—, y con el borde duro se leían como tres bandas.
+
+Ahora cada lóbulo se reparte en **seis capas al 4%**, cada vez más estrechas.
+Con `k` capas al `a`, el centro llega a `1 − (1 − a)^k` = **22%**, o sea que
+el núcleo conserva la fuerza que tenía, pero ningún escalón pasa del 4%, que
+está por debajo de lo que el ojo separa.
+
+No vale un degradado transversal de verdad: se calcula sobre la cuerda recta,
+así que con el chorro ondulando el brillo se queda clavado en una línea y se
+sale de la cinta por trozos. Estas cintas siguen la ondulación porque
+comparten trazado. En los niveles degradados bajan a dos capas.
+
+## Más burbujas, y el vaso no se muere al cerrar el grifo
+
+- El presupuesto sube de 40 a **84** en el nivel 0 y de 12 a **28** en el 1.
+- Los tamaños se reparten con sesgo a lo pequeño —`0,5 + 3,4·u^2,5`— en vez de
+  uniformes: muchas finas y unas pocas gordas, que es lo que se ve en un vaso.
+  Uniformes salían todas parecidas y el conjunto se leía como una trama.
+- **Se queda vivo el 30% con el grifo cerrado.** Antes el recuento iba directo
+  con la actividad y el vaso se apagaba de golpe al cerrar. Una cerveza
+  servida sigue burbujeando: el gas sale de los puntos de nucleación del
+  cristal, no del chorro.
+
+### Lo que cuesta, medido
+
+Llamadas de dibujo por frame, contadas con un contexto falso que las apunta:
+
+| situación | antes | ahora |
+|---|---|---|
+| vertiendo a 35°, vaso al 40% | 109 rellenos · 599 puntos | **173 · 1.743** |
+| vertiendo recto, vaso al 80% | 106 · 434 | **160 · 1.028** |
+| en reposo, vaso al 90% | 38 · 207 | **65 · 234** |
+
+Es entre 1,1× y 2,9× más trabajo, y casi todo mientras cae el chorro. El
+escalado por tiers sigue siendo la red: mide el coste real del dibujo en el
+móvil y baja de nivel solo, y en los niveles degradados el chorro ya usa dos
+capas en vez de seis. Queda por ver en el iPhone.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin
