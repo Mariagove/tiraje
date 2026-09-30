@@ -19,6 +19,10 @@ import { Fusion, requestMotionPermission, type SensorStatus } from '@/sensors/fu
 import { mountSensorSlice } from '@/dev/sensor-slice'
 import { mountTraceRecorder } from '@/dev/trace-recorder'
 import { mountGameView } from '@/dev/game-view'
+// Vite le pone hash al nombre y devuelve la URL ya con el `base` del build
+// aplicado. Referenciarlo a mano como '/ambar.png' daría 404 en Pages, donde
+// el sitio vive en /tiraje/.
+import logoAmbar from '@/assets/ambar.png'
 
 const AGE_KEY = 'tiraje.age.v1'
 
@@ -53,14 +57,14 @@ const STATUS_ES: Record<SensorStatus['kind'], string> = {
  * La piel la decide la vista, y la decide en un solo sitio.
  *
  * Tirar la caña es negro porque la pantalla ES el vaso; todo lo demás va sobre
- * papel blanco con tinta de marca. `theme-color` va con ello: en iOS pinta la
- * barra de estado, y una barra negra sobre una pantalla blanca se ve como un
- * recorte.
+ * papel blanco con tinta de marca — y el vaso ya no es negro tampoco, es el
+ * rojo de marca. `theme-color` va con ello: en iOS pinta la barra de estado,
+ * y una barra de un color que no es el de la pantalla se ve como un recorte.
  */
 function skin(screen: 'game' | 'ui'): void {
   document.body.dataset['screen'] = screen
   document.querySelector('meta[name="theme-color"]')
-    ?.setAttribute('content', screen === 'game' ? '#0b0b0c' : '#ffffff')
+    ?.setAttribute('content', screen === 'game' ? '#b02c31' : '#ffffff')
 }
 
 export function mountShell(root: HTMLElement): void {
@@ -102,19 +106,39 @@ export function mountShell(root: HTMLElement): void {
       </section>
 
       <section id="view"></section>
-      <p id="status" class="chip relative z-30 mt-auto w-fit rounded px-1.5 py-0.5 text-xs text-ambar-dim">sin pedir</p>
+      <div id="status" class="relative z-30 mt-auto w-fit"></div>
     </main>
   `
   const $ = <T extends HTMLElement>(id: string): T => root.querySelector<T>(`#${id}`)!
   const statusEl = $('status'), viewEl = $('view'), tabs = $('tabs'), gate = $('gate')
 
-  const fusion = new Fusion({
-    onStatus: (s) => {
-      statusEl.textContent = STATUS_ES[s.kind]
-      const base = 'chip relative z-30 mt-auto w-fit rounded px-1.5 py-0.5 text-xs'
-      statusEl.className = `${base} ${s.kind === 'live' || s.kind === 'probing' ? 'text-ambar-dim' : 'font-bold text-ambar-beer'}`
-    },
-  })
+  /**
+   * Cuando el sensor va bien, el logo; cuando no, el aviso.
+   *
+   * El cartelito que ponía «midiendo» era ruido: si el juego responde a la
+   * inclinación, ya se ve que mide. Ahí va la marca, que es lo que pidió el
+   * estudio. Lo que **no** se puede sustituir por un logo son los tres
+   * «no hay sensor»: ésos cambian a qué estás jugando —al dedo, con ranking
+   * de práctica aparte— y hay que poder leerlos.
+   *
+   * La marca va siempre sobre su blanco, también en la pantalla roja: el
+   * granate del logotipo es más oscuro que el fondo (`#A23736` contra
+   * `#B02C31`) y no se distinguiría, y un logotipo de cliente no se recolorea
+   * para que encaje.
+   */
+  function paintStatus(s: SensorStatus): void {
+    if (s.kind === 'live' || s.kind === 'probing') {
+      statusEl.innerHTML = `<img src="${logoAmbar}" alt="Ambar" class="block h-9 w-auto rounded" />`
+      return
+    }
+    // `idle` no es un fallo, es que todavía no se ha tocado el botón: va en
+    // texto apagado. Los otros tres sí lo son y van en negrita.
+    const aviso = s.kind === 'idle' ? 'text-ambar-dim' : 'font-bold text-ambar-beer'
+    statusEl.innerHTML =
+      `<span class="chip block rounded px-1.5 py-0.5 text-xs ${aviso}">${STATUS_ES[s.kind]}</span>`
+  }
+
+  const fusion = new Fusion({ onStatus: paintStatus })
 
   let teardown: (() => void) | null = null
   skin('ui')
@@ -150,7 +174,7 @@ export function mountShell(root: HTMLElement): void {
 
     void p.then((outcome) => {
       if (outcome !== 'no-api' && outcome !== 'denied') fusion.start()
-      else statusEl.textContent = STATUS_ES[outcome === 'no-api' ? 'no-api' : 'denied']
+      else paintStatus({ kind: outcome === 'no-api' ? 'no-api' : 'denied' } as SensorStatus)
       show('game')
     })
   })

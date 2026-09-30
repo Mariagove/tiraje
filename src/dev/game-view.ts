@@ -84,10 +84,18 @@ export function mountGameView(
   root.innerHTML = `
     <canvas id="glass" class="fixed inset-0 z-0 h-full w-full"></canvas>
 
-    <div class="pointer-events-none fixed inset-0 z-10 flex flex-col items-center justify-between
-                px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))]">
-      <div id="hud" class="font-mono text-4xl tabular-nums transition-opacity"
+    <!-- El ángulo va en el CENTRO de la pantalla, donde antes estaba el logo
+         grabado en el cristal: es lo único que hay que leer mientras
+         calibras, y en el centro se lee sin desviar la vista del líquido.
+         En DOM y no en canvas: texto nítido gratis y cifras de ancho fijo,
+         que es lo que evita que el número baile al cambiar de cifra. -->
+    <div class="pointer-events-none fixed inset-0 z-10 flex items-center justify-center">
+      <div id="hud" class="font-mono text-6xl tabular-nums transition-opacity"
            style="transition-duration:${HUD_FADE_MS}ms">—</div>
+    </div>
+
+    <div class="pointer-events-none fixed inset-x-0 bottom-0 z-10 flex justify-center
+                px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <div id="prompt" class="text-center text-sm text-ambar-foam/70 [text-shadow:0_1px_3px_rgba(0,0,0,.7)]"></div>
     </div>
 
@@ -292,10 +300,10 @@ export function mountGameView(
         + (pct > 0 ? `<br><span class="text-[0.65rem] opacity-60">calibrando ${pct}%</span>` : '')
     }
     if (st === 'CALIBRATE' || st === 'READY') {
-      // 3 decimales: sólo son honestos con el móvil quieto, y en estos dos
-      // estados lo está. Establecen que el instrumento es de precisión y dan
-      // la referencia de los 45° de salida.
-      hud.textContent = `${smooth.filter(loop.frame().phi, now).toFixed(3)}°`
+      // Un decimal. Tres eran honestos con el móvil quieto —y en estos dos
+      // estados lo está— pero en la mano las milésimas bailan sin que puedas
+      // hacer nada con ellas, y la décima es justo el paso del sensor.
+      hud.textContent = `${smooth.filter(loop.frame().phi, now).toFixed(1)}°`
     }
 
     if (!dbg.classList.contains('hidden')) {

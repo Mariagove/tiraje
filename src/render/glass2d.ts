@@ -18,8 +18,14 @@ import { TIERS, type GlassFrame, type GlassRenderer, type Tier } from './types'
 
 const D2R = Math.PI / 180
 
-/** Paleta placeholder. Los tokens de marca reales no están en este Mac. */
-const INK = '#0b0b0c'
+/**
+ * El fondo del vaso vacío: el rojo de marca, no negro.
+ *
+ * Es el único color de esta pantalla que sí es de marca, y lo eligió el
+ * estudio. Sobre él la cerveza y la corona blanca siguen destacando; la
+ * graduación ya lleva halo oscuro y trazo claro, así que se lee igual.
+ */
+const FONDO = '#b02c31'
 
 const rgba = (c: readonly number[], a: number): string =>
   `rgba(${c[0]},${c[1]},${c[2]},${a})`
@@ -57,114 +63,13 @@ const mix = (a: readonly number[], b: readonly number[], t: number): number[] =>
   [a[0]! + (b[0]! - a[0]!) * t, a[1]! + (b[1]! - a[1]!) * t, a[2]! + (b[2]! - a[2]!) * t]
 
 /**
- * Una lengua de espuma bajando por FUERA del vaso.
- *
- * El modelo sale de dos referencias del estudio, una foto y un vídeo, y las
- * dos son ciertas: **la diferencia es el caudal**.
- *
- *   - Poco caudal (la foto): reguero estrecho, ~20% del ancho del vaso, lento,
- *     con cuello fino y **bulbo redondeado en el extremo** —tensión
- *     superficial acumulando masa en el frente— que se para a medio camino.
- *   - Mucho caudal (el vídeo): **lámina ancha**, del 40 al 60% del ancho, de
- *     borde casi recto, **sin bulbo**, que recubre el vaso en un segundo y se
- *     va por abajo.
- *
- * Es la transición de rivulete a lámina: con poco flujo manda la tensión
- * superficial y el líquido se recoge en un hilo con cabeza; con mucho manda la
- * inercia y se extiende. `sheet` interpola entre las dos.
- *
- * Es la única parte del renderer con estado, y hace falta por dos motivos: el
- * recorrido ya depositado se queda pegado al cristal, y la punta avanza según
- * la gravedad **del instante**. Si el jugador endereza el móvil a media
- * caída, la lengua se dobla ahí — que es justo lo que haría.
- */
-interface Tongue {
-  /** Posición en el labio por la que salió. */
-  anchor: number
-  /** Recorrido depositado sobre el cristal. La punta es el último punto. */
-  path: number[][]
-  /** Radio base, en píxeles. */
-  r: number
-  /** Velocidad de la punta, px/s. Arranca muy lenta: es espesa. */
-  v: number
-  /** 0 = hilo con bulbo, 1 = lámina ancha. Lo fija el caudal del labio. */
-  sheet: number
-  /** Si la corona sigue alimentándola. */
-  fed: boolean
-  /**
-   * Índice del primer punto que aún existe.
-   *
-   * Mientras la alimenten vale 0: la lengua está pegada al labio. Cuando deja
-   * de alimentarse, **avanza**, así que la espuma desaparece desde el borde
-   * hacia la base mientras la punta sigue resbalando. El segmento visible se
-   * desplaza hacia abajo y se consume, en vez de esfumarse entero a la vez.
-   */
-  from: number
-  /**
-   * Cuánto se ha secado ya, de 0 a 1.
-   *
-   * Sube en cuanto deja de alimentarse y adelgaza el trazo. Es lo que hace
-   * que la lengua se vaya *apagando* además de escurrirse, en lugar de
-   * mantener el mismo grosor hasta el último punto.
-   */
-  fade: number
-}
-
-/**
- * Una sola lengua ALIMENTADA a la vez.
- *
- * En la referencia se ve un segundo bulto al otro lado del labio, pero es el
- * REFLEJO DEL CRISTAL, no espuma — lo aclaró el estudio. Sale una lengua, la
- * que se lleva el caudal.
- *
- * Las que ya no se alimentan NO cuentan: siguen escurriendo por su lado
- * mientras nace otra por donde ahora rebosa. Contarlas era lo que dejaba el
- * vaso sin derrame al ladearlo al contrario — la lengua del primer lado se
- * quedaba ocupando la única plaza.
- */
-const MAX_TONGUES = 1
-
-/** Tope duro del array, para que ladear de un lado a otro no acumule. */
-const MAX_TONGUES_TOTAL = 3
-
-/**
- * Constante de tiempo con la que se seca una lengua sin alimento, en segundos.
- *
- * Se consume en proporción a lo que le queda, así que tarda lo mismo mida lo
- * que mida: ~3·τ para desaparecer del todo. Antes se consumía a la velocidad
- * a la que resbalaba, y una lengua larga tardaba más de diez segundos en
- * irse — seguía ahí mucho después de enderezar el móvil.
- */
-const TONGUE_FADE_S = 0.12
-
-/** Separación entre puntos del recorrido. Con radios de ~30 px solapan de sobra. */
-const TONGUE_STEP_PX = 8
-
-/**
  * Intensidad mínima para que haya rebose en pantalla.
  *
- * El mismo número decide tres cosas —si se dibuja la cortina, si puede nacer
- * una lengua y si la lengua se alimenta— y tiene que ser el mismo para las
- * tres: una lengua que puede nacer pero no alimentarse entra en un ciclo de
- * nacer en el labio y consumirse, que se lee como espuma que vuelve a subir.
+ * Se compara contra la intensidad SUAVIZADA, no contra la geometría cruda: el
+ * derrame se autolimita —derrama, baja el nivel, para, se vuelve a llenar— y
+ * el booleano cruza el cero varias veces por segundo.
  */
 const SPILL_ON = 0.08
-
-/**
- * Perfil de grosor a lo largo de la lengua, de 0 en el labio a 1 en la punta.
- *
- * Con `sheet` a 0 sale el hilo de la foto: cuello que afina y bulbo capilar al
- * final. Con `sheet` a 1, la lámina del vídeo: ancho casi constante y sin
- * cabeza, porque a ese caudal la inercia gana a la tensión superficial.
- */
-function tongueProfile(sN: number, sheet: number): number {
-  const thread = 0.62 + 0.38 * Math.pow(1 - sN, 0.7)
-  const neck = thread + (1 - thread) * sheet
-  const bulb = sN > 0.8
-    ? 1 + 1.25 * Math.pow((sN - 0.8) / 0.2, 1.5) * (1 - sheet)
-    : 1
-  return neck * bulb
-}
 
 interface Bubble {
   x: number
@@ -255,7 +160,6 @@ export class Glass2D implements GlassRenderer {
    * golpe. También alimenta la amplitud del oleaje.
    */
   #activity = 0
-  #tongues: Tongue[] = []
   /** Última medida del rebose, para el panel de depuración. */
   #spillInfo = 'no'
   /**
@@ -364,7 +268,7 @@ export class Glass2D implements GlassRenderer {
     const W = this.#w
     const H = this.#h
     ctx.setTransform(this.#dpr, 0, 0, this.#dpr, 0, 0)
-    ctx.fillStyle = INK
+    ctx.fillStyle = FONDO
     ctx.fillRect(0, 0, W, H)
 
     const cx = W / 2
@@ -774,12 +678,8 @@ export class Glass2D implements GlassRenderer {
       ctx.fill()
     }
 
-    // Logo grabado, placeholder.
-    const sat = 0.18 + 0.72 * Math.min(1, Math.max(0, f.quality))
-    ctx.fillStyle = `rgba(255,255,255,${(0.05 + 0.07 * sat).toFixed(3)})`
-    ctx.font = `700 ${Math.round(W * 0.17)}px ui-sans-serif, system-ui, sans-serif`
-    ctx.textAlign = 'center'
-    ctx.fillText('AMBAR', 0, H * 0.06)
+    // Aquí iba el logo grabado en el cristal. Lo ocupa ahora el ángulo, que
+    // va en DOM —texto nítido gratis y `tabular-nums`— centrado en pantalla.
 
     ctx.restore()
 
@@ -788,6 +688,7 @@ export class Glass2D implements GlassRenderer {
     // El desvío se comunica con la SATURACIÓN del brillo, que sube cuando
     // estás en tolerancia. Nada de rojo/verde de videojuego.
     // ================================================================
+    const sat = 0.18 + 0.72 * Math.min(1, Math.max(0, f.quality))
     const inner = ctx.createLinearGradient(0, 0, 0, H)
     inner.addColorStop(0, `rgba(255,255,255,${(sat * 0.5).toFixed(3)})`)
     inner.addColorStop(0.5, 'rgba(255,255,255,0)')
@@ -879,19 +780,16 @@ export class Glass2D implements GlassRenderer {
       if (wet) this.#weir = ds.map((d) => (d > 0 ? Math.pow(d / maxD, 1.5) : 0))
       const weir = this.#weir.length === ds.length ? this.#weir : ds.map(() => 0)
 
-      const grav = gravityOnScreen(f.phi)
-      const dt = 1 / 60
-
-      this.#spillInfo = over
-        ? `caudal ${strength.toFixed(2)}` +
-          (this.#tongues.length > 0
-            ? ` · lengua ${(this.#tongues[0]!.r * 2).toFixed(0)}px (${((this.#tongues[0]!.r * 2 / W) * 100).toFixed(0)}% del vaso)` +
-              ` · lámina ${this.#tongues[0]!.sheet.toFixed(2)}`
-            : ' · sin lengua')
-        : this.#tongues.length > 0 ? 'escurriendo' : 'no'
+      this.#spillInfo = over ? `caudal ${strength.toFixed(2)}` : 'no'
 
       // --- El copete que asoma por encima del labio ----------------------
-      let curtainFront: number[][] | null = null
+      //
+      // Es TODO lo que se dibuja del rebose. Antes de aquí salía además una
+      // lengua que resbalaba por el cristal hasta la base; se quitó a
+      // petición del estudio, después de cinco rondas de arreglos —no
+      // deslizaba, salía cortada, volvía a subir, tardaba en secarse, no
+      // cambiaba de lado— y de que ninguna quedara bien. El copete solo
+      // cuenta lo mismo: hay líquido pasando por encima del borde.
       if (over) {
         const curtain = H * 0.055 * strength
         const front: number[][] = []
@@ -899,175 +797,16 @@ export class Glass2D implements GlassRenderer {
           const jag = 1 + 0.16 * Math.sin(i * 1.7 - f.t * 2.2) + 0.09 * Math.sin(i * 4.1 + f.t * 1.4)
           front.push([xs[i]!, rimY + curtain * weir[i]! * jag])
         }
-        curtainFront = front
-
-        // Nace dentro de la franja del labio con más caudal, en su punto más
-        // interior. No en el máximo exacto: ése es la esquina, y una lengua
-        // que nace en la esquina se va medio fuera de pantalla en cuanto la
-        // gravedad la empuja. El rebose ocurre sobre un TRAMO del labio, no
-        // sobre un punto, así que elegir el borde interior de ese tramo es
-        // igual de cierto y se ve entero.
-        const fedCount = this.#tongues.reduce((n, t) => n + (t.fed ? 1 : 0), 0)
-        if (fedCount < MAX_TONGUES && this.#tongues.length < MAX_TONGUES_TOTAL) {
-          const MIN_FLOW = 0.65
-          let best = -1
-          for (let i = 0; i <= RIM; i++) {
-            if (weir[i]! < MIN_FLOW) continue
-            if (this.#tongues.some((t) => t.fed && Math.abs(t.anchor - xs[i]!) < W * 0.2)) continue
-            if (best < 0 || Math.abs(xs[i]!) < Math.abs(xs[best]!)) best = i
-          }
-          // Sin azar cuando no hay ninguna: si está rebosando tiene que
-          // haber lengua. El 3% por frame que había antes dejaba huecos de
-          // varios segundos con el caudal al máximo y nada en pantalla.
-          if (best >= 0 && (fedCount === 0 || this.#rnd() < 0.03)) {
-            const x = xs[best]!
-            this.#tongues.push({
-              anchor: x,
-              path: [[x, rimY], [x + grav.x * 4, rimY + grav.y * 4]],
-              // Al ancho de la PANTALLA, no a píxeles fijos, y muy sensible al
-              // caudal: un quinto del vaso con poco, la mitad con mucho.
-              r: W * (0.035 + 0.05 * weir[best]!) * (0.8 + 2.2 * strength),
-              v: 6,
-              sheet: strength,
-              fed: true,
-              from: 0,
-              fade: 0,
-            })
-          }
-        }
-      }
-
-      // --- Las lenguas ---------------------------------------------------
-      //
-      // Se actualizan aquí y se dibujan MÁS ABAJO, junto con la cortina y en
-      // un único trazado. Dibujarlas aparte, cada una con su sombra, hacía que
-      // la sombra de la lengua cayera sobre la cortina justo donde se tocan y
-      // pintara una línea oscura entre las dos. En un líquido no hay cortes:
-      // son la misma masa y tienen que ser un solo relleno.
-      const circles: number[][] = []
-      for (let i = this.#tongues.length - 1; i >= 0; i--) {
-        const t = this.#tongues[i]!
-
-        // ¿La sigue alimentando la corona? Se mira el caudal del labio en SU
-        // PROPIA posición, no el del vaso en general — que es lo que decía el
-        // comentario y no lo que hacía el código.
-        //
-        // De ahí venía el fallo de ladear: rebosas por la izquierda, inclinas
-        // al otro lado, y la lengua de la izquierda seguía "alimentada"
-        // porque el vaso seguía rebosando — en el lado contrario. No moría
-        // nunca, ocupaba la única plaza y por la derecha no salía nada.
-        //
-        // El perfil `weir` se renormaliza cada frame al labio más hundido, así
-        // que en cuanto el derrame se muda de lado el valor en el ancla cae a
-        // cero solo.
-        const ai = (t.anchor + W / 2) / W * RIM
-        const a0 = Math.max(0, Math.min(RIM, Math.floor(ai)))
-        const a1 = Math.min(RIM, a0 + 1)
-        const flowHere = weir[a0]! + (weir[a1]! - weir[a0]!) * (ai - a0)
-        // Se alimenta de la intensidad suavizada, no del booleano crudo: con
-        // el derrame autolimitándose, la lengua se moría y renacía varias
-        // veces por segundo.
-        t.fed = over && flowHere > 0.3
-        if (t.fed) {
-          t.from = 0
-          // Se ENSANCHA mientras la alimenten. El caudal crece conforme sube
-          // el nivel, y la lengua nace en cuanto asoma el primer hilo: si el
-          // radio se congela al nacer, se queda fina para siempre por mucho
-          // que después esté rebosando a chorro.
-          const rWanted = W * 0.068 * (0.8 + 2.2 * strength)
-          t.r += (rWanted - t.r) * 0.03
-          t.sheet += (strength - t.sheet) * 0.03
-        }
-
-        // La punta avanza según la gravedad ACTUAL. Un hilo repta; una lámina
-        // baja rápido — en el vídeo recubre el vaso en poco más de un segundo.
-        // Sin alimento pierde el agarre del labio y se descuelga: la punta
-        // acelera en vez de quedarse reptando a la velocidad de antes.
-        const vMax = (52 + 200 * t.sheet) * (t.fed ? 1 : 2.4)
-        t.v = Math.min(vMax, t.v + (20 + 220 * t.sheet) * (t.fed ? 1 : 4) * dt)
-        const tip = t.path[t.path.length - 1]!
-        tip[0]! += grav.x * t.v * dt
-        tip[1]! += grav.y * t.v * dt
-
-        // Se deposita un punto nuevo cuando la punta se ha separado lo
-        // suficiente **del último punto YA DEPOSITADO**, no de sí misma.
-        //
-        // Ésa era la comparación mal hecha: medía lo que avanza la punta en
-        // un frame, unos 0,87 px, que nunca llega al umbral. No se depositaba
-        // nada, el recorrido se quedaba en dos puntos —el ancla en el labio y
-        // la punta— y se dibujaban dos círculos sueltos: uno clavado en el
-        // borde y otro alejándose. De ahí los dos síntomas a la vez, que la
-        // lengua no deslizaba y que salía cortada.
-        const prev = t.path[t.path.length - 2]
-        const onScreen = tip[1]! < H / 2 + 60 && Math.abs(tip[0]!) < W / 2 + 60
-        if (t.fed && prev && onScreen && t.path.length < 200
-            && Math.hypot(tip[0]! - prev[0]!, tip[1]! - prev[1]!) > TONGUE_STEP_PX) {
-          t.path.push([tip[0]!, tip[1]!])
-        }
-
-        // Sin alimento se consume desde el LABIO hacia abajo, y deprisa:
-        // lo que queda se va en proporción a lo que queda, así que tarda lo
-        // mismo sea larga o corta (~3·τ, medio segundo) y desaparece nada más
-        // enderezar el móvil. Mientras la alimenten no se consume nunca: una
-        // lengua alimentada llega del labio a la base y ahí se queda, que es
-        // lo que hace un rebose continuo.
-        //
-        // Antes se consumía a la velocidad a la que resbalaba, unos 6 puntos
-        // por segundo sobre un recorrido de cien: se quedaba pegada al
-        // cristal más de diez segundos después de dejar de rebosar.
-        if (!t.fed) {
-          const left = t.path.length - 1 - t.from
-          t.from += Math.max(left, 2) * (dt / TONGUE_FADE_S)
-          t.fade = Math.min(1, t.fade + dt / TONGUE_FADE_S)
-        } else {
-          t.fade = 0
-        }
-
-        if (t.from >= t.path.length - 1) {
-          this.#tongues.splice(i, 1)
-          continue
-        }
-
-        // Se dibuja como una cadena de círculos en UN SOLO path: la unión sale
-        // suave y sin costuras, y el bulbo del extremo es sólo un radio mayor.
-        // Se dibuja sólo lo que queda, del punto `from` a la punta, y el
-        // perfil se mide sobre ESE tramo: así el bulbo sigue en la punta
-        // aunque la lengua se esté consumiendo por arriba.
-        const n = t.path.length
-        const j0 = Math.floor(t.from)
-        const span = Math.max(1, n - 1 - j0)
-        for (let j = j0; j < n; j++) {
-          const sN = (j - j0) / span
-          const r = t.r * tongueProfile(sN, t.sheet) * (1 - 0.5 * t.fade)
-          const p = t.path[j]!
-          circles.push([p[0]!, p[1]!, r])
-        }
-      }
-
-      // --- Un solo trazado, un solo relleno, una sola sombra -------------
-      //
-      // Los arcos y el polígono de la cortina se trazan con el MISMO sentido
-      // de giro (horario en pantalla), así que la regla nonzero los une en vez
-      // de restarlos. Si algún día se invierte el orden de los puntos de la
-      // cortina, aparecerían agujeros donde se solapan.
-      if (curtainFront || circles.length > 0) {
-        // Sin sombra. La tenía para decir "esto está DELANTE del cristal",
-        // pero detrás está la corona del propio vaso, también blanca, y la
-        // sombra caía sobre ella dibujando un corte. En un líquido no hay
-        // cortes: la separación la hace el TINTE, que por fuera arrastra
-        // cerveza y queda más cálido que el blanco de dentro.
         ctx.save()
         ctx.beginPath()
-        if (curtainFront) {
-          ctx.moveTo(-W / 2, rimY)
-          ctx.lineTo(W / 2, rimY)
-          smoothTo(ctx, curtainFront)
-          ctx.closePath()
-        }
-        for (const [x, y, r] of circles) {
-          ctx.moveTo(x! + r!, y!)
-          ctx.arc(x!, y!, r!, 0, Math.PI * 2)
-        }
+        ctx.moveTo(-W / 2, rimY)
+        ctx.lineTo(W / 2, rimY)
+        smoothTo(ctx, front)
+        ctx.closePath()
+        // El tinte, y no una sombra, es lo que dice que esto está DELANTE del
+        // cristal: detrás está la corona del propio vaso, también blanca, y
+        // la sombra caía sobre ella dibujando un corte que no existe en un
+        // líquido. Por fuera arrastra cerveza, así que queda más cálido.
         ctx.fillStyle = rgba(FOAM_OUT, 0.96)
         ctx.fill()
         ctx.restore()
@@ -1077,5 +816,5 @@ export class Glass2D implements GlassRenderer {
     // (La UI va en DOM, no en canvas: texto nítido gratis y no cuesta fillrate.)
   }
 
-  dispose(): void { this.#bubbles = []; this.#tongues = [] }
+  dispose(): void { this.#bubbles = [] }
 }

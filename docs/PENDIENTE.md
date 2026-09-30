@@ -732,6 +732,53 @@ garantiza que antes o después se publica uno rancio. Pasa `lint`, `test` y
 publicar, así que un error de tipos tumba el despliegue en vez de salir al
 aire.
 
+## Fuera la lengua del derrame
+
+Decisión del estudio el 30/09/2026: **quitarla**. No quedó bien en ninguno de
+los cinco intentos, y arriba están todos documentados —no deslizaba, salía
+cortada, volvía a subir, tardaba segundos en secarse, no cambiaba de lado—.
+Cada arreglo era correcto y el resultado seguía sin convencer, que es la señal
+de que el problema no era el arreglo.
+
+Lo que queda del rebose es el **copete que asoma por encima del labio**, con
+su reparto de vertedero y su borde ondulante. Cuenta lo mismo que hacía falta
+contar: hay líquido pasando por encima del borde. Lo que se ha ido es el
+estado —la única parte con estado que tenía el renderer— y con él 190 líneas
+de `glass2d.ts` y los tres tests de `tongue.test.ts`.
+
+La física del núcleo NO cambia: se sigue perdiendo líquido al rebosar, el
+nivel sigue bajando y el veredicto sigue siendo «caña derramada». Lo que se
+quita es sólo el dibujo de la lengua.
+
+## El vaso en rojo de marca, y el ángulo en el centro
+
+Tres cambios de aspecto pedidos a la vez:
+
+- **El fondo del vaso es `#B02C31`, no negro.** En CSS es un token aparte,
+  `--color-ambar-fondo`, y no `--color-ambar-ink`: la tinta casi negra sigue
+  hacienda falta porque es lo que se pone ENCIMA del ámbar en los botones del
+  juego. Confundir los dos papeles dejaba texto granate sobre botón ámbar.
+  `theme-color` pasa a rojo en esa pantalla por lo mismo que pasó a blanco en
+  las otras.
+- **El ángulo, centrado y a un decimal**, donde estaba el logo grabado en el
+  cristal, que se ha quitado. Tres decimales eran honestos con el móvil
+  quieto, pero en la mano las milésimas bailan sin que puedas hacer nada con
+  ellas, y la décima es justo el paso de cuantización del sensor. Sigue
+  desvaneciéndose al abrir el grifo: durante el vertido no hay un solo número
+  en pantalla.
+- **El logo de Ambar en lugar del cartelito «midiendo».** Si el juego responde
+  a la inclinación ya se ve que mide. Lo que **no** se sustituye por un logo
+  son los tres «no hay sensor» del plan §1.7: ésos cambian a qué estás jugando
+  —al dedo, con ranking de práctica aparte— y hay que poder leerlos. `idle`
+  tampoco es un fallo, así que va en texto apagado y no en negrita.
+
+El logotipo va **siempre sobre su propio blanco**, también en la pantalla
+roja. Medido en el PNG: el granate del logotipo es `#A23736` y el fondo de la
+pantalla `#B02C31`, más claro, así que la marca se perdería encima. Un
+logotipo de cliente no se recolorea para que encaje. El PNG entra por `import`
+para que Vite le ponga hash y le aplique el `base` del build; referenciarlo a
+mano como `/ambar.png` daría 404 en Pages.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

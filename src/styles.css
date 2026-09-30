@@ -10,6 +10,14 @@
   --color-ambar-dim: #6b6b70;
   /* El único color que sí es de marca. Lo dio el estudio. */
   --color-marca: #b02c31;
+  /*
+   * El fondo de la pantalla de tirar: el rojo de marca, no negro.
+   *
+   * Va aparte de `ambar-ink`, que sigue siendo casi negro porque es la TINTA
+   * que se pone encima del ámbar en los botones del juego. Son dos papeles
+   * distintos y confundirlos dejaba texto granate sobre botón ámbar.
+   */
+  --color-ambar-fondo: var(--color-marca);
   --font-display: ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -60,7 +68,7 @@ body:not([data-screen="game"]) {
 }
 
 body[data-screen="game"] {
-  background: var(--color-ambar-ink);
+  background: var(--color-ambar-fondo);
   color: var(--color-ambar-foam);
 }
 
