@@ -3,9 +3,14 @@
 Juego web para Ambar. El móvil es el vaso: lo inclinas, el sensor mide el
 ángulo, y tiras la caña perfecta. El porqué de todo: `HANDOFF.md` y `docs/PLAN.md`.
 
+**Jugar: <https://mariagove.github.io/tiraje/>** — se publica solo en cada
+push a `main` (`.github/workflows/pages.yml`). Desde ahí funciona el sensor
+del móvil sin montar nada: Pages sirve por HTTPS, que es lo que exige
+`DeviceMotionEvent`. `?v=negra` elige la variedad.
+
 ```bash
 npm run dev     # HTTPS en :5173, accesible desde la LAN — ver docs/DEV-HTTPS.md
-npm test        # vitest: 39 tests
+npm test        # vitest: 101 tests
 npm run lint    # oxlint
 npm run bake    # rehornea las tablas desde varieties/*.json
 npm run build   # bake + typecheck + bundle

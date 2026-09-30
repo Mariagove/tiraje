@@ -701,6 +701,37 @@ Lo que NO he tocado, porque es la pantalla de tirar y las decisiones de
 aspecto son del estudio: la tarjeta de resultado, con su botón ámbar de
 GUARDAR Y OTRA CAÑA. Flota sobre la cerveza, no sobre papel.
 
+## Publicado en GitHub Pages, y el repositorio es público
+
+<https://mariagove.github.io/tiraje/>, desplegado por
+`.github/workflows/pages.yml` en cada push a `main`.
+
+Esto resuelve de raíz el «no me funciona el enlace en el móvil» que salió tres
+veces: ya no hace falta que el Mac esté encendido, ni estar en la misma red,
+ni aceptar un certificado autofirmado. Pages sirve por HTTPS, que es lo que
+exige `DeviceMotionEvent`, así que el sensor funciona igual que en local.
+
+Dos decisiones que hay que tener presentes:
+
+- **El repositorio pasó a público.** Pages no está disponible para
+  repositorios privados en el plan gratuito, y el estudio prefirió eso a pagar
+  Pro o salir de GitHub. Antes de cambiarlo se revisó que no hubiera claves ni
+  credenciales versionadas; no había. Lo que sí queda a la vista es toda la
+  documentación interna, este archivo incluido, y tres rutas locales con un
+  nombre de usuario en `docs/PLAN.md` (`/Users/macbookluis/…`), que vienen del
+  plan original y se han dejado tal cual.
+- **`base: './'` en `vite.config.ts`.** El sitio no vive en la raíz del
+  dominio sino en `/tiraje/`, y con rutas absolutas los assets dan 404. Con
+  rutas relativas el mismo build sirve en la raíz, en un subdirectorio y
+  abierto desde disco. Verificado sirviendo `dist/` desde un subdirectorio
+  antes de desplegar, y después contra la URL real: index, CSS y JS a 200.
+
+El flujo compila en el runner y **no versiona `dist/`**: guardar el compilado
+garantiza que antes o después se publica uno rancio. Pasa `lint`, `test` y
+`build` —que incluye `tsc --noEmit` y el horneado de variedades— antes de
+publicar, así que un error de tipos tumba el despliegue en vez de salir al
+aire.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin
