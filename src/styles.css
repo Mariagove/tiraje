@@ -81,20 +81,6 @@ body[data-screen="game"] .superficie { background: rgb(0 0 0 / 0.4); }
 body[data-screen="game"] .chip { background: rgb(0 0 0 / 0.58); backdrop-filter: blur(8px); }
 
 /*
- * El logotipo: en tinta sobre papel, calado sobre el rojo del vaso, y otra
- * vez en tinta cuando la cerveza le pasa por detrás.
- *
- * Quién manda: sobre papel blanco no hay duda. Dentro del juego lo decide
- * `data-logo`, que pone el bucle dos veces por segundo leyendo el píxel que
- * hay justo detrás del logotipo.
- */
-.logo-calado { display: none; }
-body[data-screen="game"] .logo-tinta { display: none; }
-body[data-screen="game"] .logo-calado { display: block; }
-body[data-screen="game"][data-logo="liquido"] .logo-calado { display: none; }
-body[data-screen="game"][data-logo="liquido"] .logo-tinta { display: block; }
-
-/*
  * Botón: relleno de marca y texto blanco, en las dos pieles.
  *
  * El estudio lo pidió así de tajante, y tiene sentido: es el único elemento

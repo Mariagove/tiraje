@@ -26,26 +26,6 @@ const D2R = Math.PI / 180
  * graduación ya lleva halo oscuro y trazo claro, así que se lee igual.
  */
 const FONDO = '#b02c31'
-/** El mismo color, en canales, para comparar con lo que se lee del lienzo. */
-const FONDO_RGB = [0xb0, 0x2c, 0x31] as const
-
-/**
- * Margen, en distancia euclídea de color, para decidir que un píxel NO es el
- * fondo del vaso.
- *
- * Tiene que dejar fuera lo que el propio fondo lleva encima —el bisel del
- * borde y el brillo que se desplaza, que como mucho son un velo blanco al 5%,
- * unas 16 unidades— y dejar dentro la cerveza y la espuma, que están a más de
- * 130. Con 30 hay sitio de sobra por los dos lados.
- */
-const MARGEN_FONDO = 30
-
-/** ¿Este píxel es líquido, o es el fondo del vaso? */
-export function pixelEsLiquido(r: number, g: number, b: number): boolean {
-  const dr = r - FONDO_RGB[0], dg = g - FONDO_RGB[1], db = b - FONDO_RGB[2]
-  return dr * dr + dg * dg + db * db > MARGEN_FONDO * MARGEN_FONDO
-}
-
 const rgba = (c: readonly number[], a: number): string =>
   `rgba(${c[0]},${c[1]},${c[2]},${a})`
 
@@ -203,27 +183,6 @@ export class Glass2D implements GlassRenderer {
    * píxeles son dos números y hay que poder leerlos, también en el móvil.
    */
   get spillInfo(): string { return this.#spillInfo }
-
-  /**
-   * ¿Lo que hay pintado en ese punto de la pantalla es líquido?
-   *
-   * Se lee el píxel ya dibujado en vez de rehacer la geometría. Parece un
-   * atajo y es lo contrario: la respuesta tiene que contar también con el
-   * oleaje, el chapoteo, la corona y la espuma que rebosa, y todo eso ya está
-   * en el píxel. Recalcularlo sería mantener una segunda versión de la misma
-   * cuenta, que es como se acaba con la etiqueta de un color y el vaso de
-   * otro.
-   *
-   * Cuesta un `getImageData` de UN píxel, y quien llama lo hace dos veces por
-   * segundo, no por frame: la lectura fuerza a esperar a la GPU.
-   */
-  liquidAt(cssX: number, cssY: number): boolean {
-    const x = Math.round(cssX * this.#dpr)
-    const y = Math.round(cssY * this.#dpr)
-    if (x < 0 || y < 0 || x >= this.#canvas.width || y >= this.#canvas.height) return false
-    const d = this.#ctx.getImageData(x, y, 1, 1).data
-    return pixelEsLiquido(d[0]!, d[1]!, d[2]!)
-  }
 
   constructor(canvas: HTMLCanvasElement, variety: BakedVariety) {
     const ctx = canvas.getContext('2d', { alpha: false })

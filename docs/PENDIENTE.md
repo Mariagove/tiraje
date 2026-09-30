@@ -901,19 +901,21 @@ parte de abajo que no pedía nada al jugador —el toque abre el grifo esté
 calibrado o no— así que sólo era ruido con pinta de estar esperando algo. La
 calibración sigue ocurriendo igual.
 
-## El logotipo, calado sobre el rojo
+## El logotipo va siempre en su granate
 
-Va la versión en tinta sobre el papel blanco y la **calada en blanco** sobre
-el rojo del vaso, porque ahí el granate daba 1,04:1 de contraste. El oro del
-triángulo se queda: sólo se cala la palabra.
+**Revertido el 30/09/2026.** Hubo una versión calada en blanco para el rojo
+del vaso, y después una tercera vuelta en la que cambiaba de color leyendo el
+píxel que tenía detrás. El estudio decidió que la marca no cambia de color: va
+siempre en `#B02C31`.
 
-Las dos versiones van en el marcado y **las conmuta el CSS con la piel**, en
-vez de repintarlas desde JS: así el cambio de pantalla no tiene que acordarse
-de volver a pintar el estado del sensor. Cuesta 7 KB de PNG de más.
+Queda dicho, porque está medido y no va a dejar de ser verdad: sobre el fondo
+del vaso el granate da **1,04:1** de contraste y en el vaso vacío se lee muy
+poco; sobre la cerveza sube a 3,11:1 y sobre el papel blanco, a 6,70:1. Si
+algún día molesta, la salida es una versión calada que dé el estudio, no
+recolorear la marca desde el código.
 
-La versión calada se genera reescribiendo el color de los píxeles granates y
-**conservando su alfa**, que es donde vive el antialias; el oro se distingue
-por el canal verde, igual que al extraer el fondo.
+Con la reversión se fueron el PNG calado, la sonda `liquidAt` que leía un
+píxel del lienzo y sus tres tests.
 
 ## El ángulo late a 2 Hz, y el logotipo lee lo que tiene detrás
 
@@ -944,6 +946,48 @@ por el canal verde, igual que al extraer el fondo.
   Se mira el rectángulo real del logotipo en vez de suponer dónde está, y se
   pregunta dos veces por segundo, no por frame: un `getImageData` fuerza a
   esperar a la GPU.
+
+## El ángulo, en grados de jugador y hasta que se cierre el grifo
+
+Tres cosas que iban juntas.
+
+### El número que se enseña no es φ
+
+Por dentro φ es el giro del móvil en el plano de su pantalla y vale **0 con el
+móvil de pie**. Pero nadie lo lee así: con el móvil de pie, su lado largo está
+a 90° del suelo, y eso es lo que la gente dice. Así que se enseña el ángulo
+respecto al **suelo**, que es la referencia que el jugador tiene delante:
+
+| móvil | φ interno | lo que se enseña |
+|---|---|---|
+| tumbado, paralelo al suelo | 90° | **0°** |
+| a media inclinación | 45° | **45°** |
+| de pie, perpendicular | 0° | **90°** |
+
+Es `90 − |φ|`, acotado a 0..90, y **sólo presentación**. El núcleo sigue
+puntuando con |φ| en décimas de grado y la traza sigue llevando el entero de
+siempre: la puntuación de una traza vieja no puede depender de cómo decidamos
+rotular el número hoy. Seis tests fijan la correspondencia, incluido que 45
+sigue siendo 45 y que da igual hacia qué lado inclines.
+
+### Se queda en pantalla durante todo el vertido
+
+Antes desaparecía al abrir el grifo, para que el vertido fuera del todo
+diegético. Eso dejó de valer al pasar la corona a depender de la inclinación:
+el jugador necesita saber cuándo tiene el móvil recto, y el líquido dibujado
+no da esa lectura con la precisión que hace falta. Ahora se va al **cerrar**.
+
+Le he puesto sombra: se queda mientras sube el nivel, así que le pasa la
+cerveza por detrás, y crema sobre ámbar da 1,5:1.
+
+### Las instrucciones salen al entrar, no al segundo
+
+`onState` sólo dispara al CAMBIAR de estado, y al entrar en la vista no ha
+cambiado nada: el juego arranca en CALIBRATE. Las instrucciones no aparecían
+hasta que el gate de reposo pasaba a READY —un segundo largo de pantalla muda,
+justo cuando el jugador no sabe qué hacer—. Ahora se pinta el estado actual al
+montar, y también al reconstruir el bucle por cambio de variedad, que es el
+mismo caso.
 
 ## Sigue abierto, y no lo decide el código
 

@@ -24,8 +24,31 @@ import type { Angles } from '@/sensors/fusion'
 
 const VARIETIES: Record<string, BakedVariety> = { especial: ESPECIAL, negra: NEGRA }
 const RANKING_KEY = 'tiraje.ranking.v1'
-/** Cada cuánto se repinta el ángulo, y se mira qué hay detrás del logotipo. */
+/** Cada cuánto se repinta el ángulo. */
 const TICK_MS = 500
+
+/**
+ * El ángulo que ve el jugador, en grados enteros.
+ *
+ * Por dentro φ es el giro del móvil en el plano de su pantalla, y vale 0 con
+ * el móvil de pie. Pero nadie lo lee así: con el móvil de pie, su lado largo
+ * está a **90° del suelo**, y eso es lo que la gente dice. Así que se muestra
+ * el ángulo respecto al SUELO, que es la referencia que tiene delante:
+ *
+ *   suelo (móvil tumbado)        →   0°
+ *   a media inclinación           →  45°   (igual que antes, ahí coinciden)
+ *   perpendicular (móvil de pie)  →  90°
+ *
+ * Es sólo presentación: el núcleo sigue puntuando con |φ| en décimas de grado
+ * y la traza sigue llevando el entero de siempre. Cambiar la unidad AQUÍ y no
+ * allí es deliberado — la puntuación de una traza vieja no puede depender de
+ * cómo decidamos rotular el número hoy.
+ */
+export function gradosDelJugador(phiDeg: number): number {
+  const a = phiDeg < 0 ? -phiDeg : phiDeg
+  const g = 90 - a
+  return Math.round(g < 0 ? 0 : g > 90 ? 90 : g)
+}
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 interface Entry {
@@ -108,7 +131,10 @@ export function mountGameView(
          En DOM y no en canvas: texto nítido gratis y cifras de ancho fijo,
          que es lo que evita que el número baile al cambiar de cifra. -->
     <div class="pointer-events-none fixed inset-0 z-10 flex flex-col items-center justify-center gap-4 px-8">
-      <div id="hud" class="font-mono text-6xl tabular-nums transition-opacity"
+      <!-- Sombra: el número se queda durante todo el vertido, así que le pasa
+           la cerveza por detrás. Crema sobre ámbar da 1,5:1 y no se lee. -->
+      <div id="hud" class="font-mono text-6xl tabular-nums transition-opacity
+                  [text-shadow:0_2px_8px_rgba(0,0,0,.5)]"
            style="transition-duration:${HUD_FADE_MS}ms">—</div>
       <div id="prompt" class="max-w-xs text-center text-sm leading-relaxed text-ambar-foam/85
                   [text-shadow:0_1px_3px_rgba(0,0,0,.45)]"></div>
@@ -178,24 +204,18 @@ export function mountGameView(
   const src = new HybridSource(fusion, thumb)
 
   /**
-   * El logotipo cambia de color según lo que tenga detrás.
+   * Pinta lo que corresponde al estado ACTUAL, sin esperar a una transición.
    *
-   * Vive en el armazón, flotando sobre el lienzo, así que conforme sube el
-   * nivel la cerveza le pasa por detrás: calado en blanco sobre el rojo del
-   * vaso, y en tinta de marca en cuanto lo cubre el líquido. Se pregunta por
-   * el PÍXEL ya pintado, en el centro del propio logotipo, y así la respuesta
-   * cuenta también con el oleaje y la corona.
-   *
-   * Se mira su rectángulo real en vez de suponer dónde está: si mañana se
-   * mueve, esto sigue acertando.
+   * `onState` sólo dispara al cambiar de estado, y al entrar en la vista no ha
+   * cambiado nada todavía: el juego arranca en CALIBRATE. Sin esto, las
+   * instrucciones no aparecían hasta que el gate de reposo pasaba a READY —un
+   * segundo largo de pantalla muda, justo cuando el jugador no sabe qué hacer.
+   * Y al cambiar de variedad se reconstruye el bucle, que es el mismo caso.
    */
-  function pintaLogo(): void {
-    const el = document.getElementById('status')
-    if (!el || !(renderer instanceof Glass2D)) return
-    const r = el.getBoundingClientRect()
-    if (r.width === 0) return
-    const dentro = renderer.liquidAt(r.left + r.width / 2, r.top + r.height / 2)
-    document.body.dataset['logo'] = dentro ? 'liquido' : 'fondo'
+  function pintaEstado(): void {
+    prompt.innerHTML = PROMPTS[loop.state] ?? ''
+    hud.style.opacity = '1'
+    hud.textContent = `${gradosDelJugador(loop.frame().phi)}°`
   }
 
   let loop = build()
@@ -205,13 +225,17 @@ export function mountGameView(
       source: src,
       onState: (s) => {
         prompt.innerHTML = PROMPTS[s] ?? ''
-        // El HUD se desvanece al abrir el grifo, 250 ms sin rebote, y a partir
-        // de ahí no hay un solo número hasta el resultado.
+        // El ángulo se queda EN PANTALLA durante todo el vertido y sólo se va
+        // al cerrar el grifo.
         //
-        // Se mira el estado de DESTINO, no la transición concreta: ahora se
-        // puede abrir el grifo desde CALIBRATE además de desde READY, y
-        // condicionarlo a `prev === 'READY'` dejaba el número en pantalla.
-        if (s === 'POUR_BEER') hud.style.opacity = '0'
+        // Antes desaparecía al abrir, para que el vertido fuera del todo
+        // diegético. Ya no vale: con la corona saliendo de la inclinación, el
+        // jugador necesita saber cuándo tiene el móvil recto, y el líquido
+        // dibujado no da esa lectura con la precisión que hace falta.
+        //
+        // Se mira el estado de DESTINO, no la transición concreta: se puede
+        // abrir el grifo desde CALIBRATE además de desde READY.
+        if (s === 'CLOSING') hud.style.opacity = '0'
         if (s === 'READY') { hud.style.opacity = '1'; card.classList.add('hidden'); card.classList.remove('flex') }
       },
       onResult: (r, t) => {
@@ -287,6 +311,7 @@ export function mountGameView(
       renderer.setTier(tier.tier)
       resize()
       loop = build()
+      pintaEstado()
     })
   }
 
@@ -374,8 +399,9 @@ export function mountGameView(
     const suave = smooth.filter(loop.frame().phi, now)
     if (now - lastTick >= TICK_MS) {
       lastTick = now
-      if (st === 'CALIBRATE' || st === 'READY') hud.textContent = `${Math.round(suave)}°`
-      pintaLogo()
+      if (st === 'CALIBRATE' || st === 'READY' || st === 'POUR_BEER') {
+        hud.textContent = `${gradosDelJugador(suave)}°`
+      }
     }
 
     if (!dbg.classList.contains('hidden')) {
@@ -403,6 +429,7 @@ export function mountGameView(
   }
 
   renderRanking()
+  pintaEstado()
   raf = requestAnimationFrame(frame)
 
   return () => {
