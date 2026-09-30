@@ -11,7 +11,21 @@ import { OneEuro } from '@/sensors/oneEuro'
 /** Plan §1.1: el readout se refresca a 12-15 Hz, no a 60. */
 const READOUT_INTERVAL_MS = 75
 
+/**
+ * La tinta de la piel actual, con alfa, para dibujar en el canvas.
+ *
+ * El canvas no hereda `currentColor`, así que el color hay que leerlo del
+ * token y componerlo a mano. Se lee una vez al montar: `getComputedStyle` en
+ * cada frame fuerza un reflujo, y la piel no cambia mientras la vista vive.
+ */
+function inkFactory(): (alpha: number) => string {
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue('--color-marca').trim() || '#b02c31'
+  return (alpha) => (alpha >= 1 ? raw : `color-mix(in srgb, ${raw} ${alpha * 100}%, transparent)`)
+}
+
 export function mountSensorSlice(root: HTMLElement, fusion: Fusion): () => void {
+  const ink = inkFactory()
   root.innerHTML = `
     <div class="flex flex-col gap-3">
       <div class="grid grid-cols-2 gap-3">
@@ -20,11 +34,11 @@ export function mountSensorSlice(root: HTMLElement, fusion: Fusion): () => void 
         <div><div class="text-[0.65rem] tracking-widest text-ambar-dim">ρ FUERA DE PLANO</div>
           <div id="rho" class="font-mono text-4xl tabular-nums">—</div></div>
       </div>
-      <canvas id="graph" class="w-full rounded bg-black/40" height="160"></canvas>
+      <canvas id="graph" class="superficie w-full rounded" height="160"></canvas>
       <dl id="diag" class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-mono text-xs text-ambar-dim"></dl>
       <div class="flex gap-2">
-        <button id="cal" class="flex-1 rounded border border-ambar-dim px-3 py-3 text-sm">CALIBRAR ρ</button>
-        <button id="dump" class="flex-1 rounded border border-ambar-dim px-3 py-3 text-sm">COPIAR CRUDO</button>
+        <button id="cal" class="boton flex-1 px-3 py-3 text-sm">CALIBRAR ρ</button>
+        <button id="dump" class="boton flex-1 px-3 py-3 text-sm">COPIAR CRUDO</button>
       </div>
       <p id="note" class="text-xs text-ambar-dim"></p>
     </div>
@@ -94,9 +108,11 @@ export function mountSensorSlice(root: HTMLElement, fusion: Fusion): () => void 
     // Escala fija 0-90°, que es el rango de juego. Sin autoescala: una gráfica
     // que se reescala sola oculta justo el ruido que vienes a ver.
     const yOf = (deg: number): number => h - (Math.max(0, Math.min(90, deg)) / 90) * h
+    // El trazo crudo y el filtrado, los dos en la tinta de marca: esta vista
+    // vive sobre papel blanco, donde un blanco al 28% no existe.
     for (const [key, color, lw] of [
-      ['phiAccel', 'rgba(255,255,255,0.28)', 1],
-      ['phi', '#e8a33d', 2],
+      ['phiAccel', ink(0.3), 1],
+      ['phi', ink(1), 2],
     ] as const) {
       ctx.beginPath()
       ctx.strokeStyle = color

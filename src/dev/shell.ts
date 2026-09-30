@@ -49,6 +49,20 @@ const STATUS_ES: Record<SensorStatus['kind'], string> = {
   live: 'midiendo',
 }
 
+/**
+ * La piel la decide la vista, y la decide en un solo sitio.
+ *
+ * Tirar la caña es negro porque la pantalla ES el vaso; todo lo demás va sobre
+ * papel blanco con tinta de marca. `theme-color` va con ello: en iOS pinta la
+ * barra de estado, y una barra negra sobre una pantalla blanca se ve como un
+ * recorte.
+ */
+function skin(screen: 'game' | 'ui'): void {
+  document.body.dataset['screen'] = screen
+  document.querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', screen === 'game' ? '#0b0b0c' : '#ffffff')
+}
+
 export function mountShell(root: HTMLElement): void {
   const webview = detectInAppBrowser()
   const aged = isAgeConfirmed()
@@ -59,7 +73,7 @@ export function mountShell(root: HTMLElement): void {
     <main class="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
       <header class="relative z-30 flex items-baseline justify-between">
         <h1 class="text-xs tracking-[0.3em] text-ambar-dim">TIRAJE</h1>
-        <nav id="tabs" class="hidden gap-1 rounded bg-black/60 p-0.5 text-xs backdrop-blur">
+        <nav id="tabs" class="chip hidden gap-1 rounded p-0.5 text-xs">
           <button data-view="game" class="rounded px-2 py-1">JUEGO</button>
           <button data-view="sensor" class="rounded px-2 py-1">SENSOR</button>
           <button data-view="trace" class="rounded px-2 py-1">TRAZA</button>
@@ -67,7 +81,7 @@ export function mountShell(root: HTMLElement): void {
       </header>
 
       <section id="gate" class="flex flex-col gap-4">
-        ${webview ? `<p class="rounded border border-ambar-beer p-3 text-sm">
+        ${webview ? `<p class="rounded border border-current p-3 text-sm">
           Estás en el navegador de <b>${webview}</b>. En iOS no da permiso de
           sensores y desde aquí no se puede salir. Toca <b>···</b> y abre el
           enlace en Safari.
@@ -78,7 +92,7 @@ export function mountShell(root: HTMLElement): void {
           y tiras la caña perfecta en tres toques.
         </p>
         <button id="go"
-          class="rounded bg-ambar-beer px-4 py-5 text-base font-bold leading-snug text-ambar-ink active:opacity-80">
+          class="boton px-4 py-5 text-base font-bold leading-snug">
           ${aged ? 'TIRAR CAÑA' : 'Sí, soy mayor de 18 · TIRAR CAÑA'}
         </button>
         <p class="text-xs text-ambar-dim">
@@ -88,7 +102,7 @@ export function mountShell(root: HTMLElement): void {
       </section>
 
       <section id="view"></section>
-      <p id="status" class="relative z-30 mt-auto w-fit rounded bg-black/55 px-1.5 py-0.5 text-xs text-ambar-dim backdrop-blur">sin pedir</p>
+      <p id="status" class="chip relative z-30 mt-auto w-fit rounded px-1.5 py-0.5 text-xs text-ambar-dim">sin pedir</p>
     </main>
   `
   const $ = <T extends HTMLElement>(id: string): T => root.querySelector<T>(`#${id}`)!
@@ -97,17 +111,20 @@ export function mountShell(root: HTMLElement): void {
   const fusion = new Fusion({
     onStatus: (s) => {
       statusEl.textContent = STATUS_ES[s.kind]
-      const base = 'relative z-30 mt-auto w-fit rounded bg-black/55 px-1.5 py-0.5 text-xs backdrop-blur'
-      statusEl.className = `${base} ${s.kind === 'live' || s.kind === 'probing' ? 'text-ambar-dim' : 'text-ambar-beer'}`
+      const base = 'chip relative z-30 mt-auto w-fit rounded px-1.5 py-0.5 text-xs'
+      statusEl.className = `${base} ${s.kind === 'live' || s.kind === 'probing' ? 'text-ambar-dim' : 'font-bold text-ambar-beer'}`
     },
   })
 
   let teardown: (() => void) | null = null
+  skin('ui')
+
   function show(view: string): void {
     teardown?.()
+    skin(view === 'game' ? 'game' : 'ui')
     for (const b of tabs.querySelectorAll('button')) {
       b.className = b.dataset['view'] === view
-        ? 'rounded bg-ambar-beer px-2 py-1 text-ambar-ink'
+        ? 'boton px-2 py-1'
         : 'rounded px-2 py-1 text-ambar-dim'
     }
     teardown = view === 'trace' ? mountTraceRecorder(viewEl, fusion)

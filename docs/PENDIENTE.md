@@ -666,13 +666,50 @@ cortina del rebose, el reguero por el canto y la cinta del chorro.
    se tira. El contrato de capas, el sistema de tiers y el respaldo 2D están
    completos y probados, así que entra en cuanto haya atlas.
 
+## Dos pieles: papel blanco fuera, negro dentro del vaso
+
+Petición del estudio: todo lo que no es tirar la caña va sobre **blanco** con
+la tipografía en **`#B02C31`**, y los botones son de ese rojo con el texto en
+blanco. La pantalla de tirar se queda negra: ahí la pantalla ES el vaso y
+cualquier cosa que no sea cerveza estorba.
+
+Está hecho **redefiniendo los tokens**, no reescribiendo las clases de cada
+vista. Las utilidades de Tailwind compilan a `var(--color-…)`, así que basta
+con volver a declarar las variables dentro de `body:not([data-screen="game"])`
+y un `text-ambar-dim` escrito una vez sirve para las dos pieles. Lo decide un
+solo atributo en `<body>`, que pone `skin()` desde el cambio de vista.
+
+El `:not` es necesario, no es adorno: declarar los tokens en `body` a secas
+los deja aplicándose también en el juego, porque redeclarar `background` en
+una regla más específica no borra las custom properties de la otra.
+
+Tres cosas que salieron de hacerlo:
+
+- **Todo el texto va al rojo entero, sin aclarar.** Lo primero que hice fue un
+  segundo rojo más claro para el texto secundario, que es casi todo el texto
+  de estas pantallas: quedaba en **2,66:1** de contraste sobre blanco y no se
+  leía. A pelo da **6,46:1**, y sobre el fondo de panel **5,77:1**. La
+  jerarquía la hacen el cuerpo y el peso, que el marcado ya varía.
+- **El canvas no hereda `currentColor`.** La gráfica del sensor pintaba el
+  trazo crudo en blanco al 28%, que sobre papel no existe. Ahora lee
+  `--color-marca` del DOM **una vez al montar** —`getComputedStyle` por frame
+  fuerza un reflujo— y compone el alfa a mano.
+- **`theme-color` cambia con la piel.** En iOS pinta la barra de estado, y una
+  barra negra sobre una pantalla blanca se lee como un recorte.
+
+Lo que NO he tocado, porque es la pantalla de tirar y las decisiones de
+aspecto son del estudio: la tarjeta de resultado, con su botón ámbar de
+GUARDAR Y OTRA CAÑA. Flota sobre la cerveza, no sobre papel.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin
    esto no hay arte final, y la geometría de la Negra es inventada.
 2. **Dominio `tiraje.es`.** ¿Estudio o Ambar? Ver `DEV-HTTPS.md`.
-3. **Tokens de marca y Gotham.** `dakota-durango-redesign/app` no está en este
-   Mac; los colores de `src/styles.css` son placeholder declarado.
+3. **Gotham y el resto de los tokens.** `dakota-durango-redesign/app` no está
+   en este Mac. El rojo ya es de marca (`#B02C31`, lo dio el estudio); la
+   tipografía sigue siendo la del sistema y el ámbar y el negro de la pantalla
+   de tirar siguen siendo placeholder declarado.
 4. **¿Hay premio físico?** Cambia todo el antitrampa de la fase 2.
 5. **Umbrales de antifraude.** 500 trazas reales, percentil 99,5. No inventar.
 

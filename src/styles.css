@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Tokens de marca: PLACEHOLDER.
+/* Tokens de marca: PLACEHOLDER salvo el rojo.
    Los reales viven en dakota-durango-redesign/app, que no está en este Mac.
    Ver docs/PENDIENTE.md — nada de esto es arte final. */
 @theme {
@@ -8,13 +8,13 @@
   --color-ambar-beer: #e8a33d;
   --color-ambar-foam: #f4efe4;
   --color-ambar-dim: #6b6b70;
+  /* El único color que sí es de marca. Lo dio el estudio. */
+  --color-marca: #b02c31;
   --font-display: ui-sans-serif, system-ui, sans-serif;
 }
 
 html, body {
   margin: 0;
-  background: var(--color-ambar-ink);
-  color: var(--color-ambar-foam);
   font-family: var(--font-display);
   /* El móvil se inclina: que no rebote ni haga scroll de goma. */
   overscroll-behavior: none;
@@ -22,3 +22,67 @@ html, body {
   -webkit-user-select: none;
   user-select: none;
 }
+
+/*
+ * Dos pieles, y la cambia un solo atributo en <body>.
+ *
+ * Todo lo que NO es tirar la caña va sobre papel blanco con tinta de marca; la
+ * pantalla de tirar es negra, porque ahí la pantalla es el vaso y cualquier
+ * cosa que no sea cerveza estorba.
+ *
+ * El cambio se hace REDEFINIENDO los tokens, no reescribiendo las clases de
+ * cada vista: las utilidades de Tailwind compilan a `var(--color-…)`, así que
+ * un `text-ambar-dim` escrito una vez vale para las dos pieles. Lo que en
+ * negro era "apagado" en blanco es rojo aclarado, y lo que era "enfático"
+ * —la espuma— es el rojo a pelo.
+ */
+/*
+ * El `:not` es necesario, no es adorno: si los tokens se redefinieran en
+ * `body` a secas, seguirían aplicándose también con `data-screen="game"`
+ * —redeclarar `background` en una regla más específica no borra las custom
+ * properties de la otra— y el juego saldría con la piel blanca.
+ */
+body:not([data-screen="game"]) {
+  background: #fff;
+  color: var(--color-marca);
+  /*
+   * Toda la tipografía en B02C31, sin aclarar: el rojo sobre blanco da 6,5:1
+   * de contraste y se lee, pero rebajado al 55% hacia el blanco se quedaba en
+   * 2,4:1 y el texto secundario —que es casi todo el texto de estas
+   * pantallas— dejaba de leerse. La jerarquía la hacen el cuerpo y el peso,
+   * que el marcado ya varía; no hace falta un segundo rojo.
+   */
+  --color-ambar-foam: var(--color-marca);
+  --color-ambar-dim: var(--color-marca);
+  /* Lo que iba encima del color de relleno: en marca, blanco. */
+  --color-ambar-ink: #fff;
+  --color-ambar-beer: var(--color-marca);
+}
+
+body[data-screen="game"] {
+  background: var(--color-ambar-ink);
+  color: var(--color-ambar-foam);
+}
+
+/* Fondo de panel: un velo de tinta sobre papel, un velo de luz sobre negro. */
+.superficie { background: color-mix(in oklab, var(--color-marca) 7%, #fff); }
+body[data-screen="game"] .superficie { background: rgb(0 0 0 / 0.4); }
+
+/* Chip flotante de la cabecera y del estado. */
+.chip { background: color-mix(in oklab, var(--color-marca) 8%, #fff); }
+body[data-screen="game"] .chip { background: rgb(0 0 0 / 0.58); backdrop-filter: blur(8px); }
+
+/*
+ * Botón: relleno de marca y texto blanco, en las dos pieles.
+ *
+ * El estudio lo pidió así de tajante, y tiene sentido: es el único elemento
+ * que hay que encontrar sin leer.
+ */
+.boton {
+  background: var(--color-marca);
+  color: #fff;
+  border: 0;
+  border-radius: 0.375rem;
+  font: inherit;
+}
+.boton:active { opacity: 0.8; }

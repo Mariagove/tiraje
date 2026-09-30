@@ -29,14 +29,14 @@ export function mountTraceRecorder(root: HTMLElement, fusion: Fusion): () => voi
   root.innerHTML = `
     <div class="flex flex-col gap-3">
       <div class="flex items-center gap-2">
-        <select id="variety" class="flex-1 rounded border border-ambar-dim bg-transparent px-2 py-2 text-sm">
+        <select id="variety" class="flex-1 rounded border border-current bg-transparent px-2 py-2 text-sm">
           <option value="especial">Ambar Especial</option>
           <option value="negra">Ambar Negra</option>
         </select>
-        <button id="reset" class="rounded border border-ambar-dim px-3 py-2 text-sm">REINICIAR</button>
+        <button id="reset" class="boton px-3 py-2 text-sm">REINICIAR</button>
       </div>
 
-      <div id="pad" class="relative flex h-64 select-none items-center justify-center rounded bg-black/40 text-center">
+      <div id="pad" class="superficie relative flex h-64 select-none items-center justify-center rounded text-center">
         <div id="padLabel" class="px-6 text-sm text-ambar-dim">toca para <b class="text-ambar-foam">ABRIR EL GRIFO</b></div>
         <div id="hud" class="absolute top-3 font-mono text-3xl tabular-nums">—</div>
         <div id="fill" class="absolute bottom-0 left-0 w-full origin-bottom bg-ambar-beer/25" style="height:0"></div>
@@ -45,8 +45,8 @@ export function mountTraceRecorder(root: HTMLElement, fusion: Fusion): () => voi
 
       <dl id="live" class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-mono text-xs text-ambar-dim"></dl>
       <div class="flex gap-2">
-        <button id="copy" class="flex-1 rounded border border-ambar-dim px-3 py-3 text-sm">COPIAR TRAZA</button>
-        <button id="dl" class="flex-1 rounded border border-ambar-dim px-3 py-3 text-sm">DESCARGAR .json</button>
+        <button id="copy" class="boton flex-1 px-3 py-3 text-sm">COPIAR TRAZA</button>
+        <button id="dl" class="boton flex-1 px-3 py-3 text-sm">DESCARGAR .json</button>
       </div>
       <p id="note" class="text-xs text-ambar-dim"></p>
     </div>
