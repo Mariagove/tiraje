@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { areaBelow, gravityOnScreen, surfaceTilt } from '@/render/glass2d'
+import { areaBelow, gravityOnScreen, surfaceTilt, waveShape } from '@/render/glass2d'
 
 /** Rectángulo de semiancho w y semialto h, girado phi grados. */
 function glass(w: number, h: number, phiDeg: number): number[][] {
@@ -103,5 +103,63 @@ describe('areaBelow — el nivel del líquido se resuelve por área, no por ataj
     // que mira el vaso vacío.
     expect(Math.abs(errAt(0.5))).toBeLessThan(1e-9)
     expect(Math.abs(errAt(0.6))).toBeLessThan(1e-9)
+  })
+})
+
+/** Media del perfil del oleaje a lo ancho de la pantalla, en un instante. */
+function media(t: number): number {
+  const N = 2000
+  let sum = 0
+  for (let i = 0; i < N; i++) sum += waveShape(-0.5 + i / N, t)
+  return sum / N
+}
+
+/** El perfil muestreado en 64 puntos a lo ancho. */
+function perfil(t: number): number[] {
+  return Array.from({ length: 64 }, (_, i) => waveShape(-0.5 + i / 64, t))
+}
+
+describe('el oleaje', () => {
+  it('no desplaza el nivel ni un píxel', () => {
+    // Es LA invariante del oleaje, no un detalle: el nivel del líquido se
+    // resuelve por área, así que la ondulación tiene que quitar por un lado
+    // lo mismo que añade por el otro. Una constante o una función asimétrica
+    // aquí harían que el llenado dibujado dejara de ser el que dice el
+    // núcleo, y no lo notaría nadie hasta comparar con la marca grabada.
+    //
+    // Cero exacto no sale: las longitudes de onda no caben un número entero
+    // de veces en el ancho del vaso, así que siempre queda un resto. Lo que
+    // hay que acotar es lo que ese resto vale EN PÍXELES con la amplitud más
+    // grande que llega a usar el renderer, `W · 0,010 · 1,5`.
+    //
+    // Medido: 0,101 de perfil normalizado, o sea 0,57 px sobre una pantalla
+    // de 375. Los dos senos que había antes daban 0,79 px, así que las cuatro
+    // octavas no sólo no empeoran esto: lo mejoran, porque hay más periodos
+    // dentro de la ventana.
+    const W = 375
+    const ampMax = W * 0.010 * 1.5
+    for (const t of [0, 0.37, 1.2, 4.9, 17.3, 41.6]) {
+      expect(Math.abs(media(t)) * ampMax, `t=${t}`).toBeLessThan(1)
+    }
+  })
+
+  it('no se repite: dos instantes separados nunca dan el mismo perfil', () => {
+    // Con frecuencias en proporción simple el patrón vuelve, y se ve. Se
+    // comprueba que dos instantes bastante separados difieren de verdad.
+    const a = perfil(0)
+    for (const t of [1.7, 3.3, 8.8, 25.1]) {
+      const b = perfil(t)
+      const d = a.reduce((m, v, i) => m + Math.abs(v - b[i]!), 0) / a.length
+      expect(d, `t=${t}`).toBeGreaterThan(0.15)
+    }
+  })
+
+  it('se mantiene acotado: nunca pasa de la suma de sus pesos', () => {
+    let max = 0
+    for (let k = 0; k < 4000; k++) {
+      const v = Math.abs(waveShape((k % 97) / 97 - 0.5, k * 0.013))
+      if (v > max) max = v
+    }
+    expect(max).toBeLessThanOrEqual(1)
   })
 })

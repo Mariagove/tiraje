@@ -1147,6 +1147,55 @@ esa cifra para la corona.
 Los arcos son baratos —un `arc` y un `fill` de radio 2— y el grueso del coste
 sigue siendo el chorro. Sin verificar en el iPhone.
 
+## El oleaje deja de tener ritmo
+
+Eran **dos** senos, y dos senos se leen como lo que son: un patrón que va y
+viene con un compás reconocible. Ahora son **cuatro octavas**.
+
+Lo que las hace parecer desordenadas no es el número sino que sus frecuencias
+**no guarden proporción simple** entre sí. Con 2, 3 y 4 veces la fundamental el
+conjunto se repetiría cada vuelta de la más lenta y volvería a verse el patrón;
+con razones irracionales no se repite nunca. Los signos alternos hacen además
+que unas viajen a un lado y otras al contrario.
+
+### Lo que no se podía romper, y ahora tiene test
+
+El nivel del líquido se resuelve **por área**, así que la ondulación tiene que
+quitar por un lado lo mismo que añade por el otro. Si alguien mete aquí una
+constante o una función asimétrica, el llenado que se dibuja deja de ser el que
+dice el núcleo, y no lo nota nadie hasta comparar con la marca grabada.
+
+Cero exacto no sale: las longitudes de onda no caben un número entero de veces
+en el ancho del vaso y siempre queda un resto. Lo que se acota es lo que ese
+resto vale **en píxeles** con la amplitud más grande que usa el renderer:
+
+| | desvío normalizado | en píxeles (pantalla de 375) |
+|---|---|---|
+| dos senos (antes) | 0,141 | 0,79 px |
+| cuatro octavas (ahora) | 0,101 | **0,57 px** |
+
+O sea que las cuatro octavas no sólo no empeoran la invariante: la mejoran,
+porque caben más periodos dentro de la ventana. `waveShape` se ha sacado del
+cierre para poder medirlo, y hay tres tests: media acotada en píxeles, que el
+perfil no se repita, y que no se salga de la suma de sus pesos.
+
+## La corona se ve, y el chorro salpica
+
+- **Las burbujas de la corona iban en blanco sobre una corona casi blanca**, o
+  sea que no existían. Van en gris —la espuma ensombrecida un 55%— porque lo
+  que se ve en una espuma de verdad es la sombra de cada celdilla, no un
+  brillo. Y más finas que las de la cerveza: hasta 1,35 px contra 3,9.
+- **El montículo donde rompe el chorro crece con `foamFrac`**, la misma recta
+  con la que el núcleo decide cuánta corona sale. Sirviendo por la pared el
+  chorro apenas rompe y el montículo casi no está; cayendo a plomo revienta
+  contra el líquido y se bate de verdad. Antes era del mismo tamaño siempre, y
+  pequeño. Ahora son cinco bultos sobre un velo ancho que difumina el borde en
+  vez de cortarlo contra el líquido.
+- **Más gotas** —de 26 a 44— y una de cada tres es de cerveza en vez de
+  espuma: lo que salta del choque es la mezcla, y las de cerveza son las que
+  se ven sobre el blanco del montículo, que es justo donde las blancas se
+  pierden. El número también sigue a `foamFrac`.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

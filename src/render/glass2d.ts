@@ -81,6 +81,40 @@ interface Bubble {
 
 /** Segmentos con que se traza la superficie ondulada. */
 const WAVE_SEGMENTS = 72
+
+/**
+ * Las componentes del oleaje: longitud de onda en anchos de pantalla, peso,
+ * velocidad en Hz y desfase.
+ *
+ * Lo que las hace parecer desordenadas no es cuántas son sino que sus
+ * frecuencias **no guarden proporción simple**: con 2, 3 y 4 veces la
+ * fundamental el conjunto se repetiría cada vuelta de la más lenta y volvería
+ * a verse el patrón. Los signos alternos hacen además que unas viajen a un
+ * lado y otras al contrario.
+ */
+const OCTAVAS: readonly (readonly [number, number, number, number])[] = [
+  [0.62, 0.42, 2.10, 0.0],
+  [0.27, 0.27, -3.57, 1.7],
+  [0.146, 0.19, 5.31, 4.1],
+  [0.079, 0.12, -8.63, 2.3],
+]
+
+/**
+ * Perfil del oleaje, normalizado: `u` en anchos de pantalla, `t` en segundos.
+ *
+ * Cada componente es un seno puro, o sea **de media cero**, y esa es la
+ * propiedad que no se puede romper: el nivel del líquido se resuelve por área
+ * y la ondulación tiene que quitar por un lado lo mismo que añade por el
+ * otro. Si alguien añade aquí una constante o una función asimétrica, el
+ * llenado que se dibuja deja de ser el que dice el núcleo.
+ */
+export function waveShape(u: number, t: number): number {
+  let y = 0
+  for (const [lambda, w, hz, ph] of OCTAVAS) {
+    y += w * Math.sin((u * 2 * Math.PI) / lambda + t * 2 * Math.PI * hz + ph)
+  }
+  return y
+}
 /** Grosor del chorro en píxeles CSS. Una caña real entra bien gorda. */
 /**
  * Qué fracción de las burbujas sigue viva con el grifo cerrado.
@@ -103,7 +137,7 @@ const SHADE_ALPHA = 0.04
 /** Segmentos de la cinta del chorro. */
 const STREAM_SEGMENTS = 26
 /** Gotas de la salpicadura. */
-const SPLASH_DROPS = 26
+const SPLASH_DROPS = 44
 
 /**
  * Dirección de la gravedad en coordenadas de PANTALLA (y hacia abajo), unitaria.
@@ -241,7 +275,9 @@ export class Glass2D implements GlassRenderer {
 
   #spawnBubbles(): void {
     this.#foamBubbles = Array.from({ length: Math.round(this.#tier.bubbles * 0.55) }, () => {
-      const r0 = 0.4 + 1.5 * Math.pow(this.#rnd(), 2.2)
+      // Más finas que las de la cerveza —que llegan a 3,9 px— porque son
+      // celdillas de espuma, no burbujas de gas subiendo por el líquido.
+      const r0 = 0.35 + 1.0 * Math.pow(this.#rnd(), 2.2)
       return {
         x: (this.#rnd() - 0.5) * this.#w,
         y: (this.#rnd() - 0.5) * this.#h,
@@ -304,6 +340,8 @@ export class Glass2D implements GlassRenderer {
   draw(f: GlassFrame): void {
     const BEER = this.#v.cfg.look.beer
     const FOAM = this.#v.cfg.look.foam
+    /** Gris de las celdillas de la corona: la espuma, ensombrecida. */
+    const FOAM_BUBBLE = mix(FOAM, [70, 66, 60], 0.55)
     const ctx = this.#ctx
     const W = this.#w
     const H = this.#h
@@ -342,21 +380,24 @@ export class Glass2D implements GlassRenderer {
     // ================================================================
     // El oleaje.
     //
-    // No es simulación: son dos senos de longitudes de onda distintas que se
-    // baten. La amplitud sale del chapoteo —que sí es físico, dos osciladores
-    // amortiguados— más un fondo mientras entra el chorro, que agita.
+    // No es simulación: son varios senos de longitudes de onda distintas que
+    // se baten. La amplitud sale del chapoteo —que sí es físico, dos
+    // osciladores amortiguados— más un fondo mientras entra el chorro.
     //
-    // Las ondas son simétricas respecto a la línea media, así que el área bajo
-    // la superficie no cambia: el nivel resuelto por área sigue siendo exacto.
+    // Eran DOS senos, y dos senos se leen como lo que son: un patrón que va y
+    // viene con un ritmo reconocible. Ahora son cuatro, y lo que los hace
+    // parecer desordenados no es el número sino que sus frecuencias **no
+    // guarden proporción simple** entre sí: con 2, 3 y 4 veces la fundamental
+    // el conjunto se repetiría cada vuelta de la más lenta y volvería a verse
+    // el patrón. Con razones irracionales, el perfil no se repite nunca.
+    //
+    // Cada componente es un seno puro, o sea de media cero, así que el área
+    // bajo la superficie no cambia y el nivel resuelto por área sigue exacto.
+    // Eso es lo que no se puede romper al tocar aquí.
     // ================================================================
     const swell = Math.min(1, Math.abs(f.sloshDeg) / 2.5)
     const amp = W * 0.010 * (0.35 + 0.65 * swell + 0.5 * act)
-    const k1 = (2 * Math.PI) / (W * 0.62)
-    const k2 = (2 * Math.PI) / (W * 0.27)
-    const ph1 = f.t * 2 * Math.PI * 2.1
-    const ph2 = f.t * 2 * Math.PI * 3.6
-    const wave = (u: number, scale: number): number =>
-      amp * scale * (Math.sin(u * k1 + ph1) * 0.62 + Math.sin(u * k2 - ph2) * 0.38)
+    const wave = (u: number, scale: number): number => amp * scale * waveShape(u / W, f.t)
 
     /**
      * Rellena desde una superficie ondulada hacia la gravedad.
@@ -469,9 +510,11 @@ export class Glass2D implements GlassRenderer {
         b.x += -grav.x * b.v * dt
         b.y += -grav.y * b.v * dt
         ctx.beginPath()
-        // Hacia el techo se aclaran y se abren: es donde revientan.
-        ctx.fillStyle = `rgba(255,255,255,${(0.30 + 0.35 * rise).toFixed(3)})`
-        ctx.arc(b.x, b.y, b.r0 * (1 + 0.6 * rise), 0, Math.PI * 2)
+        // En GRIS, no en blanco: la corona ya es casi blanca y unas burbujas
+        // blancas encima no existen. Lo que se ve en una espuma de verdad es
+        // la sombra de cada celdilla, no un brillo.
+        ctx.fillStyle = rgba(FOAM_BUBBLE, 0.34 + 0.30 * rise)
+        ctx.arc(b.x, b.y, b.r0 * (1 + 0.35 * rise), 0, Math.PI * 2)
         ctx.fill()
       }
     }
@@ -675,34 +718,60 @@ export class Glass2D implements GlassRenderer {
       const GRAV = 2.4
 
       // Montículo de espuma donde entra el chorro: ahí es donde se bate.
+      //
+      // Crece con `foamFrac`, o sea con lo recto que esté el vaso, que es la
+      // misma recta con la que el núcleo decide cuánta corona sale. Sirviendo
+      // por la pared el chorro apenas rompe y el montículo casi no está;
+      // cayendo a plomo revienta contra el líquido y se bate de verdad. Antes
+      // era del mismo tamaño siempre, y pequeño.
+      const churn = 0.75 + 1.35 * Math.min(1, f.foamFrac)
       ctx.save()
       ctx.translate(join.x, join.y)
       ctx.rotate(tilt)
+      // Un velo ancho por debajo y los bultos encima: el borde del montículo
+      // se difumina en vez de cortarse contra el líquido.
+      ctx.fillStyle = rgba(FOAM, 0.34)
+      ctx.beginPath()
+      ctx.ellipse(0, 0, STREAM_WIDTH * 1.85 * churn, STREAM_WIDTH * 0.72 * churn,
+        0, 0, Math.PI * 2)
+      ctx.fill()
       ctx.fillStyle = rgba(FOAM, 0.92)
-      for (let bulto = 0; bulto < 3; bulto++) {
-        const off = (bulto - 1) * STREAM_WIDTH * 0.52
-        const puff = 0.08 * Math.sin(f.t * 17 + bulto * 2.1)
+      for (let bulto = 0; bulto < 5; bulto++) {
+        const off = (bulto - 2) * STREAM_WIDTH * 0.46 * churn
+        const puff = 0.1 * Math.sin(f.t * 17 + bulto * 2.1)
+        const alto = 1 - Math.abs(bulto - 2) * 0.22
         ctx.beginPath()
-        ctx.ellipse(off, -STREAM_WIDTH * 0.06 * bulto,
-          STREAM_WIDTH * (0.62 + puff) * (bulto === 1 ? 1.25 : 1),
-          STREAM_WIDTH * (0.30 + puff), 0, 0, Math.PI * 2)
+        ctx.ellipse(off, -STREAM_WIDTH * 0.1 * alto * churn,
+          STREAM_WIDTH * (0.52 + puff) * churn * (0.7 + 0.5 * alto),
+          STREAM_WIDTH * (0.26 + puff) * churn * alto,
+          0, 0, Math.PI * 2)
         ctx.fill()
       }
       ctx.restore()
 
-      for (let i = 0; i < SPLASH_DROPS; i++) {
+      // Las gotas que saltan. Tantas como se esté batiendo, por lo mismo que
+      // el montículo: a plomo salpica, por la pared no.
+      const drops = Math.round(SPLASH_DROPS * (0.45 + 0.55 * Math.min(1, f.foamFrac * 1.4)))
+      for (let i = 0; i < drops; i++) {
         const life = ((f.t * 1.7 + i / SPLASH_DROPS) % 1)
         // Pseudoaleatorio estable por gota: mismo reparto en cada ciclo.
         const h = Math.sin(i * 12.9898) * 43758.5453
         const rnd = h - Math.floor(h)
-        const vx = (rnd - 0.5) * 1.9
-        const vy = 0.55 + ((i * 7) % 5) * 0.17
+        const h2 = Math.sin(i * 78.233 + 4.1) * 24634.6345
+        const rnd2 = h2 - Math.floor(h2)
+        const vx = (rnd - 0.5) * 2.3
+        const vy = 0.6 + ((i * 7) % 5) * 0.2
         const d = S * (vx * life)
         const u = S * (vy * life - 0.5 * GRAV * life * life)
         const x = join.x + ct * d + upx * u
         const y = join.y + st * d + upy * u
-        const r = (1.8 + ((i * 5) % 5) * 1.0) * (1 - life * 0.45)
-        ctx.fillStyle = `rgba(255,255,255,${(0.85 * (1 - life)).toFixed(3)})`
+        const r = (2.1 + ((i * 5) % 5) * 1.5) * (1 - life * 0.4)
+        // Un tercio son cerveza y el resto espuma: lo que salta del choque es
+        // la mezcla, no sólo la corona. Y las de cerveza se ven sobre el
+        // blanco del montículo, que es donde las de espuma se pierden.
+        ctx.fillStyle = rnd2 < 0.34
+          ? rgba(BEER, 0.9 * (1 - life))
+          : `rgba(255,255,255,${(0.85 * (1 - life)).toFixed(3)})`
         ctx.beginPath()
         ctx.arc(x, y, Math.max(0.4, r), 0, Math.PI * 2)
         ctx.fill()
