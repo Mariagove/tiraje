@@ -1051,37 +1051,30 @@ conserva.
 
 ## El chorro: adónde apunta y por qué ya no se ven bandas
 
-### Lo que se mueve es por dónde ENTRA, no dónde acaba
+### Dos intentos de mover el impacto, y vuelta al de siempre
 
-Primer intento, y estaba mal: se dejó la entrada clavada en el centro del
-labio y se colocó el punto de impacto a mano, interpolado con la inclinación.
-Resultado: con el vaso tumbado el tramo de caída iba del centro del labio a la
-pared con una pendiente de 24°, cuando la gravedad en pantalla va a 45°. Un
-chorro que no cae en la dirección en la que cae todo lo demás **no se lee como
-líquido**: se ve como una barra flotando, con un codo donde empalma con la
-pared, y el conjunto parece partido. En un fluido no hay codos.
+El chorro entra por un punto **fijo** en el centro del labio y cae siguiendo la
+gravedad hasta lo primero que encuentra, superficie o pared. Es lo que había, y
+es a lo que se ha vuelto. Queda escrito lo que se probó para que no se vuelva a
+proponer:
 
-Lo que se mueve es la ENTRADA. El grifo está quieto y quien se mueve es el
-vaso, así que el jugador pone bajo el caño el punto del labio que ha bajado al
-inclinar: el centro con el vaso derecho, la esquina del labio cuando lo tumba.
-Desde ahí el chorro vuelve a caer **siguiendo la gravedad** hasta lo primero
-que encuentra, y el impacto sale de la trayectoria en vez de colocarse a mano
-—que es lo único que garantiza que el chorro y lo que toca estén pegados.
+1. **Colocar el punto de impacto a mano**, interpolado con la inclinación para
+   que pegara junto a la boca. Dejaba el tramo de caída con una pendiente de
+   24° cuando la gravedad en pantalla va a 45°. Un chorro que no cae en la
+   dirección en la que cae todo lo demás no se lee como líquido: se ve como una
+   barra flotando, con un codo donde empalma con la pared. En un fluido no hay
+   codos.
+2. **Mover la ENTRADA** al punto del labio que baja al inclinar, que es lo que
+   hace un camarero de verdad —el grifo está quieto y quien se mueve es el
+   vaso—. Caía bien y tocaba la pared junto a la boca, pero entrando por la
+   esquina la caída dura 19 px a 45°: el chorro se queda **pegado al borde de
+   la pantalla** y deja de verse caer.
 
-Y sale solo lo que se pedía: entrando por la esquina, la pared está a un palmo
-y el chorro la toca junto a la boca.
+Lo segundo es más fiel a la realidad y aun así es peor en pantalla, porque aquí
+el vaso ocupa todo el alto y una caída de 19 px no se lee. Entrando por el
+centro la caída es larga y se ve caer, que es de lo que se trata.
 
-| inclinación | entra en | toca la pared a |
-|---|---|---|
-| 45° | esquina del labio | **2,3% del alto** |
-| 30° | a 112 px del centro | 16,0% |
-| 20° | a 75 px del centro | 38,1% |
-| 10° o menos | casi el centro | no la toca: cae sobre el líquido |
-
-Los 45° son `AIM_REF_DEG`, **el mismo número** con el que el núcleo mide la
-espuma. No es casualidad: servir por la pared es justamente lo que evita la
-corona, así que el ángulo al que el chorro deja de tocar cristal tiene que ser
-el ángulo al que empieza a hacer espuma.
+Lo que **sí** se queda de esas dos vueltas es el degradado del chorro, abajo.
 
 ### Tres bandas con el corte a la vista
 

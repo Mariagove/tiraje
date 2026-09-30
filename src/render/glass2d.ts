@@ -94,16 +94,6 @@ const BUBBLES_AT_REST = 0.3
 const STREAM_WIDTH = 28
 
 /**
- * Inclinación a la que el chorro apunta del todo a la pared, junto a la boca.
- *
- * Es la misma referencia con la que el núcleo mide la espuma: a 45° o más se
- * sirve por la pared y casi no hace corona, y de ahí hacia el vaso derecho el
- * impacto se va al centro y la corona crece. Las dos cosas son la misma, así
- * que comparten número.
- */
-const AIM_REF_DEG = 45
-
-/**
  * Capas en que se reparte cada lóbulo de sombra y de brillo del chorro, y su
  * opacidad. Ver `lobe`: con seis al 4% el centro llega al 22% y ningún
  * escalón pasa del 4%, que es lo que hace que no se vean bandas.
@@ -515,23 +505,22 @@ export class Glass2D implements GlassRenderer {
     if (f.pouring) {
       const grav = gravityOnScreen(f.phi)
 
-      // Por dónde entra: el punto del labio que queda MÁS BAJO.
+      // La boca del vaso es el borde SUPERIOR de la pantalla, y el chorro
+      // entra por ahí, en un punto FIJO: el jugador sostiene el vaso bajo el
+      // grifo y lo deja quieto, así que lo único que cambia con la
+      // inclinación es por dónde cae, no por dónde entra.
       //
-      // El grifo está quieto y quien se mueve es el vaso, así que el jugador
-      // pone debajo del caño el punto del borde que ha bajado al inclinar.
-      // Con el vaso derecho es el centro; tumbado, la esquina del labio hacia
-      // la que tira la gravedad.
-      //
-      // Esto es lo que hace que el chorro toque la pared JUNTO A LA BOCA sin
-      // dejar de caer según la gravedad: entrando siempre por el centro, para
-      // llegar a la pared tenía que cruzar medio vaso, y o pegaba abajo del
-      // todo o había que doblarle la trayectoria, que es lo que se veía como
-      // un chorro partido que no llega a tocar el cristal.
-      const lean = Math.min(1, Math.abs(f.phi) / AIM_REF_DEG)
+      // Se probaron dos alternativas y las dos eran peores. Colocar el punto
+      // de IMPACTO a mano dejaba el tramo de caída a 24° cuando la gravedad en
+      // pantalla va a 45°: se veía como una barra flotando con un codo, y en
+      // un fluido no hay codos. Mover la ENTRADA al punto del labio que baja
+      // al inclinar sí caía bien, pero pegaba el chorro al borde de la
+      // pantalla. Entrando por el centro, la caída es larga y se ve caer, que
+      // es de lo que se trata.
       const side = grav.x < 0 ? -1 : 1
-      const entry = { x: side * (W / 2) * 0.9 * lean, y: -H / 2 }
+      const entry = { x: 0, y: -H / 2 }
 
-      // Y cae según la gravedad hasta lo primero que encuentre: la superficie
+      // Cae según la gravedad hasta lo primero que encuentre: la superficie
       // del líquido, o la pared del vaso. El impacto sale de la trayectoria,
       // no se coloca a mano: es lo único que garantiza que el chorro y lo que
       // toca estén siempre pegados.
