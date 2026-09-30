@@ -1218,7 +1218,10 @@ fallos, ninguno de color**:
    salir de la banda, sin holgura, y quedan las 83 dentro.
 
 Y **con contorno**, como sugirió el estudio: cada celdilla es un anillo de
-relleno clarísimo y borde oscuro, no un disco. Sobre una corona casi blanca un
+relleno clarísimo y borde oscuro, no un disco. El contorno se aclaró después
+—de 0,55 de mezcla y 0,5 de opacidad a 0,40 y 0,42, o sea de **1,58:1** de
+contraste contra la corona a **1,31:1**—: se sigue viendo la celdilla, pero
+como un pliegue de la propia espuma y no como un dibujo encima. Sobre una corona casi blanca un
 disco compite con el fondo por mucho que se le baje el tono; un contorno se lee
 siempre. Es además lo que se ve de verdad en una espuma: las paredes entre
 celdillas, no las celdillas.

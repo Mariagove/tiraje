@@ -342,8 +342,15 @@ export class Glass2D implements GlassRenderer {
   draw(f: GlassFrame): void {
     const BEER = this.#v.cfg.look.beer
     const FOAM = this.#v.cfg.look.foam
-    /** Gris de las celdillas de la corona: la espuma, ensombrecida. */
-    const FOAM_BUBBLE = mix(FOAM, [70, 66, 60], 0.55)
+    /**
+     * Gris del contorno de las celdillas: la espuma, ensombrecida.
+     *
+     * Con 0,55 de mezcla y 0,5 de opacidad el trazo quedaba en 1,58:1 de
+     * contraste contra la corona y se leía como tinta. A 0,40 y 0,42 baja a
+     * **1,31:1**: se sigue viendo la celdilla, pero como un pliegue de la
+     * propia espuma y no como un dibujo encima.
+     */
+    const FOAM_BUBBLE = mix(FOAM, [70, 66, 60], 0.40)
     const ctx = this.#ctx
     const W = this.#w
     const H = this.#h
@@ -527,7 +534,7 @@ export class Glass2D implements GlassRenderer {
         ctx.arc(b.x, b.y, rr, 0, Math.PI * 2)
         ctx.fillStyle = `rgba(255,255,255,${(0.30 + 0.25 * rise).toFixed(3)})`
         ctx.fill()
-        ctx.strokeStyle = rgba(FOAM_BUBBLE, 0.5 + 0.28 * rise)
+        ctx.strokeStyle = rgba(FOAM_BUBBLE, 0.42 + 0.24 * rise)
         ctx.lineWidth = rr > 1.6 ? 1.1 : 0.8
         ctx.stroke()
       }
