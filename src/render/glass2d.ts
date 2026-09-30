@@ -275,9 +275,11 @@ export class Glass2D implements GlassRenderer {
 
   #spawnBubbles(): void {
     this.#foamBubbles = Array.from({ length: Math.round(this.#tier.bubbles * 0.55) }, () => {
-      // Más finas que las de la cerveza —que llegan a 3,9 px— porque son
-      // celdillas de espuma, no burbujas de gas subiendo por el líquido.
-      const r0 = 0.35 + 1.0 * Math.pow(this.#rnd(), 2.2)
+      // Más finas que las de la cerveza, que con el crecimiento al subir
+      // llegan a pasar de 8 px, pero **no diminutas**: con `0,35 + 1,0·u^2,2`
+      // el radio medio salía a 0,68 px, o sea menos de un píxel a DPR 1. No
+      // es que no se vieran por el color: es que no había nada que ver.
+      const r0 = 0.8 + 2.0 * Math.pow(this.#rnd(), 2.2)
       return {
         x: (this.#rnd() - 0.5) * this.#w,
         y: (this.#rnd() - 0.5) * this.#h,
@@ -499,7 +501,14 @@ export class Glass2D implements GlassRenderer {
       for (let i = 0; i < liveFoam; i++) {
         const b = this.#foamBubbles[i]!
         const d = depth(b.x, b.y)
-        if (d < 0.5 || d > foamThickness + R) {
+        // Se recicla en cuanto sale de la banda, sin holgura.
+        //
+        // Llevaba `+ R` —la diagonal de la pantalla— copiado del enjambre de
+        // la cerveza, donde la banda es gruesa y da igual. Aquí la corona mide
+        // 160 px y esa holgura dejaba burbujas de espuma dibujadas por todo el
+        // vaso, muy por debajo de la corona: medido, se repartían entre
+        // y = −301 y y = 383 sobre una banda que iba de −284 a −122.
+        if (d < 0.5 || d > foamThickness) {
           const along = (this.#rnd() - 0.5) * W * 1.1
           const deep = foamThickness * (0.45 + 0.55 * this.#rnd())
           b.x = foamTop.x + ct * along - st * deep
@@ -509,13 +518,18 @@ export class Glass2D implements GlassRenderer {
         const rise = 1 - Math.max(0, Math.min(1, d / foamThickness))
         b.x += -grav.x * b.v * dt
         b.y += -grav.y * b.v * dt
+        // Cada celdilla es un ANILLO, no un disco: relleno clarísimo y
+        // contorno oscuro. Sobre una corona casi blanca, un disco —de
+        // cualquier tono— compite con el fondo; un contorno se lee siempre,
+        // que es lo que hace que una espuma parezca espuma y no una mancha.
+        const rr = b.r0 * (1 + 0.35 * rise)
         ctx.beginPath()
-        // En GRIS, no en blanco: la corona ya es casi blanca y unas burbujas
-        // blancas encima no existen. Lo que se ve en una espuma de verdad es
-        // la sombra de cada celdilla, no un brillo.
-        ctx.fillStyle = rgba(FOAM_BUBBLE, 0.34 + 0.30 * rise)
-        ctx.arc(b.x, b.y, b.r0 * (1 + 0.35 * rise), 0, Math.PI * 2)
+        ctx.arc(b.x, b.y, rr, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(255,255,255,${(0.30 + 0.25 * rise).toFixed(3)})`
         ctx.fill()
+        ctx.strokeStyle = rgba(FOAM_BUBBLE, 0.5 + 0.28 * rise)
+        ctx.lineWidth = rr > 1.6 ? 1.1 : 0.8
+        ctx.stroke()
       }
     }
 

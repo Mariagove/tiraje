@@ -1184,7 +1184,7 @@ perfil no se repita, y que no se salga de la suma de sus pesos.
 - **Las burbujas de la corona iban en blanco sobre una corona casi blanca**, o
   sea que no existían. Van en gris —la espuma ensombrecida un 55%— porque lo
   que se ve en una espuma de verdad es la sombra de cada celdilla, no un
-  brillo. Y más finas que las de la cerveza: hasta 1,35 px contra 3,9.
+  brillo. (Y seguían sin verse: ver abajo, el color no era el problema.)
 - **El montículo donde rompe el chorro crece con `foamFrac`**, la misma recta
   con la que el núcleo decide cuánta corona sale. Sirviendo por la pared el
   chorro apenas rompe y el montículo casi no está; cayendo a plomo revienta
@@ -1195,6 +1195,36 @@ perfil no se repita, y que no se salga de la suma de sus pesos.
   espuma: lo que salta del choque es la mezcla, y las de cerveza son las que
   se ven sobre el blanco del montículo, que es justo donde las blancas se
   pierden. El número también sigue a `foamFrac`.
+
+## Por qué no se veían las celdillas de la espuma: no era el color
+
+Cambiadas a gris, seguían sin verse. Al instrumentar el renderer con un
+contexto falso que apunta cada `arc` con su estilo y su radio salieron **dos
+fallos, ninguno de color**:
+
+1. **Radio medio 0,68 px.** Con `0,35 + 1,0·u^2,2` y `u` uniforme, el radio
+   esperado sale a 0,66 px: menos de un píxel a DPR 1. No es que no se
+   distinguieran del fondo, es que no había nada que dibujar. Ahora
+   `0,8 + 2,0·u^2,2`, medido: **radio medio 1,69 px, máximo 3,59**. Las de la
+   cerveza, en el mismo frame: medio 2,48, máximo 7,53. Siguen siendo las más
+   finas, que es lo que se pidió, pero ya existen.
+
+2. **Se dibujaban por todo el vaso.** El reciclado llevaba `d > grosor + R`,
+   con `R` la diagonal de la pantalla, copiado del enjambre de la cerveza,
+   donde la banda es gruesa y la holgura da igual. La corona mide 160 px, así
+   que esa holgura dejaba celdillas de espuma repartidas **entre y = −301 y
+   y = 383** sobre una banda que iba de −284 a −122: la mayoría flotando en
+   mitad de la cerveza, donde se leen como suciedad. Ahora se reciclan al
+   salir de la banda, sin holgura, y quedan las 83 dentro.
+
+Y **con contorno**, como sugirió el estudio: cada celdilla es un anillo de
+relleno clarísimo y borde oscuro, no un disco. Sobre una corona casi blanca un
+disco compite con el fondo por mucho que se le baje el tono; un contorno se lee
+siempre. Es además lo que se ve de verdad en una espuma: las paredes entre
+celdillas, no las celdillas.
+
+La lección para la próxima: cuando algo «no se ve», medir el tamaño y la
+posición antes de tocar el color.
 
 ## Sigue abierto, y no lo decide el código
 
