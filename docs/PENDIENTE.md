@@ -1395,6 +1395,27 @@ hecha todavía:
 Son unas pocas líneas cada una, pero cambian lo que la aplicación guarda del
 jugador, así que lo decide el estudio.
 
+## Tailwind se estaba comiendo la documentación
+
+Encontrado al comparar el CSS servido con el compilado en local: **no eran
+iguales**, y la única diferencia era una utilidad `.font-display` que no usa
+nadie.
+
+El motivo, en una frase: Tailwind rastrea por defecto todo el repositorio
+buscando nombres de clase, y `docs/PENDIENTE.md` había estrenado la frase «con
+`font-display: swap`». El build de aquí se hizo antes de escribirla y el del
+runner después, así que el mismo código produjo dos CSS distintos.
+
+Lo caro no es el peso —127 bytes— sino lo otro: **que el CSS dependa de la
+prosa significa que dos builds del mismo código pueden no coincidir**, y en
+este proyecto eso no se deja pasar.
+
+Arreglado con `@import "tailwindcss" source(none)` y dos `@source` que apuntan
+sólo a `index.html` y a `src/**/*.ts`. Verificado comparando los conjuntos de
+clases de los dos builds: se pierden exactamente tres —`font-display`,
+`contents` y `visible`—, las tres palabras sueltas de texto en español, y **no
+falta ninguna de las que usa la interfaz**.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

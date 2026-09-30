@@ -1,4 +1,20 @@
-@import "tailwindcss";
+/*
+ * `source(none)` + `@source`: Tailwind mira SÓLO el código.
+ *
+ * Por defecto rastrea todo el repositorio buscando nombres de clase, y eso
+ * incluía `docs/PENDIENTE.md`. Escribir ahí la frase «con `font-display:
+ * swap`» bastó para que el build metiera una utilidad `.font-display` que no
+ * usa nadie — comprobado comparando el CSS servido con el compilado aquí: era
+ * la única diferencia entre los dos, y el motivo era que había documentado el
+ * cambio DESPUÉS de compilar en local y ANTES de que compilara el runner.
+ *
+ * Aparte del peso, lo malo es lo otro: que el CSS dependa de la prosa
+ * significa que dos builds del mismo código pueden no coincidir. En este
+ * proyecto eso no se deja pasar.
+ */
+@import "tailwindcss" source(none);
+@source "../index.html";
+@source "./**/*.ts";
 
 /*
  * La titular. Se sirve desde el propio sitio, no desde Google: enlazar a
