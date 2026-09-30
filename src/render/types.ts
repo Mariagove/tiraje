@@ -72,6 +72,10 @@ export interface GlassRenderer {
 /** Plan §1.4: la simulación NUNCA cambia de tasa; sólo degrada el render. */
 export interface Tier {
   level: 0 | 1 | 2 | 3
+  /**
+   * Presupuesto de burbujas de la CERVEZA. La corona lleva otro 55% aparte,
+   * en su propio enjambre.
+   */
   bubbles: number
   animatedFoam: boolean
   maxDpr: number
@@ -80,8 +84,8 @@ export interface Tier {
 }
 
 export const TIERS: readonly Tier[] = [
-  { level: 0, bubbles: 84, animatedFoam: true, maxDpr: 2, forceCanvas2d: false },
-  { level: 1, bubbles: 28, animatedFoam: true, maxDpr: 1.5, forceCanvas2d: false },
+  { level: 0, bubbles: 150, animatedFoam: true, maxDpr: 2, forceCanvas2d: false },
+  { level: 1, bubbles: 48, animatedFoam: true, maxDpr: 1.5, forceCanvas2d: false },
   { level: 2, bubbles: 0, animatedFoam: false, maxDpr: 1, forceCanvas2d: false },
   { level: 3, bubbles: 0, animatedFoam: false, maxDpr: 1, forceCanvas2d: true },
 ]

@@ -177,6 +177,17 @@ export class Glass2D implements GlassRenderer {
   #w = 0
   #h = 0
   #bubbles: Bubble[] = []
+  /**
+   * Las de la corona, aparte de las de la cerveza.
+   *
+   * Van en su propio enjambre porque viven en otra banda —entre la superficie
+   * y el techo de la espuma—, son más finas y tienen que respetar ese grosor,
+   * que cambia a cada frame. Comparten dirección: **suben en world-up**, igual
+   * que las de la cerveza. Antes la corona llevaba treinta puntos colocados
+   * con una tabla de hash que saltaban de sitio ocho veces por segundo: no
+   * subían, parpadeaban.
+   */
+  #foamBubbles: Bubble[] = []
   #seed = 12345
   /**
    * Actividad del vertido, 0..1, suavizada.
@@ -239,6 +250,16 @@ export class Glass2D implements GlassRenderer {
   }
 
   #spawnBubbles(): void {
+    this.#foamBubbles = Array.from({ length: Math.round(this.#tier.bubbles * 0.55) }, () => {
+      const r0 = 0.4 + 1.5 * Math.pow(this.#rnd(), 2.2)
+      return {
+        x: (this.#rnd() - 0.5) * this.#w,
+        y: (this.#rnd() - 0.5) * this.#h,
+        r0,
+        // Más lentas: la espuma es viscosa y el gas asciende a duras penas.
+        v: 5 + r0 * 6 + this.#rnd() * 5,
+      }
+    })
     this.#bubbles = Array.from({ length: this.#tier.bubbles }, () => {
       // Tamaños repartidos con sesgo a lo pequeño: muchas finas y unas pocas
       // gordas, que es lo que se ve en un vaso. Repartidas de forma uniforme
@@ -432,20 +453,37 @@ export class Glass2D implements GlassRenderer {
       }
     }
 
-    // Burbujeo de la corona, sobre el borde ondulado de la espuma.
-    if (f.foam > 0.0005 && this.#tier.animatedFoam) {
-      const s0 = foamTop.x * ct + foamTop.y * st
-      ctx.save()
-      ctx.translate(foamTop.x, foamTop.y)
-      ctx.rotate(tilt)
-      ctx.fillStyle = 'rgba(255,255,255,0.55)'
-      for (let i = 0; i < 30; i++) {
-        const x = -W * 0.75 + ((i * 149 + (Math.floor(f.t * 8) % 11) * 13) % (W * 1.5))
+    // Burbujeo de la corona: el mismo modelo que en la cerveza, en la banda
+    // de espuma y con la MISMA dirección de ascenso. Lo que las distingue es
+    // que son más finas, más lentas y más claras.
+    const foamThickness = Math.hypot(foamTop.x - beerTop.x, foamTop.y - beerTop.y)
+    if (this.#foamBubbles.length > 0 && f.foam > 0.0005 && foamThickness > 4) {
+      const grav = gravityOnScreen(f.phi)
+      const dt = 1 / 60
+      /** Profundidad por debajo del TECHO de la espuma. */
+      const depth = (x: number, y: number): number =>
+        (x - foamTop.x) * -st + (y - foamTop.y) * ct
+      const liveFoam = Math.round(this.#foamBubbles.length
+        * (BUBBLES_AT_REST + (1 - BUBBLES_AT_REST) * Math.max(0, Math.min(1, act * 1.15))))
+      for (let i = 0; i < liveFoam; i++) {
+        const b = this.#foamBubbles[i]!
+        const d = depth(b.x, b.y)
+        if (d < 0.5 || d > foamThickness + R) {
+          const along = (this.#rnd() - 0.5) * W * 1.1
+          const deep = foamThickness * (0.45 + 0.55 * this.#rnd())
+          b.x = foamTop.x + ct * along - st * deep
+          b.y = foamTop.y + st * along + ct * deep
+          continue
+        }
+        const rise = 1 - Math.max(0, Math.min(1, d / foamThickness))
+        b.x += -grav.x * b.v * dt
+        b.y += -grav.y * b.v * dt
         ctx.beginPath()
-        ctx.arc(x, wave(x + s0, 1.35) + 2.5 + ((i * 37) % 7), 1 + (i % 3) * 0.7, 0, Math.PI * 2)
+        // Hacia el techo se aclaran y se abren: es donde revientan.
+        ctx.fillStyle = `rgba(255,255,255,${(0.30 + 0.35 * rise).toFixed(3)})`
+        ctx.arc(b.x, b.y, b.r0 * (1 + 0.6 * rise), 0, Math.PI * 2)
         ctx.fill()
       }
-      ctx.restore()
     }
 
     // ================================================================
@@ -477,40 +515,44 @@ export class Glass2D implements GlassRenderer {
     if (f.pouring) {
       const grav = gravityOnScreen(f.phi)
 
-      // La boca del vaso es el borde SUPERIOR de la pantalla, y el chorro
-      // entra por ahí, en un punto FIJO: el jugador sostiene el vaso bajo el
-      // grifo y lo deja quieto, así que lo único que cambia con la
-      // inclinación es por dónde cae, no por dónde entra.
-      const entry = { x: 0, y: -H / 2 }
+      // Por dónde entra: el punto del labio que queda MÁS BAJO.
+      //
+      // El grifo está quieto y quien se mueve es el vaso, así que el jugador
+      // pone debajo del caño el punto del borde que ha bajado al inclinar.
+      // Con el vaso derecho es el centro; tumbado, la esquina del labio hacia
+      // la que tira la gravedad.
+      //
+      // Esto es lo que hace que el chorro toque la pared JUNTO A LA BOCA sin
+      // dejar de caer según la gravedad: entrando siempre por el centro, para
+      // llegar a la pared tenía que cruzar medio vaso, y o pegaba abajo del
+      // todo o había que doblarle la trayectoria, que es lo que se veía como
+      // un chorro partido que no llega a tocar el cristal.
+      const lean = Math.min(1, Math.abs(f.phi) / AIM_REF_DEG)
+      const side = grav.x < 0 ? -1 : 1
+      const entry = { x: side * (W / 2) * 0.9 * lean, y: -H / 2 }
+
+      // Y cae según la gravedad hasta lo primero que encuentre: la superficie
+      // del líquido, o la pared del vaso. El impacto sale de la trayectoria,
+      // no se coloca a mano: es lo único que garantiza que el chorro y lo que
+      // toca estén siempre pegados.
+      const dir = { x: ct, y: st }
+      const rel = { x: foamTop.x - entry.x, y: foamTop.y - entry.y }
+      const den = grav.x * dir.y - grav.y * dir.x
+      const tSurfRaw = Math.abs(den) < 1e-6
+        ? Infinity : (rel.x * dir.y - rel.y * dir.x) / den
+      const tSurf = tSurfRaw > 0 ? tSurfRaw : Infinity
+
+      const wallX = side * (W / 2)
+      const tWallRaw = Math.abs(grav.x) < 1e-6 ? Infinity : (wallX - entry.x) / grav.x
+      const tWall = tWallRaw > 0 ? tWallRaw : Infinity
+
+      const hitsWall = tWall < tSurf
+      const tEnd = Math.min(tSurf, tWall, R)
+      const land = { x: entry.x + grav.x * tEnd, y: entry.y + grav.y * tEnd }
 
       /** Altura de la superficie sobre la vertical de un `x` dado. */
       const surfaceYAt = (x: number): number => Math.abs(ct) < 1e-6
         ? foamTop.y : foamTop.y + ((x - foamTop.x) * st) / ct
-
-      // ¿Dónde golpea?
-      //
-      // Se servía trazando el rayo de la gravedad desde la boca hasta lo
-      // primero que encontrara. Es exacto y **no es lo que hace un camarero**:
-      // el chorro cae recto y quien se mueve es el vaso, así que el punto de
-      // impacto respecto al vaso lo manda la inclinación, no un rayo.
-      //
-      // Con el vaso tumbado se apunta a la pared JUNTO A LA BOCA, para que la
-      // cerveza resbale y no rompa; conforme se endereza para levantar la
-      // corona, el impacto se va al centro. El rayo daba lo contrario a medias
-      // inclinaciones: tardaba media pantalla en tocar la pared, y el chorro
-      // pegaba abajo, justo donde no tiene que pegar.
-      const lean = Math.min(1, Math.abs(f.phi) / AIM_REF_DEG)
-      const side = grav.x < 0 ? -1 : 1
-      const wallX = side * (W / 2)
-      const aimX = side * (W / 2 - STREAM_WIDTH * 0.85) * lean
-      const ySurf = surfaceYAt(aimX)
-      // Junto a la boca cuando está tumbado, sobre la superficie cuando está
-      // derecho, y nunca por debajo de la superficie: si el líquido ya llega
-      // más arriba, el chorro cae sobre el líquido y no sobre el cristal.
-      const yAim = Math.min(ySurf, (-H / 2 + H * 0.09) * lean + ySurf * (1 - lean))
-      const land = { x: aimX, y: yAim }
-      // Toca cristal si ha ido a parar a la pared con la superficie más abajo.
-      const hitsWall = lean > 0.12 && yAim < ySurf - 2
 
       // El chorro se aclara conforme hace más espuma. La mezcla no llega a
       // blanco del todo: incluso cayendo a plomo, lo que baja por el aire es
@@ -893,5 +935,5 @@ export class Glass2D implements GlassRenderer {
     // (La UI va en DOM, no en canvas: texto nítido gratis y no cuesta fillrate.)
   }
 
-  dispose(): void { this.#bubbles = [] }
+  dispose(): void { this.#bubbles = []; this.#foamBubbles = [] }
 }

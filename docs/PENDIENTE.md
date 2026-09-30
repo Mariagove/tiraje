@@ -1051,27 +1051,37 @@ conserva.
 
 ## El chorro: adónde apunta y por qué ya no se ven bandas
 
-### Apunta a la pared junto a la boca, y se va al centro al enderezar
+### Lo que se mueve es por dónde ENTRA, no dónde acaba
 
-Se servía trazando el rayo de la gravedad desde la boca hasta lo primero que
-encontrara, superficie o pared. Es exacto y **no es lo que hace un camarero**:
-el chorro cae recto y quien se mueve es el vaso, así que el punto de impacto
-respecto al vaso lo manda la inclinación, no un rayo.
+Primer intento, y estaba mal: se dejó la entrada clavada en el centro del
+labio y se colocó el punto de impacto a mano, interpolado con la inclinación.
+Resultado: con el vaso tumbado el tramo de caída iba del centro del labio a la
+pared con una pendiente de 24°, cuando la gravedad en pantalla va a 45°. Un
+chorro que no cae en la dirección en la que cae todo lo demás **no se lee como
+líquido**: se ve como una barra flotando, con un codo donde empalma con la
+pared, y el conjunto parece partido. En un fluido no hay codos.
 
-Y el rayo daba lo contrario de lo que hace falta a medias inclinaciones. A 20°
-tarda media pantalla en llegar a la pared —`(W/2)/sen 20° = 547 px` sobre un
-alto de 812— así que el chorro pegaba **abajo**, justo donde rompe y hace
-espuma. A 45° sí llegaba cerca de la boca, pero por casualidad geométrica.
+Lo que se mueve es la ENTRADA. El grifo está quieto y quien se mueve es el
+vaso, así que el jugador pone bajo el caño el punto del labio que ha bajado al
+inclinar: el centro con el vaso derecho, la esquina del labio cuando lo tumba.
+Desde ahí el chorro vuelve a caer **siguiendo la gravedad** hasta lo primero
+que encuentra, y el impacto sale de la trayectoria en vez de colocarse a mano
+—que es lo único que garantiza que el chorro y lo que toca estén pegados.
 
-Ahora el impacto se interpola con la inclinación: a 45° o más, la pared junto
-a la boca, al 9% del alto; con el vaso derecho, el centro de la superficie. Y
-nunca por debajo de la superficie —si el líquido ya llega más arriba, el
-chorro cae sobre el líquido y no sobre el cristal.
+Y sale solo lo que se pedía: entrando por la esquina, la pared está a un palmo
+y el chorro la toca junto a la boca.
 
-Los 45° son `AIM_REF_DEG`, y es **el mismo número** con el que el núcleo mide
-la espuma. No es casualidad que coincidan: servir por la pared es justamente
-lo que evita la corona, así que el ángulo al que el chorro deja de tocar
-cristal tiene que ser el ángulo al que empieza a hacer espuma.
+| inclinación | entra en | toca la pared a |
+|---|---|---|
+| 45° | esquina del labio | **2,3% del alto** |
+| 30° | a 112 px del centro | 16,0% |
+| 20° | a 75 px del centro | 38,1% |
+| 10° o menos | casi el centro | no la toca: cae sobre el líquido |
+
+Los 45° son `AIM_REF_DEG`, **el mismo número** con el que el núcleo mide la
+espuma. No es casualidad: servir por la pared es justamente lo que evita la
+corona, así que el ángulo al que el chorro deja de tocar cristal tiene que ser
+el ángulo al que empieza a hacer espuma.
 
 ### Tres bandas con el corte a la vista
 
@@ -1113,6 +1123,36 @@ Es entre 1,1× y 2,9× más trabajo, y casi todo mientras cae el chorro. El
 escalado por tiers sigue siendo la red: mide el coste real del dibujo en el
 móvil y baja de nivel solo, y en los niveles degradados el chorro ya usa dos
 capas en vez de seis. Queda por ver en el iPhone.
+
+## La corona burbujea hacia arriba, como la cerveza
+
+La espuma llevaba treinta puntos colocados con una tabla de hash y reposicionados
+`Math.floor(t·8)` veces por segundo: no subían, **parpadeaban**.
+
+Ahora es un segundo enjambre con el mismo modelo que el de la cerveza —suben
+en world-up, la misma dirección— pero en su propia banda, entre la superficie
+del líquido y el techo de la espuma, y con sus propias constantes: más finas
+(`0,4 + 1,5·u^2,2` contra `0,5 + 3,4·u^2,5`), **más lentas**, porque la espuma
+es viscosa y el gas asciende a duras penas, y más claras hacia el techo, que
+es donde revientan.
+
+Va en un enjambre aparte y no en el mismo array porque la banda de espuma
+cambia de grosor a cada frame y hay que reciclar las burbujas contra ESE
+grosor, no contra el de la cerveza.
+
+Presupuesto: 150 burbujas de cerveza en el nivel 0 (48 en el 1) y otro 55% de
+esa cifra para la corona.
+
+### Lo que cuesta ahora
+
+| situación | rellenos | arcos | puntos |
+|---|---|---|---|
+| vertiendo a 35°, vaso al 50% | 292 | 259 | 1.862 |
+| vertiendo recto, vaso al 85% | 279 | 259 | 1.147 |
+| en reposo, vaso al 90% | 79 | 75 | 248 |
+
+Los arcos son baratos —un `arc` y un `fill` de radio 2— y el grueso del coste
+sigue siendo el chorro. Sin verificar en el iPhone.
 
 ## Sigue abierto, y no lo decide el código
 
