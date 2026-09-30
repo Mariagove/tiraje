@@ -1,0 +1,60 @@
+# Publica el juego en GitHub Pages en cada push a main.
+#
+# Se compila en el runner y NO se versiona `dist/`: un build comprometido es
+# un build reproducible, y guardar el compilado en el repo garantiza que
+# antes o después se sube uno rancio.
+#
+# El build corre `tsc --noEmit` y las tablas horneadas (`npm run bake`), así
+# que un error de tipos o una variedad inválida tumban el despliegue en vez de
+# publicarse. Los tests van aparte, en el mismo job, y también lo tumban.
+name: pages
+
+on:
+  push:
+    branches: [main]
+  # Para poder relanzarlo a mano desde la pestaña Actions sin tocar código.
+  workflow_dispatch:
+
+# Permisos mínimos: leer el código y poder publicar en Pages con OIDC.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un despliegue a la vez, y sin cancelar el que ya está en vuelo: dejar el
+# sitio a medias es peor que esperar.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
