@@ -1354,6 +1354,47 @@ vista de grabación está en `?vista=trace`, y con cinco o seis partidas reales
 de los compañeros se sabría si cierran pronto o tarde y cuánto. Ahora mismo
 todo esto se apoya en **una sola traza real**.
 
+## Tipografía de la pantalla de entrada
+
+La descripción de encima del botón sube a 20 px en negrita y pasa a una
+titular. El estudio pidió **Duplet Open Bold**, que es de pago (Kanon Foundry)
+y no está en el repositorio, así que no se puede incrustar. Va **Outfit**
+Bold, que es lo más cercano con licencia libre: geométrica, de apertura
+abierta y altura de x grande.
+
+**No he podido comparar las dos**, porque no tengo Duplet Open delante. Si el
+estudio tiene la licencia, dejar el `.woff2` en `src/assets/fonts/` y cambiar
+el `@font-face` y el token: dos líneas.
+
+**Se sirve desde el propio sitio, no desde Google.** Enlazar a
+`fonts.googleapis.com` manda la IP de cada visitante a un tercero, y esto es
+una activación de marca en España: no merece la pena abrir esa conversación
+con el cliente por 14 KB. Con `font-display: swap`, así que el texto se lee
+desde el primer frame con la del sistema y cambia cuando llega la otra.
+
+Procedencia y licencia, en `src/assets/fonts/PROCEDENCIA.md`.
+
+## Las trazas de las partidas NO se guardan
+
+Anotado porque se dio por hecho lo contrario: el juego **no persiste ninguna
+traza**. En `localStorage` sólo vive el ranking —iniciales, nota, variedad,
+fecha y modo—, y la traza de la última partida se escribe en la consola al
+desmontar la vista y se pierde.
+
+O sea que de las partidas de los compañeros existen las notas, en el móvil del
+estudio, pero no los datos con los que se podría calibrar. La única traza real
+que hay es `real-iphone-1.json`, exportada a mano desde la vista de grabación.
+
+Para poder calibrar con partidas de verdad harían falta dos cosas, ninguna
+hecha todavía:
+
+1. Guardar las últimas N trazas en `localStorage` junto al ranking.
+2. Una forma de sacarlas del móvil: un botón en la tarjeta de resultado que
+   copie o descargue el `.json`, como el que ya tiene la vista de grabación.
+
+Son unas pocas líneas cada una, pero cambian lo que la aplicación guarda del
+jugador, así que lo decide el estudio.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

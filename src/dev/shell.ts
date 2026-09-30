@@ -95,8 +95,10 @@ export function mountShell(root: HTMLElement): void {
           sensores y desde aquí no se puede salir. Toca <b>···</b> y abre el
           enlace en Safari.
         </p>` : ''}
-        <!-- Instrucciones ALREDEDOR del botón: arriba el qué, abajo el cómo. -->
-        <p class="text-sm text-ambar-dim">
+        <!-- Instrucciones ALREDEDOR del botón: arriba el qué, abajo el cómo.
+             El "qué" va en la titular y a cuerpo grande: es lo primero que se
+             lee al escanear el QR y lo único que explica el juego. -->
+        <p class="font-titular text-xl font-bold leading-snug text-ambar-dim">
           El móvil es el vaso. Lo inclinas, lo enderezas conforme sube el nivel,
           y tiras la caña perfecta en dos toques.
         </p>

@@ -1,5 +1,27 @@
 @import "tailwindcss";
 
+/*
+ * La titular. Se sirve desde el propio sitio, no desde Google: enlazar a
+ * `fonts.googleapis.com` manda la IP de cada visitante a un tercero, y esto
+ * es una activación de marca en España. Son 14 KB.
+ *
+ * El estudio pidió Duplet Open Bold, que es de pago y no está en el
+ * repositorio. Outfit es lo más cercano con licencia libre (OFL). Ver
+ * `src/assets/fonts/PROCEDENCIA.md`: cambiarla por la de verdad son dos
+ * líneas, ésta y el token.
+ *
+ * `swap`: el texto se lee desde el primer frame con la tipografía del
+ * sistema y cambia cuando llega la otra. Un vaso de cerveza no es sitio para
+ * un segundo de pantalla en blanco.
+ */
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./assets/fonts/outfit-700-latin.woff2') format('woff2');
+}
+
 /* Tokens de marca: PLACEHOLDER salvo el rojo.
    Los reales viven en dakota-durango-redesign/app, que no está en este Mac.
    Ver docs/PENDIENTE.md — nada de esto es arte final. */
@@ -19,6 +41,8 @@
    */
   --color-ambar-fondo: var(--color-marca);
   --font-display: ui-sans-serif, system-ui, sans-serif;
+  /* La titular, para los textos que tienen que llevar la voz de la marca. */
+  --font-titular: 'Outfit', ui-sans-serif, system-ui, sans-serif;
 }
 
 html, body {
