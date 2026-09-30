@@ -17,24 +17,40 @@ const expected = JSON.parse(readFileSync(join(FIXTURES, 'expected.json'), 'utf8'
 
 const V: Record<string, BakedVariety> = { especial: ESPECIAL, negra: NEGRA }
 
+/**
+ * La variedad la dice la TRAZA, no el nombre del fichero.
+ *
+ * Deducirla del prefijo funcionaba mientras todos los fixtures se llamaban
+ * `<variedad>-<perfil>`, y se rompió al entrar `real-iphone-1`, que es una
+ * partida de verdad grabada en un iPhone y no se llama así.
+ */
+const varietyOf = (t: GameTrace): BakedVariety => V[t.varietyId] ?? ESPECIAL
+
 // ---------------------------------------------------------------------------
 // Lo que exige el plan §Verificación 1
 // ---------------------------------------------------------------------------
 
 describe('fixtures dorados', () => {
-  it('la traza perfecta cae en [160.000, 180.000]', () => {
+  // Las bandas van en FRACCIÓN del máximo teórico de cada variedad, no en
+  // puntos absolutos. El plan las daba en puntos, y esos números estaban
+  // atados al grifo de dos fases: al quedarse el juego en dos toques, el
+  // máximo cambió y las bandas absolutas se volvieron mentira sin que el
+  // juego hubiera empeorado. La fracción dice lo que de verdad se quería
+  // decir: cómo de cerca del techo queda cada perfil.
+  const frac = (id: string, name: string): number =>
+    replay(V[id]!, load(name)).score / V[id]!.maxScore
+
+  it('la traza perfecta roza el techo: entre el 92% y el 100%', () => {
     for (const id of Object.keys(V)) {
-      const r = replay(V[id]!, load(`${id}-perfect`))
-      expect(r.score, id).toBeGreaterThanOrEqual(160_000)
-      expect(r.score, id).toBeLessThanOrEqual(180_000)
+      expect(frac(id, `${id}-perfect`), id).toBeGreaterThanOrEqual(0.92)
+      expect(frac(id, `${id}-perfect`), id).toBeLessThanOrEqual(1)
     }
   })
 
-  it('la traza mediocre cae en [70.000, 100.000]', () => {
+  it('la traza mediocre se queda entre el 35% y el 65% del techo', () => {
     for (const id of Object.keys(V)) {
-      const r = replay(V[id]!, load(`${id}-mediocre`))
-      expect(r.score, id).toBeGreaterThanOrEqual(70_000)
-      expect(r.score, id).toBeLessThanOrEqual(100_000)
+      expect(frac(id, `${id}-mediocre`), id).toBeGreaterThanOrEqual(0.35)
+      expect(frac(id, `${id}-mediocre`), id).toBeLessThanOrEqual(0.65)
     }
   })
 
@@ -43,8 +59,8 @@ describe('fixtures dorados', () => {
     // cuele sin que nadie lo note. Si falla a propósito, se regeneran los
     // fixtures Y se abre temporada nueva: la puntuación no se parchea viva.
     for (const [name, want] of Object.entries(expected)) {
-      const id = name.split('-')[0]!
-      const r = replay(V[id]!, load(name))
+      const t = load(name)
+      const r = replay(varietyOf(t), t)
       expect({ name, score: r.score, verdict: r.verdict }).toEqual(
         { name, score: want.score, verdict: want.verdict })
     }
@@ -419,7 +435,8 @@ describe('rebose', () => {
 describe('contrato de la puntuación', () => {
   it('el score es siempre un entero no negativo', () => {
     for (const name of Object.keys(expected)) {
-      const r = replay(V[name.split('-')[0]!]!, load(name))
+      const t = load(name)
+      const r = replay(varietyOf(t), t)
       expect(Number.isInteger(r.score)).toBe(true)
       expect(r.score).toBeGreaterThanOrEqual(0)
     }

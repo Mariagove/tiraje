@@ -827,6 +827,94 @@ a 6,70:1. Lo pidió así el estudio y un logotipo de cliente no se recolorea por
 cuenta propia; si hiciera falta que se lea sobre el rojo, la solución es una
 versión calada en blanco, que tiene que dar el estudio.
 
+## Dos toques, y la espuma la hace la inclinación
+
+Cambio de mecánica pedido por el estudio, y es el cambio más profundo hasta
+ahora porque toca el núcleo determinista.
+
+**Antes:** tres toques. Abrir, conmutar el grifo a espuma, cerrar. La espuma
+de la fase de cerveza dependía de `δ = objetivo − ángulo`, o sea de lo
+adelantado que fueras respecto a la curva.
+
+**Ahora:** dos toques, abrir y cerrar. El grifo echa siempre lo mismo y lo que
+cambia con la inclinación es **cuánto de lo que entra se convierte en
+corona**: una recta entre `foamTilted` a 45° o más y `foamUpright` a 0°. El
+ángulo es ABSOLUTO, no relativo al objetivo, que es lo que se pidió.
+
+Es más fiel a un tirador de verdad —la corona no la decide un mando, la decide
+cómo sostienes el vaso— y es un toque menos que explicar. **Y la tensión del
+juego no se pierde, ahora sale sola de la física**: conforme sube el nivel hay
+que enderezar para no derramar, y enderezar es justo lo que hace la corona.
+
+### Calibrado, no inventado
+
+Las dos constantes se eligieron simulando al jugador que sigue la curva
+objetivo, no a ojo:
+
+| variedad | `foamUpright` | `foamTilted` | espuma siguiendo la curva | objetivo |
+|---|---|---|---|---|
+| Especial | 0,74 | 0,03 | 19,7% | 20% |
+| Negra    | 0,85 | 0,04 | 24,1% | 25% |
+
+Queda a propósito **un poco por debajo del objetivo**: para clavarlo hay que
+enderezar algo más que la curva en el último tramo, que es exactamente lo que
+hace un camarero al levantar la corona, y cuesta unas décimas de grado de
+error medio. Ese intercambio ES el juego.
+
+### Lo que arrastró el cambio
+
+- **El máximo teórico ya no se simula, se calcula.** Con un solo grifo salen
+  dos ecuaciones de volumen y el tiempo se despeja: `F = espuma/(r·E)` y
+  `t = llenado/r − (E−1)·F`. Caña perfecta: 8,10 s en la Especial, 8,42 s en
+  la Negra.
+- **`maxScore` pasa a la variedad horneada.** Hacía falta para lo siguiente.
+- **Las bandas de los fixtures dorados van en FRACCIÓN del máximo**, no en
+  puntos. El plan las daba en puntos —perfecta en [160.000, 180.000]— y esos
+  números estaban atados al grifo de dos fases: al cambiar la mecánica el
+  techo bajó a 132.857 y la banda absoluta se volvió mentira sin que el juego
+  hubiera empeorado. Ahora: perfecta entre el 92% y el 100% del techo,
+  mediocre entre el 35% y el 65%.
+- **Se regeneraron los diez fixtures sintéticos y `expected.json`**, que es lo
+  que manda el propio comentario del test: «si falla a propósito, se regeneran
+  los fixtures Y se abre temporada nueva». La traza real del iPhone se
+  conserva tal cual; su puntuación pasa de 57.710 a 58.191 con las reglas
+  nuevas, y su tercer toque simplemente no hace nada.
+- **La variedad de un fixture la dice la TRAZA, no el nombre del fichero.**
+  Deducirla del prefijo funcionaba mientras todos se llamaban
+  `<variedad>-<perfil>` y se rompió con `real-iphone-1`.
+- **Reequilibrio.** La Negra tarda más en llenarse, así que con la misma
+  tarifa su techo quedaba un 2,1% por encima. Su `pointsPerSecBeer` baja a
+  865,5 para igualar los máximos: 132.857 contra 132.861. Desequilibrio
+  medido entre partidas perfectas: **0,35%**.
+- **El chorro se tiñe de forma continua.** `pouringFoam` era un booleano
+  porque el grifo conmutaba; ahora es `foamFrac`, 0..1, y el chorro se aclara
+  conforme hace más corona. No llega a blanco: lo que baja por el aire es
+  cerveza que espuma AL LLEGAR, no espuma ya hecha.
+
+## Instrucciones antes del primer toque, y fuera el «calibrando»
+
+Las tres líneas van debajo del ángulo, en el centro, y desaparecen al abrir el
+grifo para no volver.
+
+El aviso de «calibrando N%» se ha quitado: era un porcentaje subiendo en la
+parte de abajo que no pedía nada al jugador —el toque abre el grifo esté
+calibrado o no— así que sólo era ruido con pinta de estar esperando algo. La
+calibración sigue ocurriendo igual.
+
+## El logotipo, calado sobre el rojo
+
+Va la versión en tinta sobre el papel blanco y la **calada en blanco** sobre
+el rojo del vaso, porque ahí el granate daba 1,04:1 de contraste. El oro del
+triángulo se queda: sólo se cala la palabra.
+
+Las dos versiones van en el marcado y **las conmuta el CSS con la piel**, en
+vez de repintarlas desde JS: así el cambio de pantalla no tiene que acordarse
+de volver a pintar el estado del sensor. Cuesta 7 KB de PNG de más.
+
+La versión calada se genera reescribiendo el color de los píxeles granates y
+**conservando su alfa**, que es donde vive el antialias; el oro se distingue
+por el canal verde, igual que al extraer el fondo.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

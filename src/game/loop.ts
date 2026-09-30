@@ -20,7 +20,7 @@ import type { GlassFrame } from '@/render/types'
 
 export type GameState =
   | 'BOOT' | 'AGE_GATE' | 'GATE' | 'CALIBRATE' | 'READY'
-  | 'POUR_BEER' | 'POUR_FOAM' | 'CLOSING' | 'SETTLE' | 'RESULT' | 'INITIALS'
+  | 'POUR_BEER' | 'CLOSING' | 'SETTLE' | 'RESULT' | 'INITIALS'
 
 /** El HUD del ángulo se desvanece en READY → POUR_BEER. */
 export const HUD_FADE_MS = 250
@@ -220,18 +220,17 @@ export class GameLoop {
         break
       }
 
-      case 'POUR_BEER':
-      case 'POUR_FOAM': {
-        const t = this.#consumeTap()
-        if (t) {
+      case 'POUR_BEER': {
+        // Dos toques y se acabó: el segundo cierra. Antes el segundo pasaba a
+        // espuma y hacía falta un tercero.
+        if (this.#consumeTap()) {
           this.#taps.push(this.#samples.length)
           tap(this.#st)
-          this.#go(this.#st.phase === 'foam' ? 'POUR_FOAM' : 'CLOSING')
+          this.#go('CLOSING')
         } else if (this.#pourSteps * STEP_MS >= MAX_POUR_MS) {
           // Se cierra sola: 15 s con el brazo a 45° es el límite.
           this.#taps.push(this.#samples.length)
           tap(this.#st)
-          if (this.#st.phase !== 'closed') { this.#taps.push(this.#samples.length); tap(this.#st) }
           this.#go('CLOSING')
         }
         this.#record()
@@ -294,7 +293,11 @@ export class GameLoop {
 
   /** Lo que el renderer necesita. No le pasamos ni el núcleo ni el sensor. */
   frame(): GlassFrame {
-    const pouring = this.#state === 'POUR_BEER' || this.#state === 'POUR_FOAM'
+    const pouring = this.#state === 'POUR_BEER'
+    // La misma recta que el núcleo, sólo para teñir el chorro.
+    const fp = this.#v.cfg.pour
+    const aPhi = Math.min(Math.abs(this.#phi), fp.foamRefDeg)
+    const foamFrac = fp.foamUpright + (fp.foamTilted - fp.foamUpright) * (aPhi / fp.foamRefDeg)
     return {
       phi: this.#phi,
       rho: this.#rho,
@@ -307,7 +310,7 @@ export class GameLoop {
       quality: this.#st.lastQuality,
       sloshDeg: this.#sloshDeg,
       pouring,
-      pouringFoam: this.#state === 'POUR_FOAM',
+      foamFrac,
       spillingOver: this.#st.spilling || this.#st.overflowing,
       t: this.#simT / 1000,
     }

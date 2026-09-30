@@ -14,13 +14,25 @@ export interface VarietyConfig {
   pour: {
     /** Caudal con el grifo en cerveza, fracción de vaso por segundo. */
     beerRatePerSec: number
-    /** Caudal con el grifo en espuma. */
-    foamRatePerSec: number
     /** Cuánto volumen ocupa la espuma frente a la cerveza de la que sale. */
     foamExpansion: number
-    /** Plan §1.3: espumaGen = flujo · (foamBase + foamPerDegree · δ) */
-    foamBase: number
-    foamPerDegree: number
+    /**
+     * Cuánta espuma hace la cerveza que entra, según lo inclinado que esté el
+     * vaso. Es una recta entre los dos extremos, sin fase de espuma aparte:
+     * el grifo echa siempre lo mismo y lo que cambia es dónde cae.
+     *
+     *   - `foamTilted`: vaso tumbado a `foamRefDeg` o más. La cerveza resbala
+     *     por la pared, casi no rompe y apenas hace corona.
+     *   - `foamUpright`: vaso recto, 0°. La cerveza cae a plomo sobre la que
+     *     ya hay, arrastra gas y se convierte en espuma.
+     *
+     * Entre medias se interpola linealmente. Nada de trascendentes: esto vive
+     * en el núcleo determinista.
+     */
+    foamUpright: number
+    foamTilted: number
+    /** Ángulo, en grados, a partir del cual ya no baja más la espuma. */
+    foamRefDeg: number
     /**
      * Fracción de vaso por segundo que se pierde derramando, **a 1° por
      * encima del límite**. El caudal crece con `exceso^1,5`, como un
@@ -66,7 +78,6 @@ export interface VarietyConfig {
     rhoScaleDeg: number
     omegaScaleDegPerSec: number
     pointsPerSecBeer: number
-    pointsPerSecFoam: number
     bonusFill: number
     bonusFoam: number
     bonusClean: number
@@ -99,5 +110,12 @@ export interface BakedVariety {
   FOAM_Q: readonly number[]
   /** Velocidad angular que la propia curva objetivo exige. Por encima, penaliza. */
   omegaAllowedDegPerSec: number
+  /**
+   * Techo teórico: la puntuación de una caña perfecta, calculada y no
+   * supuesta. Sirve para expresar en fracción del máximo lo que el plan daba
+   * en puntos absolutos, que dejan de significar nada en cuanto se toca un
+   * caudal o una tarifa.
+   */
+  maxScore: number
   cfg: VarietyConfig
 }

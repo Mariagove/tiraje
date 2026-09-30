@@ -80,6 +80,11 @@ body[data-screen="game"] .superficie { background: rgb(0 0 0 / 0.4); }
 .chip { background: color-mix(in oklab, var(--color-marca) 8%, #fff); }
 body[data-screen="game"] .chip { background: rgb(0 0 0 / 0.58); backdrop-filter: blur(8px); }
 
+/* El logotipo: en tinta sobre papel, calado sobre el rojo del vaso. */
+.logo-calado { display: none; }
+body[data-screen="game"] .logo-tinta { display: none; }
+body[data-screen="game"] .logo-calado { display: block; }
+
 /*
  * Botón: relleno de marca y texto blanco, en las dos pieles.
  *

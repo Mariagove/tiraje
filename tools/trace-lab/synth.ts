@@ -66,15 +66,19 @@ export function synthTrace(v: BakedVariety, o: SynthOptions = {}): GameTrace {
     const sec = i * 0.01
 
     // --- Decisión de toque, antes de muestrear: igual que en `replay` -----
+    // Dos toques: abrir, y cerrar al llegar al llenado objetivo.
     let tapping = false
     if (st.phase === 'ready') tapping = true
-    else if (st.phase === 'beer' && t.fill - st.f <= t.foam - st.foam) tapping = true
-    else if (st.phase === 'foam' && st.f >= t.fill) tapping = true
+    else if (st.phase === 'beer' && st.f >= t.fill) tapping = true
     if (tapping) { taps.push(i); shakeLeft = 15 }
 
     // --- El ángulo que sostiene el jugador --------------------------------
     const fi = Math.min(1000, Math.max(0, Math.round(st.f * 1000)))
-    let phi = v.TARGET_DDEG[fi]! / 10 - bias
+    // Al final se endereza por debajo del objetivo para levantar la corona,
+    // que es lo que hace un camarero y lo único que da la espuma que pide el
+    // objetivo: siguiendo la curva a rajatabla se queda corto.
+    const remate = st.f > t.fill - 0.10 ? 0.45 : 1
+    let phi = (v.TARGET_DDEG[fi]! / 10) * remate - bias
     phi += wobble * Math.sin(2 * Math.PI * wobbleHz * sec)
     phi += tremor * Math.sin(2 * Math.PI * 9.5 * sec) + tremor * 0.4 * rnd()
     if (shakeLeft > 0) { phi += shake * (shakeLeft / 15); shakeLeft-- }

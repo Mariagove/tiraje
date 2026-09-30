@@ -23,6 +23,9 @@ import { mountGameView } from '@/dev/game-view'
 // aplicado. Referenciarlo a mano como '/ambar.png' daría 404 en Pages, donde
 // el sitio vive en /tiraje/.
 import logoAmbar from '@/assets/ambar.png'
+// Y la versión calada: sobre el rojo del vaso, el granate del logotipo da
+// 1,04:1 de contraste y desaparece. El oro del triángulo se queda como está.
+import logoBlanco from '@/assets/ambar-blanco.png'
 
 const AGE_KEY = 'tiraje.age.v1'
 
@@ -127,15 +130,18 @@ export function mountShell(root: HTMLElement): void {
    * de práctica aparte— y hay que poder leerlos.
    *
    * El logotipo va sin fondo: se le quitó el blanco del PNG deshaciendo la
-   * composición sobre blanco, así que conserva el antialias. Medido, su
-   * granate `#A23736` sobre el fondo `#B02C31` da 1,04:1 de contraste, o sea
-   * que en el vaso vacío casi no se ve; sobre la cerveza sube a 3,11:1 y
-   * sobre el papel blanco de las demás pantallas, a 6,70:1. Lo pidió así el
-   * estudio, y un logotipo de cliente no se recolorea por cuenta propia.
+   * composición sobre blanco, así que conserva el antialias.
+   *
+   * Van las DOS versiones en el marcado y las conmuta el CSS con la piel, en
+   * vez de repintar desde JS: así el cambio de pantalla no tiene que acordarse
+   * de volver a pintar el estado. Sobre el rojo va la calada, porque el
+   * granate sobre ese fondo da 1,04:1 de contraste y no se ve.
    */
   function paintStatus(s: SensorStatus): void {
     if (s.kind === 'live' || s.kind === 'probing') {
-      statusEl.innerHTML = `<img src="${logoAmbar}" alt="Ambar" class="block h-6 w-auto" />`
+      statusEl.innerHTML =
+        `<img src="${logoAmbar}" alt="Ambar" class="logo-tinta block h-6 w-auto" />` +
+        `<img src="${logoBlanco}" alt="" class="logo-calado block h-6 w-auto" />`
       return
     }
     // `idle` no es un fallo, es que todavía no se ha tocado el botón: va en

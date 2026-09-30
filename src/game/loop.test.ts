@@ -154,16 +154,18 @@ describe('la máquina de estados del plan §1.2', () => {
     return { src, loop, seen, t }
   }
 
-  it('recorre READY → POUR_BEER → POUR_FOAM → CLOSING → SETTLE → RESULT', () => {
+  it('recorre READY → POUR_BEER → CLOSING → SETTLE → RESULT con DOS toques', () => {
+    // Dos toques, no tres: el segundo cierra. La fase de espuma se quitó y
+    // la corona sale ahora de la inclinación.
     const { loop, seen } = toReady()
     let t = REST_GATE.holdMs + 200
-    for (const _ of [1, 2, 3]) {
+    for (const _ of [1, 2]) {
       loop.queueTap()
       t = run(loop, 1500, 16, t)
     }
     t = run(loop, SETTLE_MS + 300, 16, t)
     expect(loop.state).toBe('RESULT')
-    expect(seen).toEqual(['READY', 'POUR_BEER', 'POUR_FOAM', 'CLOSING', 'SETTLE', 'RESULT'])
+    expect(seen).toEqual(['READY', 'POUR_BEER', 'CLOSING', 'SETTLE', 'RESULT'])
     expect(loop.result).not.toBeNull()
     expect(Number.isInteger(loop.result!.score)).toBe(true)
   })
@@ -184,7 +186,8 @@ describe('la máquina de estados del plan §1.2', () => {
     const t = run(loop, MAX_POUR_MS + 1000, 16, 2000)
     run(loop, SETTLE_MS + 400, 16, t)
     expect(loop.state).toBe('RESULT')
-    expect(loop.trace().taps.length).toBe(3)
+    // Uno del jugador y otro de la propia fatiga: con dos ya está cerrada.
+    expect(loop.trace().taps.length).toBe(2)
   })
 
   it('OTRA CAÑA es un cambio de estado, no una recarga', () => {
@@ -210,12 +213,14 @@ describe('la traza que graba el bucle es la que el servidor recalcula', () => {
     const loop = mk(src)
     let t = run(loop, REST_GATE.holdMs + 200)
 
+    // Dos toques y tres ángulos distintos por medio: abre tumbado, endereza
+    // conforme sube el nivel —que es lo que hace la corona ahora— y cierra.
     src.phi = 46
     loop.queueTap(); t = run(loop, 4000, 16, t)
     src.phi = 24
     t = run(loop, 3000, 16, t)
-    loop.queueTap(); t = run(loop, 2500, 16, t)
     src.phi = 8
+    t = run(loop, 1500, 16, t)
     loop.queueTap(); t = run(loop, SETTLE_MS + 600, 16, t)
 
     expect(loop.state).toBe('RESULT')

@@ -45,6 +45,20 @@ function bake(cfg: VarietyConfig): { src: string; report: Record<string, string>
     SPILL_DDEG.push(Math.round(spillDeg(f, hr) * 10))
   }
 
+  // --- Cuánto dura una caña perfecta -------------------------------------
+  //
+  // Con un solo grifo, el tiempo sale de las dos ecuaciones de volumen sin
+  // necesidad de simular. Con `F = ∫frac dt`:
+  //
+  //   espuma  = r · E · F                    →  F = espuma / (r · E)
+  //   llenado = r · (t + (E − 1) · F)        →  t = llenado/r − (E−1)·F
+  //
+  // Antes había que resolver dos fases porque el tercer toque conmutaba el
+  // grifo a espuma; ahora el grifo es uno solo y esto es aritmética.
+  const fp = cfg.pour
+  const F = cfg.targets.foam / (fp.beerRatePerSec * fp.foamExpansion)
+  const tPerfect = cfg.targets.fill / fp.beerRatePerSec - (fp.foamExpansion - 1) * F
+
   const GAUSS_E = Array.from({ length: 30 }, (_, e) => gauss(e / s.sigmaDeg))
   const RHO_Q = Array.from({ length: 91 }, (_, r) => gauss(r / s.rhoScaleDeg))
   const OMEGA_Q = Array.from({ length: 201 }, (_, w) => gauss(w / s.omegaScaleDegPerSec))
@@ -55,23 +69,17 @@ function bake(cfg: VarietyConfig): { src: string; report: Record<string, string>
   // perfecto. Por encima de eso, el movimiento ya no es seguir el objetivo.
   // Se deriva de la geometría, no se elige: es dφ*/df · df/dt.
   let maxSlope = 0
-  const fRateBeer = cfg.pour.beerRatePerSec *
-    (1 - cfg.pour.foamBase + cfg.pour.foamBase * cfg.pour.foamExpansion)
+  // Caudal medio de una caña perfecta, que es el que ve el jugador al que se
+  // le exige seguir la curva. Sale de `tPerfect`, más abajo: llenado partido
+  // por lo que tarda.
+  const fRateBeer = cfg.targets.fill / tPerfect
   for (let i = 1; i <= FILL_STEPS; i++) {
     const d = Math.abs(TARGET_DDEG[i]! - TARGET_DDEG[i - 1]!) / 10 * FILL_STEPS
     if (i / FILL_STEPS <= cfg.targets.fill) maxSlope = Math.max(maxSlope, d * fRateBeer)
   }
   const omegaAllowedDegPerSec = Math.ceil(maxSlope * 1.5)
 
-  // --- Partida perfecta: el máximo teórico, calculado y no supuesto --------
-  const fp = cfg.pour
-  const foamRateBeer = fp.beerRatePerSec * fp.foamBase * fp.foamExpansion
-  // Fase de cerveza: se detiene cuando lo que falta de llenado lo aporta la
-  // fase de espuma. Resolver las dos ecuaciones da t_b directamente.
-  const tBeer = (cfg.targets.fill - cfg.targets.foam) / (fRateBeer - foamRateBeer)
-  const foamFromBeer = foamRateBeer * tBeer
-  const tFoam = (cfg.targets.foam - foamFromBeer) / (fp.foamRatePerSec * fp.foamExpansion)
-  const maxPoints = s.pointsPerSecBeer * tBeer + s.pointsPerSecFoam * tFoam
+  const maxPoints = s.pointsPerSecBeer * tPerfect
   const maxScore = Math.round(
     (maxPoints + s.bonusFill + s.bonusFoam + s.bonusClean) * s.finalMultiplier)
 
@@ -80,7 +88,7 @@ function bake(cfg: VarietyConfig): { src: string; report: Record<string, string>
 // Vaso H=${cfg.glass.heightMm}mm R=${cfg.glass.radiusMm}mm → H/R=${hr.toFixed(4)}
 // Derrame: vacío ${spillDeg(0, hr).toFixed(2)}° · 80% ${spillDeg(0.8, hr).toFixed(2)}° · 90% ${spillDeg(0.9, hr).toFixed(2)}°
 // Objetivo: salida ${(TARGET_DDEG[0]! / 10).toFixed(1)}° · 80% ${(TARGET_DDEG[800]! / 10).toFixed(1)}° · 95% ${(TARGET_DDEG[950]! / 10).toFixed(1)}°
-// Partida perfecta: ${tBeer.toFixed(2)}s de cerveza + ${tFoam.toFixed(2)}s de espuma = ${maxScore.toLocaleString('es-ES')} puntos
+// Caña perfecta: ${tPerfect.toFixed(2)}s de grifo abierto = ${maxScore.toLocaleString('es-ES')} puntos
 import type { BakedVariety } from '../types.ts'
 import cfg from '../../../varieties/${cfg.id}.json' with { type: 'json' }
 
@@ -94,6 +102,7 @@ export const ${cfg.id.toUpperCase()}: BakedVariety = {
   FILL_Q: ${arr(FILL_Q, 9)},
   FOAM_Q: ${arr(FOAM_Q, 9)},
   omegaAllowedDegPerSec: ${omegaAllowedDegPerSec},
+  maxScore: ${maxScore},
   cfg: cfg as BakedVariety['cfg'],
 }
 `
@@ -106,7 +115,7 @@ export const ${cfg.id.toUpperCase()}: BakedVariety = {
       'objetivo salida': `${(TARGET_DDEG[0]! / 10).toFixed(1)}°`,
       'objetivo 95%': `${(TARGET_DDEG[950]! / 10).toFixed(1)}°`,
       'ω permitida': `${omegaAllowedDegPerSec} °/s`,
-      'partida perfecta': `${tBeer.toFixed(2)}s + ${tFoam.toFixed(2)}s = ${(tBeer + tFoam).toFixed(2)}s`,
+      'caña perfecta': `${tPerfect.toFixed(2)}s de grifo abierto`,
       'máximo teórico': maxScore.toLocaleString('es-ES'),
     },
   }

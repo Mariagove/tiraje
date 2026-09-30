@@ -46,7 +46,16 @@ export const BLANKING_MEAN_WINDOW_MS = 100
 const BLANKING_STEPS = TAP_BLANKING_MS / STEP_MS
 const MEAN_WINDOW_STEPS = BLANKING_MEAN_WINDOW_MS / STEP_MS
 
-export type Phase = 'ready' | 'beer' | 'foam' | 'closed'
+/**
+ * Dos toques: abrir y cerrar. No hay fase de espuma.
+ *
+ * La tenía, y era un tercer toque que conmutaba el grifo a espuma. Se quitó
+ * porque en un tirador de verdad el grifo echa siempre lo mismo: la corona no
+ * la decide un mando, la decide **cómo sostienes el vaso**. Ahora la espuma
+ * sale de la inclinación, que es a la vez más fiel y un toque menos que
+ * explicar.
+ */
+export type Phase = 'ready' | 'beer' | 'closed'
 
 /** Una muestra de traza: lo que la capa de sensores deja cruzar la frontera. */
 export interface TraceSample {
@@ -71,7 +80,6 @@ export interface ScoreState {
   spillEvents: number
   points: number
   stepsBeer: number
-  stepsFoam: number
   prevPhiDdeg: number | null
   /** Suma de la calidad lateral, para la limpieza. */
   rhoSum: number
@@ -107,7 +115,7 @@ export function createState(): ScoreState {
   return {
     phase: 'ready', steps: 0, f: 0, foam: 0, spilled: 0,
     spilling: false, overflowing: false, spillEvents: 0, points: 0,
-    stepsBeer: 0, stepsFoam: 0, prevPhiDdeg: null,
+    stepsBeer: 0, prevPhiDdeg: null,
     rhoSum: 0, rhoCount: 0, errSum: 0, errCount: 0,
     qRing: Array.from<number>({ length: MEAN_WINDOW_STEPS }).fill(1),
     qRingLen: 0, qRingIdx: 0, blankingLeft: 0, blankedQ: 1,
@@ -134,7 +142,7 @@ function loseOverRim(st: ScoreState, amount: number): void {
 
 /**
  * Un toque. Avanza la fase y abre la ventana de blanking.
- * `ready → beer → foam → closed`; más toques no hacen nada.
+ * `ready → beer → closed`; más toques no hacen nada.
  */
 export function tap(st: ScoreState): void {
   if (st.phase === 'closed') return
@@ -147,7 +155,7 @@ export function tap(st: ScoreState): void {
   st.blankedQ = n > 0 ? sum / n : 1
   st.blankingLeft = BLANKING_STEPS
 
-  st.phase = st.phase === 'ready' ? 'beer' : st.phase === 'beer' ? 'foam' : 'closed'
+  st.phase = st.phase === 'ready' ? 'beer' : 'closed'
 }
 
 /**
@@ -212,7 +220,7 @@ export function step(v: BakedVariety, st: ScoreState, smp: TraceSample): void {
     st.spilling = false
   }
 
-  if (st.phase === 'beer' || st.phase === 'foam') {
+  if (st.phase === 'beer') {
     // --- Calidad instantánea ------------------------------------------
     const dErr = aPhi > target ? aPhi - target : target - aPhi
     const e = clampInt(((dErr + 5) / 10) | 0, 0, 29)
@@ -247,30 +255,34 @@ export function step(v: BakedVariety, st: ScoreState, smp: TraceSample): void {
     }
 
     st.lastQuality = used
-    const rate = st.phase === 'beer' ? sc.pointsPerSecBeer : sc.pointsPerSecFoam
-    st.points += rate * used * STEP_S
+    st.points += sc.pointsPerSecBeer * used * STEP_S
 
     st.rhoSum += r; st.rhoCount++
     st.errSum += e; st.errCount++
 
     // --- Caudal y espuma ------------------------------------------------
-    if (st.phase === 'beer') {
-      st.stepsBeer++
-      // δ = grados de "demasiado recto". Enderezar antes de tiempo GENERA
-      // ESPUMA: el castigo no es abstracto, te llena el vaso sin cerveza.
-      const delta = target > aPhi ? (target - aPhi) / 10 : 0
-      let frac = p.foamBase + p.foamPerDegree * delta
-      if (frac > 1) frac = 1
-      const dFoam = p.beerRatePerSec * frac * p.foamExpansion * STEP_S
-      const dLiq = p.beerRatePerSec * (1 - frac) * STEP_S
-      st.f += dLiq + dFoam
-      st.foam += dFoam
-    } else {
-      st.stepsFoam++
-      const dFoam = p.foamRatePerSec * p.foamExpansion * STEP_S
-      st.f += dFoam
-      st.foam += dFoam
-    }
+    //
+    // El grifo echa SIEMPRE lo mismo. Lo que cambia con la inclinación es
+    // cuánto de lo que entra se convierte en espuma: tumbado, la cerveza
+    // resbala por la pared y apenas rompe; recto, cae a plomo, arrastra gas y
+    // hace corona. Recta entre los dos extremos, y el ángulo es ABSOLUTO —no
+    // relativo al objetivo—, que es lo que se pidió: 45° poca espuma, 0°
+    // mucha.
+    //
+    // La tensión del juego sigue intacta, y ahora sale sola de la física en
+    // vez de estar escrita: conforme sube el nivel hay que enderezar para no
+    // derramar, y enderezar es justo lo que hace la corona.
+    st.stepsBeer++
+    const ref = p.foamRefDeg * 10
+    const a = aPhi > ref ? ref : aPhi
+    // frac = foamUpright + (foamTilted − foamUpright) · aPhi/ref
+    let frac = p.foamUpright + (p.foamTilted - p.foamUpright) * (a / ref)
+    if (frac > 1) frac = 1
+    else if (frac < 0) frac = 0
+    const dFoam = p.beerRatePerSec * frac * p.foamExpansion * STEP_S
+    const dLiq = p.beerRatePerSec * (1 - frac) * STEP_S
+    st.f += dLiq + dFoam
+    st.foam += dFoam
   }
 
   // Un vaso lleno no acepta más cerveza: la rebosa. Sin este tope `f` crece

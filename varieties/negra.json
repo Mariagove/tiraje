@@ -7,10 +7,10 @@
   },
   "pour": {
     "beerRatePerSec": 0.098,
-    "foamRatePerSec": 0.023,
     "foamExpansion": 2.0,
-    "foamBase": 0.07,
-    "foamPerDegree": 0.009,
+    "foamUpright": 0.85,
+    "foamTilted": 0.04,
+    "foamRefDeg": 45,
     "spillRatePerSec": 0.015
   },
   "targets": {
@@ -43,8 +43,7 @@
     "sigmaDeg": 5,
     "rhoScaleDeg": 14,
     "omegaScaleDegPerSec": 30,
-    "pointsPerSecBeer": 900,
-    "pointsPerSecFoam": 1300,
+    "pointsPerSecBeer": 865.5,
     "bonusFill": 2500,
     "bonusFoam": 2500,
     "bonusClean": 1000,

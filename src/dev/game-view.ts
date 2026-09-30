@@ -66,11 +66,27 @@ function writeRanking(rows: Entry[]): void {
   try { localStorage.setItem(RANKING_KEY, JSON.stringify(rows.slice(0, 10))) } catch { /* privado */ }
 }
 
+/**
+ * Las instrucciones, y sólo antes del primer toque.
+ *
+ * Tres líneas debajo del ángulo. Desaparecen al abrir el grifo y no vuelven:
+ * a partir de ahí toda la retroalimentación es diegética, que es lo que se
+ * decidió desde el principio.
+ *
+ * Ya no se anuncia la calibración. Era un porcentaje que subía en la parte de
+ * abajo y no pedía nada al jugador —el toque abre el grifo esté calibrado o
+ * no—, así que sólo era ruido con pinta de estar esperando algo.
+ */
+const INSTRUCCIONES = [
+  'Usa la inclinación para tirar la caña perfecta',
+  'Da un toque para abrir el grifo',
+  'y un segundo toque para cerrarlo.',
+].map((l) => `<div>${l}</div>`).join('')
+
 const PROMPTS: Partial<Record<GameState, string>> = {
-  CALIBRATE: 'inclínalo como un vaso · toca para <b class="text-ambar-foam">ABRIR EL GRIFO</b>',
-  READY: 'inclínalo como un vaso · toca para <b class="text-ambar-foam">ABRIR EL GRIFO</b>',
+  CALIBRATE: INSTRUCCIONES,
+  READY: INSTRUCCIONES,
   POUR_BEER: '',
-  POUR_FOAM: '',
   CLOSING: '',
   SETTLE: '',
 }
@@ -89,15 +105,11 @@ export function mountGameView(
          calibras, y en el centro se lee sin desviar la vista del líquido.
          En DOM y no en canvas: texto nítido gratis y cifras de ancho fijo,
          que es lo que evita que el número baile al cambiar de cifra. -->
-    <div class="pointer-events-none fixed inset-0 z-10 flex items-center justify-center">
+    <div class="pointer-events-none fixed inset-0 z-10 flex flex-col items-center justify-center gap-4 px-8">
       <div id="hud" class="font-mono text-6xl tabular-nums transition-opacity"
            style="transition-duration:${HUD_FADE_MS}ms">—</div>
-    </div>
-
-    <!-- El mismo hueco por abajo que la tarjeta, por el logo. -->
-    <div class="pointer-events-none fixed inset-x-0 bottom-0 z-10 flex justify-center
-                px-6 pb-[calc(max(1rem,env(safe-area-inset-bottom))+3.5rem)]">
-      <div id="prompt" class="text-center text-sm text-ambar-foam/70 [text-shadow:0_1px_3px_rgba(0,0,0,.7)]"></div>
+      <div id="prompt" class="max-w-xs text-center text-sm leading-relaxed text-ambar-foam/85
+                  [text-shadow:0_1px_3px_rgba(0,0,0,.45)]"></div>
     </div>
 
     <!-- La tarjeta va sobre papel blanco con tinta de marca, como el resto de
@@ -323,13 +335,6 @@ export function mountGameView(
     if (tier.sample(drawMs)) renderer.setTier(tier.tier)
 
     const st = loop.state
-    if (st === 'CALIBRATE') {
-      // Se informa de la calibración sin convertirla en una espera: el toque
-      // ya abre el grifo, quedarse quieto sólo la mejora.
-      const pct = Math.round(loop.restProgress * 100)
-      prompt.innerHTML = 'inclínalo como un vaso · toca para <b class="text-ambar-foam">ABRIR EL GRIFO</b>'
-        + (pct > 0 ? `<br><span class="text-[0.65rem] opacity-60">calibrando ${pct}%</span>` : '')
-    }
     if (st === 'CALIBRATE' || st === 'READY') {
       // Un decimal. Tres eran honestos con el móvil quieto —y en estos dos
       // estados lo está— pero en la mano las milésimas bailan sin que puedas

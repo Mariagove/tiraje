@@ -470,7 +470,10 @@ export class Glass2D implements GlassRenderer {
       const surfaceYAt = (x: number): number => Math.abs(ct) < 1e-6
         ? foamTop.y : foamTop.y + ((x - foamTop.x) * st) / ct
 
-      const streamColor = f.pouringFoam ? FOAM : BEER
+      // El chorro se aclara conforme hace más espuma. La mezcla no llega a
+      // blanco del todo: incluso cayendo a plomo, lo que baja por el aire es
+      // cerveza que espuma AL LLEGAR, no espuma ya hecha.
+      const streamColor = mix(BEER, FOAM, Math.min(1, f.foamFrac * 1.2))
 
       /**
        * Cinta de líquido entre dos puntos, ondulando al caer.

@@ -42,7 +42,15 @@ export interface GlassFrame {
   /** Si el grifo está abierto (para el chorro y las burbujas). */
   pouring: boolean
   /** Y si lo que cae es espuma en vez de cerveza. Cambia el color del chorro. */
-  pouringFoam: boolean
+  /**
+   * Cuánto de lo que está cayendo se convierte en espuma, 0..1.
+   *
+   * Era un booleano, `pouringFoam`, porque había un tercer toque que conmutaba
+   * el grifo a espuma. Ya no: el grifo echa siempre lo mismo y lo que cambia
+   * con la inclinación es cuánta corona hace, así que el chorro se tiñe de
+   * forma continua en vez de cambiar de golpe.
+   */
+  foamFrac: number
   /**
    * Si se está yendo líquido por el borde, por rebose o por exceso de
    * inclinación. Las dos causas son la misma cosa vista desde fuera —líquido
