@@ -126,11 +126,21 @@ body[data-screen="game"] .chip { background: rgb(0 0 0 / 0.58); backdrop-filter:
  * El estudio lo pidió así de tajante, y tiene sentido: es el único elemento
  * que hay que encontrar sin leer.
  */
+/*
+ * Dos cosas se dejan abiertas con variables, el radio y la tipografía, porque
+ * `.boton` va SIN capa y por tanto gana a cualquier utilidad de Tailwind: un
+ * `rounded-full` o un `font-titular` en el marcado no harían nada. Quien
+ * quiera otra forma o otra letra pone la variable y no pelea con la cascada.
+ *
+ * `font: inherit` primero y `font-family` después: el atajo reinicia la
+ * familia, así que el orden dentro de la regla importa.
+ */
 .boton {
   background: var(--color-marca);
   color: #fff;
   border: 0;
-  border-radius: 0.375rem;
+  border-radius: var(--boton-radio, 0.375rem);
   font: inherit;
+  font-family: var(--boton-tipo, inherit);
 }
 .boton:active { opacity: 0.8; }

@@ -1416,6 +1416,31 @@ clases de los dos builds: se pierden exactamente tres —`font-display`,
 `contents` y `visible`—, las tres palabras sueltas de texto en español, y **no
 falta ninguna de las que usa la interfaz**.
 
+## El botón de entrada: píldora, ajustado al texto y en la titular
+
+- **Se ajusta al texto** en vez de ocupar todo el ancho de la columna: a ancho
+  completo quedaba un desierto a los lados de dos palabras.
+- **En píldora**, y con la misma titular que la explicación.
+- Los tres bloques —explicación, botón y aviso— se centran en el alto libre en
+  vez de quedarse pegados arriba.
+
+### Por qué hace falta una variable y no una clase de Tailwind
+
+`.boton` es CSS **sin capa**, y lo que no está en una capa gana a cualquier
+utilidad de Tailwind pase lo que pase con el orden. Así que un `rounded-full`
+o un `font-titular` escritos en el marcado no habrían hecho nada: el
+`border-radius` y la familia de `.boton` los habrían pisado, y encima en
+silencio.
+
+La salida son dos variables con valor por defecto, `--boton-radio` y
+`--boton-tipo`, que el marcado fija con utilidades de propiedad arbitraria. El
+componente sigue mandando y quien quiera otra forma o otra letra la pide sin
+pelearse con la cascada.
+
+Un detalle de orden dentro de la regla: `font: inherit` va **antes** que
+`font-family`, porque el atajo reinicia la familia y si fuera al revés la
+variable no serviría de nada.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

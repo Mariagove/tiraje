@@ -90,7 +90,10 @@ export function mountShell(root: HTMLElement): void {
            verdad hay que leer. Al quitarlo la cabecera se quedaba vacía, así
            que se va entera y con ella el alternar que la escondía en el
            juego. -->
-      <section id="gate" class="flex flex-col gap-4">
+      <!-- Los tres bloques se centran en el alto libre, en vez de quedarse
+           pegados arriba. El logotipo sigue abajo porque va fuera de esta
+           sección. -->
+      <section id="gate" class="flex flex-1 flex-col justify-center gap-5">
         ${webview ? `<p class="rounded border border-current p-3 text-sm">
           Estás en el navegador de <b>${webview}</b>. En iOS no da permiso de
           sensores y desde aquí no se puede salir. Toca <b>···</b> y abre el
@@ -103,8 +106,13 @@ export function mountShell(root: HTMLElement): void {
           El móvil es el vaso. Lo inclinas, lo enderezas conforme sube el nivel,
           y tiras la caña perfecta en dos toques.
         </p>
+        <!-- El botón se ajusta al texto en vez de ocupar todo el ancho: a
+             ancho completo quedaba un desierto a los lados de dos palabras.
+             Y en píldora, que es lo que se pidió. La tipografía, la misma
+             titular que la explicación. -->
         <button id="go"
-          class="boton px-4 py-5 text-base font-bold leading-snug">
+          class="boton self-center px-7 py-4 text-base font-bold leading-snug
+                 [--boton-radio:9999px] [--boton-tipo:var(--font-titular)]">
           ${aged ? 'TIRAR CAÑA' : 'Sí, soy mayor de 18 · TIRAR CAÑA'}
         </button>
         <p class="text-xs text-ambar-dim">
