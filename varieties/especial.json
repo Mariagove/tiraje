@@ -41,7 +41,7 @@
   },
   "scoring": {
     "sigmaDeg": 5,
-    "rhoScaleDeg": 14,
+    "rhoScaleDeg": 20,
     "omegaScaleDegPerSec": 30,
     "pointsPerSecBeer": 900,
     "bonusFill": 2500,

@@ -447,9 +447,24 @@ describe('contrato de la puntuación', () => {
     }
   })
 
-  it('el ladeo penaliza, y a 14° cuesta un tercio del vertido', () => {
+  it('el ladeo penaliza, y en su ángulo de escala cuesta 1/e del vertido', () => {
+    // Se lee la escala de la config en vez de escribir el número: la gaussiana
+    // es `e^-(ρ/escala)²`, así que EN la escala vale `1/e` sea cual sea. Antes
+    // decía «a 14°» y se rompió al aflojar el término a 20°, que es un cambio
+    // de calibración, no de comportamiento.
+    const escala = ESPECIAL.cfg.scoring.rhoScaleDeg
     const recto = replay(ESPECIAL, hold(ESPECIAL, 48, 400, 0)).breakdown.pour
-    const ladeado = replay(ESPECIAL, hold(ESPECIAL, 48, 400, 14)).breakdown.pour
+    const ladeado = replay(ESPECIAL, hold(ESPECIAL, 48, 400, escala)).breakdown.pour
     expect(ladeado / recto).toBeCloseTo(Math.E ** -1, 1)
+  })
+
+  it('ladear siempre cuesta, por poco que sea', () => {
+    const recto = replay(ESPECIAL, hold(ESPECIAL, 48, 400, 0)).breakdown.pour
+    let previo = recto
+    for (const rho of [3, 6, 10, 16, 24]) {
+      const p = replay(ESPECIAL, hold(ESPECIAL, 48, 400, rho)).breakdown.pour
+      expect(p, `${rho}°`).toBeLessThan(previo)
+      previo = p
+    }
   })
 })

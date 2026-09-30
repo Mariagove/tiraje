@@ -1266,6 +1266,28 @@ media** durante todo el vertido y se llevó 7,2 de los 7,5 puntos del bono. Lo
 que penaliza de verdad no es el pico del toque, es servir ladeado de forma
 sostenida: 10° constantes cuestan el 40% del bono.
 
+## El ladeo cuenta menos: `rhoScaleDeg` de 14 a 20
+
+Decisión del estudio tras ver los números: que ρ siga contando, pero menos.
+
+| ladeo | antes (14°) | ahora (20°) |
+|---|---|---|
+| 5° | 88% | **94%** |
+| 10° | 60% | **78%** |
+| 14° | 37% | **61%** |
+| 20° | 13% | **37%** |
+
+No toca el techo teórico —una caña perfecta se sirve con ρ = 0, así que el
+término vale 1— y las notas suben poco porque los perfiles sintéticos ya
+sirven casi planos: perfecta 97 sin cambio, buena 90 → 91, mediocre 50 → 52.
+La traza real del iPhone se queda en 44.
+
+El test del ladeo ahora **lee la escala de la config** en vez de llevar el
+número escrito. La gaussiana es `e^−(ρ/escala)²`, así que en la escala vale
+`1/e` sea cual sea: el test dice el comportamiento y no la calibración, y así
+no se vuelve a romper al reajustar. Se añade otro que comprueba que ladear
+siempre cuesta, aunque sea poco.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin
