@@ -70,18 +70,23 @@ function skin(screen: 'game' | 'ui'): void {
 export function mountShell(root: HTMLElement): void {
   const webview = detectInAppBrowser()
   const aged = isAgeConfirmed()
+  const params = new URLSearchParams(location.search)
   // La variedad va en el QR (?v=especial), no en una pantalla de selección.
-  const qrVariety = new URLSearchParams(location.search).get('v')
+  const qrVariety = params.get('v')
+  /**
+   * Qué vista se monta al entrar.
+   *
+   * Las pestañas JUEGO / SENSOR / TRAZA se han quitado: son instrumentos de
+   * medida, no juego, y en la pantalla del jugador estorban. No se borran,
+   * porque la fase 2 se calibra con ellas y hacen falta en cada móvil nuevo;
+   * se llega con `?vista=sensor` o `?vista=trace`.
+   */
+  const vista = params.get('vista') ?? 'game'
 
   root.innerHTML = `
-    <main class="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
-      <header class="relative z-30 flex items-baseline justify-between">
+    <main class="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <header id="cabecera" class="relative z-30 flex items-baseline justify-between">
         <h1 class="text-xs tracking-[0.3em] text-ambar-dim">TIRAJE</h1>
-        <nav id="tabs" class="chip hidden gap-1 rounded p-0.5 text-xs">
-          <button data-view="game" class="rounded px-2 py-1">JUEGO</button>
-          <button data-view="sensor" class="rounded px-2 py-1">SENSOR</button>
-          <button data-view="trace" class="rounded px-2 py-1">TRAZA</button>
-        </nav>
       </header>
 
       <section id="gate" class="flex flex-col gap-4">
@@ -110,7 +115,7 @@ export function mountShell(root: HTMLElement): void {
     </main>
   `
   const $ = <T extends HTMLElement>(id: string): T => root.querySelector<T>(`#${id}`)!
-  const statusEl = $('status'), viewEl = $('view'), tabs = $('tabs'), gate = $('gate')
+  const statusEl = $('status'), viewEl = $('view'), gate = $('gate')
 
   /**
    * Cuando el sensor va bien, el logo; cuando no, el aviso.
@@ -121,14 +126,16 @@ export function mountShell(root: HTMLElement): void {
    * «no hay sensor»: ésos cambian a qué estás jugando —al dedo, con ranking
    * de práctica aparte— y hay que poder leerlos.
    *
-   * La marca va siempre sobre su blanco, también en la pantalla roja: el
-   * granate del logotipo es más oscuro que el fondo (`#A23736` contra
-   * `#B02C31`) y no se distinguiría, y un logotipo de cliente no se recolorea
-   * para que encaje.
+   * El logotipo va sin fondo: se le quitó el blanco del PNG deshaciendo la
+   * composición sobre blanco, así que conserva el antialias. Medido, su
+   * granate `#A23736` sobre el fondo `#B02C31` da 1,04:1 de contraste, o sea
+   * que en el vaso vacío casi no se ve; sobre la cerveza sube a 3,11:1 y
+   * sobre el papel blanco de las demás pantallas, a 6,70:1. Lo pidió así el
+   * estudio, y un logotipo de cliente no se recolorea por cuenta propia.
    */
   function paintStatus(s: SensorStatus): void {
     if (s.kind === 'live' || s.kind === 'probing') {
-      statusEl.innerHTML = `<img src="${logoAmbar}" alt="Ambar" class="block h-9 w-auto rounded" />`
+      statusEl.innerHTML = `<img src="${logoAmbar}" alt="Ambar" class="block h-6 w-auto" />`
       return
     }
     // `idle` no es un fallo, es que todavía no se ha tocado el botón: va en
@@ -146,19 +153,12 @@ export function mountShell(root: HTMLElement): void {
   function show(view: string): void {
     teardown?.()
     skin(view === 'game' ? 'game' : 'ui')
-    for (const b of tabs.querySelectorAll('button')) {
-      b.className = b.dataset['view'] === view
-        ? 'boton px-2 py-1'
-        : 'rounded px-2 py-1 text-ambar-dim'
-    }
+    // En el juego la pantalla ES el vaso: el título de arriba sobra.
+    $('cabecera').classList.toggle('hidden', view === 'game')
     teardown = view === 'trace' ? mountTraceRecorder(viewEl, fusion)
       : view === 'sensor' ? mountSensorSlice(viewEl, fusion)
         : mountGameView(viewEl, fusion, qrVariety)
   }
-  tabs.addEventListener('click', (e) => {
-    const v = (e.target as HTMLElement).dataset['view']
-    if (v) show(v)   // cambio de vista, nunca recarga ni navegación
-  })
 
   $('go').addEventListener('click', () => {
     // Primera línea del handler: pedir el permiso. Sin `await` por delante,
@@ -169,13 +169,11 @@ export function mountShell(root: HTMLElement): void {
     // Todo lo demás, después. El age gate va aquí porque ya no exige gesto.
     confirmAge()
     gate.classList.add('hidden')
-    tabs.classList.remove('hidden')
-    tabs.classList.add('flex')
 
     void p.then((outcome) => {
       if (outcome !== 'no-api' && outcome !== 'denied') fusion.start()
       else paintStatus({ kind: outcome === 'no-api' ? 'no-api' : 'denied' } as SensorStatus)
-      show('game')
+      show(vista)
     })
   })
 }

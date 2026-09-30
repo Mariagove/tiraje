@@ -779,6 +779,54 @@ logotipo de cliente no se recolorea para que encaje. El PNG entra por `import`
 para que Vite le ponga hash y le aplique el `base` del build; referenciarlo a
 mano como `/ambar.png` daría 404 en Pages.
 
+## La pantalla del jugador se queda sin instrumentos
+
+Quitado a petición del estudio: las pestañas JUEGO / SENSOR / TRAZA y el botón
+DEBUG. Son aparatos de medida, no juego, y en una pantalla que ES el vaso
+estorban.
+
+**No se ha borrado nada.** La fase 2 se calibra con esas vistas y hacen falta
+en cada móvil nuevo —la sonda de signos, la frecuencia real del sensor, el
+grabador de trazas—, así que siguen montándose, sólo que por URL:
+
+    ?vista=sensor     la rebanada del sensor
+    ?vista=trace      el grabador de trazas
+    ?debug=1          el panel de números sobre el juego
+
+En el juego se oculta además el título TIRAJE de la cabecera, por lo mismo.
+
+## Aspecto de la tarjeta de resultado y de las variedades
+
+- **La tarjeta, sobre papel blanco con tinta de marca**, como las demás
+  pantallas que no son el vaso, y el botón de guardar en rojo con texto
+  blanco. Sin opacidades dentro: el rojo rebajado sobre blanco se queda en
+  3,4:1 y ese texto es de 0,7 rem. Misma decisión que en el resto de la
+  interfaz, la jerarquía la hacen el cuerpo y el peso.
+- **Más pequeña y levantada del suelo.** Ancho máximo de 19 rem en vez de
+  24 y menos relleno, y un hueco por debajo del alto del logotipo más un
+  respiro, para que no se le monte encima. El aviso de «inclínalo como un
+  vaso» lleva el mismo hueco por el mismo motivo.
+- **Especial y Negra, en dos pestañas** en vez de un desplegable. La activa va
+  en blanco sólido con la tinta de marca: el botón de marca es rojo sobre
+  blanco, pero esta pantalla YA es ese rojo y rojo sobre rojo no se vería.
+
+## El logotipo, sin fondo
+
+Se le ha quitado el blanco al PNG **deshaciendo la composición**, no a umbral:
+cada píxel del borde es tinta mezclada con blanco, así que de `P = a·C +
+(1−a)·255` se despeja el alfa con la tinta conocida y se recupera el color
+original. La tinta se elige entre las dos del logotipo por el canal que las
+separa. Resultado: tintas planas `#A23736` y `#B69E6C`, 2.830 píxeles de borde
+suave y ni un diente de sierra. A umbral habrían quedado dientes y un halo
+claro alrededor de cada letra.
+
+**Lo que hay que saber, medido:** el granate sobre el fondo del vaso da
+**1,04:1** de contraste. Con el vaso vacío el logotipo prácticamente no se ve.
+Sobre la cerveza sube a 3,11:1 y sobre el papel blanco de las demás pantallas
+a 6,70:1. Lo pidió así el estudio y un logotipo de cliente no se recolorea por
+cuenta propia; si hiciera falta que se lea sobre el rojo, la solución es una
+versión calada en blanco, que tiene que dar el estudio.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

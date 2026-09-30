@@ -94,40 +94,49 @@ export function mountGameView(
            style="transition-duration:${HUD_FADE_MS}ms">—</div>
     </div>
 
+    <!-- El mismo hueco por abajo que la tarjeta, por el logo. -->
     <div class="pointer-events-none fixed inset-x-0 bottom-0 z-10 flex justify-center
-                px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+                px-6 pb-[calc(max(1rem,env(safe-area-inset-bottom))+3.5rem)]">
       <div id="prompt" class="text-center text-sm text-ambar-foam/70 [text-shadow:0_1px_3px_rgba(0,0,0,.7)]"></div>
     </div>
 
+    <!-- La tarjeta va sobre papel blanco con tinta de marca, como el resto de
+         pantallas que no son el vaso, y deja hueco por abajo para el logo:
+         el relleno inferior es el alto del logotipo más un respiro, para que
+         la tarjeta no se le monte encima. Todo el texto de dentro hereda el
+         color, así que las clases de color no se repiten pieza a pieza. -->
     <div class="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex justify-center
-                px-5 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <div id="resultCard" class="pointer-events-auto hidden w-full max-w-sm flex-col gap-3 rounded-xl
-                  border border-white/15 bg-black/70 p-4 backdrop-blur-md">
+                px-5 pb-[calc(max(1rem,env(safe-area-inset-bottom))+3.5rem)]">
+      <div id="resultCard" class="pointer-events-auto hidden w-full max-w-[19rem] flex-col gap-2
+                  rounded-xl bg-white p-3 text-marca shadow-lg">
+        <!-- Sin opacidades: el rojo rebajado sobre blanco se queda en 3,4:1 de
+             contraste y este texto es de 0,7rem. La jerarquía la hacen el
+             cuerpo y el peso, igual que en las demás pantallas. -->
         <div class="text-center">
-          <div class="text-[0.65rem] tracking-widest text-ambar-dim">PUNTUACIÓN</div>
-          <div id="score" class="font-mono text-5xl tabular-nums">0</div>
-          <div id="verdict" class="mt-1 text-xs text-ambar-dim"></div>
+          <div class="text-[0.6rem] tracking-widest">PUNTUACIÓN</div>
+          <div id="score" class="font-mono text-4xl tabular-nums">0</div>
+          <div id="verdict" class="mt-0.5 text-[0.7rem]"></div>
         </div>
-        <div class="flex items-center justify-center gap-4">
+        <div class="flex items-center justify-center gap-3">
           ${[0, 1, 2].map((i) => `
             <div class="flex flex-col items-center">
-              <button data-up="${i}" class="px-4 py-1 text-lg text-ambar-dim">▲</button>
-              <div data-slot="${i}" class="font-mono text-4xl">A</div>
-              <button data-down="${i}" class="px-4 py-1 text-lg text-ambar-dim">▼</button>
+              <button data-up="${i}" class="px-3 py-0.5 text-base">▲</button>
+              <div data-slot="${i}" class="font-mono text-3xl">A</div>
+              <button data-down="${i}" class="px-3 py-0.5 text-base">▼</button>
             </div>`).join('')}
         </div>
-        <button id="save" class="rounded-lg bg-ambar-beer px-4 py-3 font-bold text-ambar-ink">GUARDAR Y OTRA CAÑA</button>
-        <ol id="ranking" class="font-mono text-xs text-ambar-dim"></ol>
+        <button id="save" class="boton px-4 py-2.5 text-sm font-bold">GUARDAR Y OTRA CAÑA</button>
+        <ol id="ranking" class="font-mono text-[0.7rem]"></ol>
       </div>
     </div>
 
-    <div class="pointer-events-none fixed inset-x-0 top-0 z-20 flex items-start justify-end gap-2
-                px-5 pt-[max(2.8rem,calc(env(safe-area-inset-top)+2.4rem))]">
-      <select id="variety" class="pointer-events-auto rounded border border-white/20 bg-black/60 px-2 py-1 text-xs backdrop-blur">
-        <option value="especial">Especial</option>
-        <option value="negra">Negra</option>
-      </select>
-      <button id="dbgToggle" class="pointer-events-auto rounded border border-white/20 bg-black/60 px-2 py-1 text-xs backdrop-blur">DEBUG</button>
+    <!-- La variedad, en dos pestañas. La activa va en blanco sólido con la
+         tinta de marca: el botón de marca es rojo sobre blanco, pero aquí el
+         fondo YA es ese rojo, así que rojo sobre rojo no se vería. -->
+    <div class="pointer-events-none fixed inset-x-0 top-0 z-20 flex items-start justify-center gap-1.5
+                px-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
+      ${[['especial', 'ESPECIAL'], ['negra', 'NEGRA']].map(([id, label]) => `
+        <button data-variety="${id}" class="pointer-events-auto rounded-full px-4 py-1.5 text-xs font-bold tracking-wide">${label}</button>`).join('')}
     </div>
 
     <dl id="dbg" class="pointer-events-none fixed left-5 top-[max(2.8rem,calc(env(safe-area-inset-top)+2.4rem))] z-20
@@ -138,9 +147,8 @@ export function mountGameView(
   const hud = $('#hud'), prompt = $('#prompt')
   const card = $('#resultCard'), dbg = $('#dbg')
 
-  // La variedad viene en el QR (?v=especial), no de una pantalla de selección.
+  // La variedad viene en el QR (?v=especial); las pestañas son para probar.
   let v: BakedVariety = VARIETIES[qrVariety ?? ''] ?? ESPECIAL
-  $<HTMLSelectElement>('#variety').value = v.id
   let renderer: GlassRenderer = new Glass2D(canvas, v)
   const tier = new TierController()
   const smooth = new OneEuro(1.0, 0.007)
@@ -216,19 +224,42 @@ export function mountGameView(
     downAt = 0
   })
 
-  $('#variety').addEventListener('change', (e) => {
-    v = VARIETIES[(e.target as HTMLSelectElement).value] ?? ESPECIAL
-    renderer.dispose()
-    renderer = new Glass2D(canvas, v)
-    renderer.setTier(tier.tier)
-    resize()
-    loop = build()
-  })
+  /**
+   * Pinta cuál de las dos pestañas está activa.
+   *
+   * La activa va en blanco sólido con la tinta de marca, y la otra en blanco
+   * al 30% con el texto en blanco. El botón de marca es rojo con texto
+   * blanco, pero esta pantalla YA es ese rojo: rojo sobre rojo no se ve.
+   */
+  function paintVariety(): void {
+    for (const b of root.querySelectorAll<HTMLElement>('[data-variety]')) {
+      const on = b.dataset['variety'] === v.id
+      b.className = 'pointer-events-auto rounded-full px-4 py-1.5 text-xs font-bold tracking-wide '
+        + (on ? 'bg-white text-marca' : 'bg-white/25 text-white')
+    }
+  }
+  paintVariety()
 
-  $('#dbgToggle').addEventListener('click', () => {
-    dbg.classList.toggle('hidden')
-    dbg.classList.toggle('grid')
-  })
+  for (const b of root.querySelectorAll<HTMLElement>('[data-variety]')) {
+    b.addEventListener('click', () => {
+      const id = b.dataset['variety'] ?? ''
+      if (id === v.id) return
+      v = VARIETIES[id] ?? ESPECIAL
+      paintVariety()
+      renderer.dispose()
+      renderer = new Glass2D(canvas, v)
+      renderer.setTier(tier.tier)
+      resize()
+      loop = build()
+    })
+  }
+
+  // El panel de depuración ya no tiene botón: estorbaba en una pantalla que
+  // es el vaso. Sigue ahí para calibrar, con `?debug=1` en la URL.
+  if (new URLSearchParams(location.search).has('debug')) {
+    dbg.classList.remove('hidden')
+    dbg.classList.add('grid')
+  }
 
   // --- Iniciales estilo recreativa --------------------------------------
   const drawSlots = (): void => {
@@ -260,7 +291,7 @@ export function mountGameView(
       `<li class="mb-1 tracking-widest">${src.practice ? 'RANKING DE PRÁCTICA' : 'RANKING OFICIAL'}</li>` +
       mine.slice(0, 5).map((r, i) =>
         `<li class="flex justify-between"><span>${i + 1}. ${r.initials} · ${r.variety}</span>` +
-        `<span class="text-ambar-foam">${r.score.toLocaleString('es-ES')}</span></li>`).join('')
+        `<span class="font-bold">${r.score.toLocaleString('es-ES')}</span></li>`).join('')
   }
 
   $('#save').addEventListener('click', () => {
