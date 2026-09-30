@@ -915,6 +915,36 @@ La versión calada se genera reescribiendo el color de los píxeles granates y
 **conservando su alfa**, que es donde vive el antialias; el oro se distingue
 por el canal verde, igual que al extraer el fondo.
 
+## El ángulo late a 2 Hz, y el logotipo lee lo que tiene detrás
+
+- **El ángulo, en grados enteros y refrescado dos veces por segundo.** No es
+  una cifra menos: un número que cambia sesenta veces por segundo no se lee,
+  se percibe como parpadeo, y encima invita a perseguirlo. A 2 Hz y en enteros
+  se lee de un vistazo y se deja de mirar, que es lo que se quiere — el
+  instrumento de verdad es el líquido. El filtro sigue corriendo a cada frame;
+  lo que se espacia es el **pintado**, así que el número que sale es el
+  filtrado de ese instante y no una media de medio segundo.
+
+- **El logotipo cambia de color según lo que tenga detrás.** Calado en blanco
+  sobre el rojo del vaso, y en tinta de marca en cuanto la cerveza le pasa por
+  detrás.
+
+  Lo decide **leyendo el píxel ya pintado** en el centro del propio logotipo,
+  no rehaciendo la geometría. Parece un atajo y es lo contrario: la respuesta
+  tiene que contar con el oleaje, el chapoteo, la corona y la espuma que
+  rebosa, y todo eso ya está en el píxel. Recalcularlo sería mantener una
+  segunda copia de la misma cuenta, que es justo como se acaba con la etiqueta
+  de un color y el vaso de otro.
+
+  El margen está medido, no elegido a ojo: el fondo lleva encima un bisel y un
+  brillo que como mucho son un velo blanco al 5%, unas **16 unidades** de
+  distancia de color; la cerveza y la espuma están a más de **130**. El corte
+  en 30 deja sitio de sobra por los dos lados, y hay tres tests que lo fijan.
+
+  Se mira el rectángulo real del logotipo en vez de suponer dónde está, y se
+  pregunta dos veces por segundo, no por frame: un `getImageData` fuerza a
+  esperar a la GPU.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

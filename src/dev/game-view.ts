@@ -24,6 +24,8 @@ import type { Angles } from '@/sensors/fusion'
 
 const VARIETIES: Record<string, BakedVariety> = { especial: ESPECIAL, negra: NEGRA }
 const RANKING_KEY = 'tiraje.ranking.v1'
+/** Cada cuánto se repinta el ángulo, y se mira qué hay detrás del logotipo. */
+const TICK_MS = 500
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 interface Entry {
@@ -170,9 +172,31 @@ export function mountGameView(
   let raf = 0
   let lastNow = 0
   let drawMs = 0
+  let lastTick = 0
 
   const thumb = new ThumbSource(canvas)
   const src = new HybridSource(fusion, thumb)
+
+  /**
+   * El logotipo cambia de color según lo que tenga detrás.
+   *
+   * Vive en el armazón, flotando sobre el lienzo, así que conforme sube el
+   * nivel la cerveza le pasa por detrás: calado en blanco sobre el rojo del
+   * vaso, y en tinta de marca en cuanto lo cubre el líquido. Se pregunta por
+   * el PÍXEL ya pintado, en el centro del propio logotipo, y así la respuesta
+   * cuenta también con el oleaje y la corona.
+   *
+   * Se mira su rectángulo real en vez de suponer dónde está: si mañana se
+   * mueve, esto sigue acertando.
+   */
+  function pintaLogo(): void {
+    const el = document.getElementById('status')
+    if (!el || !(renderer instanceof Glass2D)) return
+    const r = el.getBoundingClientRect()
+    if (r.width === 0) return
+    const dentro = renderer.liquidAt(r.left + r.width / 2, r.top + r.height / 2)
+    document.body.dataset['logo'] = dentro ? 'liquido' : 'fondo'
+  }
 
   let loop = build()
   function build(): GameLoop {
@@ -335,11 +359,23 @@ export function mountGameView(
     if (tier.sample(drawMs)) renderer.setTier(tier.tier)
 
     const st = loop.state
-    if (st === 'CALIBRATE' || st === 'READY') {
-      // Un decimal. Tres eran honestos con el móvil quieto —y en estos dos
-      // estados lo está— pero en la mano las milésimas bailan sin que puedas
-      // hacer nada con ellas, y la décima es justo el paso del sensor.
-      hud.textContent = `${smooth.filter(loop.frame().phi, now).toFixed(1)}°`
+
+    // --- El latido lento: dos veces por segundo ---------------------------
+    //
+    // El ángulo se REFRESCA a 2 Hz, no a 60. No es una cifra menos: un número
+    // que cambia sesenta veces por segundo no se lee, se percibe como
+    // parpadeo, y además invita a perseguirlo. A 2 Hz y en grados enteros se
+    // lee de un vistazo y se deja de mirar, que es lo que se quiere: el
+    // instrumento de verdad es el líquido.
+    //
+    // El filtro sigue corriendo a cada frame; lo que se espacia es sólo el
+    // pintado, así que el número que sale es el filtrado del instante, no una
+    // media de medio segundo.
+    const suave = smooth.filter(loop.frame().phi, now)
+    if (now - lastTick >= TICK_MS) {
+      lastTick = now
+      if (st === 'CALIBRATE' || st === 'READY') hud.textContent = `${Math.round(suave)}°`
+      pintaLogo()
     }
 
     if (!dbg.classList.contains('hidden')) {

@@ -101,7 +101,7 @@ export function mountShell(root: HTMLElement): void {
         <!-- Instrucciones ALREDEDOR del botón: arriba el qué, abajo el cómo. -->
         <p class="text-sm text-ambar-dim">
           El móvil es el vaso. Lo inclinas, lo enderezas conforme sube el nivel,
-          y tiras la caña perfecta en tres toques.
+          y tiras la caña perfecta en dos toques.
         </p>
         <button id="go"
           class="boton px-4 py-5 text-base font-bold leading-snug">

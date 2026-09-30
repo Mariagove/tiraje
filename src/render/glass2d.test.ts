@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { areaBelow, gravityOnScreen, surfaceTilt } from '@/render/glass2d'
+import { areaBelow, gravityOnScreen, pixelEsLiquido, surfaceTilt } from '@/render/glass2d'
 
 /** Rectángulo de semiancho w y semialto h, girado phi grados. */
 function glass(w: number, h: number, phiDeg: number): number[][] {
@@ -103,5 +103,32 @@ describe('areaBelow — el nivel del líquido se resuelve por área, no por ataj
     // que mira el vaso vacío.
     expect(Math.abs(errAt(0.5))).toBeLessThan(1e-9)
     expect(Math.abs(errAt(0.6))).toBeLessThan(1e-9)
+  })
+})
+
+describe('qué hay detrás del logotipo', () => {
+  // El logotipo flota sobre el lienzo y cambia de color según lo que tenga
+  // detrás: calado en blanco sobre el rojo del vaso, en tinta de marca cuando
+  // lo cubre la cerveza. La decisión se toma leyendo UN píxel, así que el
+  // margen tiene que separar bien tres cosas.
+  const BEER = [0xe8, 0xa3, 0x3d] as const
+  const FOAM = [0xf4, 0xef, 0xe4] as const
+  const FONDO = [0xb0, 0x2c, 0x31] as const
+
+  it('el fondo del vaso no es líquido', () => {
+    expect(pixelEsLiquido(...FONDO)).toBe(false)
+  })
+
+  it('la cerveza y la espuma sí lo son', () => {
+    expect(pixelEsLiquido(...BEER)).toBe(true)
+    expect(pixelEsLiquido(...FOAM)).toBe(true)
+  })
+
+  it('el bisel y el brillo sobre el fondo NO cuentan como líquido', () => {
+    // Son velos blancos; el más fuerte que dibuja el renderer es del 5%.
+    for (const a of [0.02, 0.05, 0.08]) {
+      const veil = FONDO.map((c) => c + (255 - c) * a) as unknown as [number, number, number]
+      expect(pixelEsLiquido(...veil), `velo al ${a * 100}%`).toBe(false)
+    }
   })
 })
