@@ -85,10 +85,11 @@ export function mountShell(root: HTMLElement): void {
 
   root.innerHTML = `
     <main class="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-      <header id="cabecera" class="relative z-30 flex items-baseline justify-between">
-        <h1 class="text-xs tracking-[0.3em] text-ambar-dim">TIRAJE</h1>
-      </header>
-
+      <!-- Sin rótulo. El nombre del juego ya viene en el QR y en la pestaña
+           del navegador; en la pantalla sólo competía con el texto que de
+           verdad hay que leer. Al quitarlo la cabecera se quedaba vacía, así
+           que se va entera y con ella el alternar que la escondía en el
+           juego. -->
       <section id="gate" class="flex flex-col gap-4">
         ${webview ? `<p class="rounded border border-current p-3 text-sm">
           Estás en el navegador de <b>${webview}</b>. En iOS no da permiso de
@@ -98,7 +99,7 @@ export function mountShell(root: HTMLElement): void {
         <!-- Instrucciones ALREDEDOR del botón: arriba el qué, abajo el cómo.
              El "qué" va en la titular y a cuerpo grande: es lo primero que se
              lee al escanear el QR y lo único que explica el juego. -->
-        <p class="font-titular text-xl font-bold leading-snug text-ambar-dim">
+        <p class="font-titular text-center text-xl font-bold leading-snug text-ambar-dim">
           El móvil es el vaso. Lo inclinas, lo enderezas conforme sube el nivel,
           y tiras la caña perfecta en dos toques.
         </p>
@@ -160,8 +161,6 @@ export function mountShell(root: HTMLElement): void {
   function show(view: string): void {
     teardown?.()
     skin(view === 'game' ? 'game' : 'ui')
-    // En el juego la pantalla ES el vaso: el título de arriba sobra.
-    $('cabecera').classList.toggle('hidden', view === 'game')
     teardown = view === 'trace' ? mountTraceRecorder(viewEl, fusion)
       : view === 'sensor' ? mountSensorSlice(viewEl, fusion)
         : mountGameView(viewEl, fusion, qrVariety)
