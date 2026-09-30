@@ -257,8 +257,18 @@ export function step(v: BakedVariety, st: ScoreState, smp: TraceSample): void {
     st.lastQuality = used
     st.points += sc.pointsPerSecBeer * used * STEP_S
 
-    st.rhoSum += r; st.rhoCount++
-    st.errSum += e; st.errCount++
+    // Los promedios de la partida —el ladeo, que es el bono de limpieza, y el
+    // error medio del resumen— también saltan la ventana de blanking.
+    //
+    // Estaban fuera, sumando el valor crudo, así que el blanking protegía los
+    // puntos del temblor del propio toque pero NO el bono de limpieza. Y el
+    // toque mueve justo ese ángulo: un pulgar contra la pantalla hace girar
+    // el móvil alrededor de un eje horizontal, que es ρ. Medido en la traza
+    // real del iPhone, ρ pasa de 1,8° a un pico de 4,1° al tocar.
+    if (st.blankingLeft <= 0) {
+      st.rhoSum += r; st.rhoCount++
+      st.errSum += e; st.errCount++
+    }
 
     // --- Caudal y espuma ------------------------------------------------
     //

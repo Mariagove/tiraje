@@ -1229,6 +1229,43 @@ celdillas, no las celdillas.
 La lección para la próxima: cuando algo «no se ve», medir el tamaño y la
 posición antes de tocar el color.
 
+## El toque y el bono de limpieza
+
+Duda del estudio: «mantener el móvil plano es imposible porque al dar el
+segundo toque el móvil se mueve». Medido en la traza real del iPhone, y la
+respuesta tiene tres partes.
+
+**El toque sí mueve el móvil, y mueve justo ese ángulo.** Un pulgar contra la
+pantalla hace girar el móvil alrededor de un eje horizontal, que es ρ —el
+ángulo fuera del plano, el que mide el bono de limpieza—. Medido: ρ pasa de
+**1,8° a un pico de 4,1°** al tocar. La intuición es correcta.
+
+**El toque de cierre no cuesta nada.** Al cerrar, `step()` congela el
+resultado en la primera pasada con el grifo cerrado, y el bloque que acumula
+puntuación sólo corre con fase `beer`. La muestra del segundo toque ya no se
+puntúa: entra en la traza pero no en la nota.
+
+**El toque de apertura sí se colaba, y era un fallo.** La ventana de blanking
+—180 ms— protegía los PUNTOS del temblor del propio toque, pero `rhoSum` y
+`errSum` se acumulaban fuera de esa comprobación, con el valor crudo. O sea
+que el blanking protegía lo que más pesa y dejaba sin proteger justo el
+término que el toque perturba. Arreglado: los dos promedios saltan también la
+ventana.
+
+**Lo que vale el arreglo: nada.** Medido antes de tocarlo, el temblor del
+toque cambiaba la limpieza un **0,12%** —18 pasos de 695, y de 4° de ρ, que
+son 4 puntos de calidad—. Sobre un bono que vale 7,5 de los 100 de la nota,
+eso es **0,009 puntos**. Regenerados los fixtures: **ni una nota cambia**;
+sólo se mueve el error medio que se informa, entre 0,01° y 0,05°.
+
+Se arregla igual, porque el código no hacía lo que decía su propio comentario,
+pero conviene tenerlo escrito: aquí no había puntos en juego.
+
+**Y «plano» no es imposible.** La misma traza real sostuvo ρ en **3,1° de
+media** durante todo el vertido y se llevó 7,2 de los 7,5 puntos del bono. Lo
+que penaliza de verdad no es el pico del toque, es servir ladeado de forma
+sostenida: 10° constantes cuestan el 40% del bono.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin
