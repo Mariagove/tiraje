@@ -16,8 +16,8 @@
   "targets": {
     "fill": 0.95,
     "foam": 0.25,
-    "fillTolerancePp": 5,
-    "foamTolerancePp": 6
+    "fillTolerancePp": 12,
+    "foamTolerancePp": 10
   },
   "settle": {
     "drainRatePerSec": 0.04,

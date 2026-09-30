@@ -1288,6 +1288,72 @@ número escrito. La gaussiana es `e^−(ρ/escala)²`, así que en la escala val
 no se vuelve a romper al reajustar. Se añade otro que comprueba que ladear
 siempre cuesta, aunque sea poco.
 
+## Nadie pasaba del 70, y no era el ángulo: era el instante de cerrar
+
+Prueba del estudio con compañeros: ninguno superó el 70. Medido antes de tocar
+nada, moviendo **sólo el segundo toque** de la traza «buena»:
+
+| cierras | nota (antes) |
+|---|---|
+| en el punto | 91 |
+| 150 ms antes | 85 |
+| 250 ms antes | 78 |
+| **400 ms antes** | **65** |
+| 600 ms antes | 57 |
+
+Cerrar 400 ms antes costaba **26 puntos**. Ahí estaba el techo del 70 entero.
+
+La causa, en dos números: el vaso se llena al 10,5% por segundo, así que **1
+punto porcentual de llenado son 85 ms**, y la tolerancia de 5 pp era una
+ventana de **0,43 s**. Nadie acierta eso mirando un nivel que sube, sin un
+número delante. El ángulo no tenía la culpa: los perfiles que cierran a tiempo
+sacaban 91 con el mismo pulso.
+
+### Lo que se ha hecho: ensanchar las tolerancias
+
+`fillTolerancePp` de 5 a **12**, `foamTolerancePp` de 6 a **10**.
+
+| cierras | antes | ahora |
+|---|---|---|
+| en el punto | 91 | 91 |
+| 250 ms antes | 78 | **87** |
+| 400 ms antes | 65 | **81** |
+| 600 ms antes | 57 | **73** |
+| 800 ms antes | — | 66 |
+
+El techo teórico **no se mueve** —sigue en 132.857— así que una caña perfecta
+sigue siendo un 100: esto no infla la nota por arriba, ensancha la diana.
+
+Fixtures regenerados: la perfecta y la buena no cambian, porque cierran a
+tiempo. Suben las que fallaban el cierre: mediocre 52 → 58 y **la traza real
+del iPhone 44 → 53**, que es exactamente el caso que se quería arreglar.
+
+### El precio, dicho claro
+
+El bono de llenado ya no distingue tanto entre bueno y excelente:
+
+| desvío | antes | ahora |
+|---|---|---|
+| 3 pp | 70% | 94% |
+| 6 pp | 24% | 78% |
+| 10 pp | 2% | 50% |
+
+O sea que el ranking se decide ahora mucho más por el ángulo que por el
+cierre. Es el intercambio que se buscaba, pero conviene saberlo antes de que
+haya premio.
+
+### Lo que sigue pendiente
+
+Lo que de verdad ataca la causa es **decirle al jugador cuándo cerrar** —la
+marca del objetivo encendiéndose, o una vibración, al entrar en la ventana
+buena—. Con eso la gente cerraría dentro de ±150 ms y sacaría 90 sin tocar
+ninguna regla. Esto de ahora es la red de seguridad, no la solución.
+
+Y sigue en pie la oferta de calibrar con datos en vez de con criterio: la
+vista de grabación está en `?vista=trace`, y con cinco o seis partidas reales
+de los compañeros se sabría si cierran pronto o tarde y cuánto. Ahora mismo
+todo esto se apoya en **una sola traza real**.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin
