@@ -23,7 +23,20 @@ import type { AngleSource } from '@/game/loop'
 import type { Angles } from '@/sensors/fusion'
 
 const VARIETIES: Record<string, BakedVariety> = { especial: ESPECIAL, negra: NEGRA }
-const RANKING_KEY = 'tiraje.ranking.v1'
+/**
+ * Temporada del ranking. **Se sube cada vez que cambian las reglas de
+ * puntuación.**
+ *
+ * Una nota sólo significa algo dentro de su temporada: un 70 del sistema
+ * lineal y un 70 con la curva `gamma 2,2` son dos cosas distintas, y mezclarlos
+ * en una misma lista es mentir. Era lo que estaba pasando — el ranking
+ * sobrevivía a cada recalibrado y las notas viejas seguían arriba.
+ *
+ * `v2` abre temporada con la curva de respuesta. Las anteriores se borran:
+ * ocupan sitio y no se pueden comparar con nada.
+ */
+const RANKING_KEY = 'tiraje.ranking.v2'
+const RANKING_KEYS_VIEJAS = ['tiraje.ranking.v1']
 /** Cada cuánto se repinta el ángulo. */
 const TICK_MS = 500
 
@@ -80,6 +93,19 @@ class HybridSource implements AngleSource {
   get accelMag(): number { return this.practice ? 9.81 : this.f.accelMag }
   get omegaMag(): number { return this.practice ? 0 : this.f.omegaMag }
   calibrateRoll(): number { return this.practice ? 0 : this.f.calibrateRoll() }
+}
+
+/**
+ * Tira las temporadas anteriores. Se llama una vez al montar la vista.
+ *
+ * No es sólo limpieza: mientras la clave vieja siga ahí, cualquiera que
+ * recupere el código de lectura antiguo vuelve a mezclar escalas sin
+ * enterarse.
+ */
+function dropOldRankings(): void {
+  for (const k of RANKING_KEYS_VIEJAS) {
+    try { localStorage.removeItem(k) } catch { /* modo privado */ }
+  }
 }
 
 /** `localStorage` puede tirar en modo privado. Nunca romper el juego por esto. */
@@ -429,6 +455,7 @@ export function mountGameView(
     lastNow = now
   }
 
+  dropOldRankings()
   renderRanking()
   pintaEstado()
   raf = requestAnimationFrame(frame)

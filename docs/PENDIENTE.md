@@ -1504,6 +1504,26 @@ parecen mucho entre sí**, y pedirle más separación a jugadores casi idéntico
 es en parte pedirle a la nota que mida ruido. Lo que la curva sí hace es
 ocupar la escala entera en vez de apiñarlo todo entre 60 y 80.
 
+## El ranking tiene temporadas
+
+Se veían mezcladas notas del sistema antiguo con las nuevas. El ranking vivía
+en `localStorage` bajo una clave fija y **sobrevivía a cada recalibrado**, así
+que un 70 del sistema lineal y un 70 con la curva `gamma 2,2` acababan en la
+misma lista como si fueran lo mismo. No lo son.
+
+La clave pasa a `tiraje.ranking.v2` y **se sube cada vez que cambian las reglas
+de puntuación**. La anterior se borra al montar la vista: ocupa sitio, no se
+puede comparar con nada, y mientras siga ahí cualquiera que recupere el código
+de lectura viejo vuelve a mezclar escalas sin enterarse.
+
+Es la misma disciplina que ya tenían los fixtures dorados —«si falla a
+propósito, se regeneran Y se abre temporada nueva»—, que hasta ahora no se
+había aplicado al ranking del jugador.
+
+**Pendiente para cuando haya premio:** esto lo decide el móvil, y el móvil es
+del jugador. Un ranking con premio necesita que la temporada la diga el
+servidor junto con las reglas, no una constante en el cliente.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin
