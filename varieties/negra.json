@@ -16,7 +16,7 @@
   "targets": {
     "fill": 0.95,
     "foam": 0.25,
-    "fillTolerancePp": 12,
+    "fillTolerancePp": 8,
     "foamTolerancePp": 10
   },
   "settle": {
@@ -48,6 +48,7 @@
     "bonusFoam": 2500,
     "bonusClean": 1000,
     "finalMultiplier": 10,
+    "gamma": 2.2,
     "spillPenalty": 1500,
     "spillMaxEvents": 3,
     "spillMaxFrac": 0.15,

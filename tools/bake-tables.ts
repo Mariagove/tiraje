@@ -83,6 +83,11 @@ function bake(cfg: VarietyConfig): { src: string; report: Record<string, string>
   const maxScore = Math.round(
     (maxPoints + s.bonusFill + s.bonusFoam + s.bonusClean) * s.finalMultiplier)
 
+  // La curva de la nota, horneada en milésimas del techo. Aquí sí se puede
+  // usar `pow`: esto corre en el horno, no en el núcleo.
+  const NOTA = Array.from({ length: 1001 }, (_, i) =>
+    Math.min(100, Math.round(100 * Math.pow(i / 1000, s.gamma))))
+
   const src = `// GENERADO POR tools/bake-tables.ts — NO EDITAR A MANO.
 // Fuente: varieties/${cfg.id}.json
 // Vaso H=${cfg.glass.heightMm}mm R=${cfg.glass.radiusMm}mm → H/R=${hr.toFixed(4)}
@@ -103,6 +108,7 @@ export const ${cfg.id.toUpperCase()}: BakedVariety = {
   FOAM_Q: ${arr(FOAM_Q, 9)},
   omegaAllowedDegPerSec: ${omegaAllowedDegPerSec},
   maxScore: ${maxScore},
+  NOTA: ${arr(NOTA, 0)},
   cfg: cfg as BakedVariety['cfg'],
 }
 `
@@ -117,6 +123,7 @@ export const ${cfg.id.toUpperCase()}: BakedVariety = {
       'ω permitida': `${omegaAllowedDegPerSec} °/s`,
       'caña perfecta': `${tPerfect.toFixed(2)}s de grifo abierto`,
       'máximo teórico': maxScore.toLocaleString('es-ES'),
+      'curva de la nota': `gamma ${s.gamma} · 70% del techo = ${NOTA[700]}`,
     },
   }
 }

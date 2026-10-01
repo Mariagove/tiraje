@@ -82,6 +82,17 @@ export interface VarietyConfig {
     bonusFoam: number
     bonusClean: number
     finalMultiplier: number
+    /**
+     * Curva de respuesta de la nota: `nota = 100 · (bruto/techo)^gamma`.
+     *
+     * Con 1 la nota es la fracción del techo a secas. Por encima de 1 estira
+     * la zona media —donde se amontonan los jugadores parecidos— y aprieta la
+     * de arriba, así que el 100 exige una caña casi perfecta.
+     *
+     * Medido con ocho novatos simulados: con 1 sacaban de 63 a 79, con 2,2 de
+     * 37 a 59. El mismo pulso, pero ocupando la escala en vez de amontonarse.
+     */
+    gamma: number
     spillPenalty: number
     spillMaxEvents: number
     spillMaxFrac: number
@@ -117,5 +128,14 @@ export interface BakedVariety {
    * caudal o una tarifa.
    */
   maxScore: number
+  /**
+   * La nota final, indexada por milésimas del techo: `NOTA[fracción·1000]`.
+   *
+   * Es una tabla y no una fórmula porque `Math.pow` es trascendental y el
+   * núcleo no puede usarlas: no son bit-idénticas entre motores, y la fase 2
+   * necesita que el servidor saque exactamente el mismo entero. Mismo motivo
+   * por el que las gaussianas también están horneadas.
+   */
+  NOTA: readonly number[]
   cfg: VarietyConfig
 }

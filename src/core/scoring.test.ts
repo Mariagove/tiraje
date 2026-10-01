@@ -45,10 +45,28 @@ describe('fixtures dorados', () => {
     }
   })
 
-  it('la traza mediocre se queda entre 35 y 65', () => {
+  it('la traza mediocre se queda entre 20 y 45', () => {
+    // La banda bajó al meter la curva de respuesta: con `gamma 2,2` una
+    // partida del 52% del techo ya no vale 52, vale 24. No es que el juego
+    // haya empeorado, es que la escala dejó de ser lineal.
     for (const id of Object.keys(V)) {
-      expect(nota(id, `${id}-mediocre`), id).toBeGreaterThanOrEqual(35)
-      expect(nota(id, `${id}-mediocre`), id).toBeLessThanOrEqual(65)
+      expect(nota(id, `${id}-mediocre`), id).toBeGreaterThanOrEqual(20)
+      expect(nota(id, `${id}-mediocre`), id).toBeLessThanOrEqual(45)
+    }
+  })
+
+  it('la curva no altera el orden: mejor partida, mejor nota', () => {
+    // Lo único que la curva NO puede hacer es cambiar quién gana. Es
+    // monótona, y este test lo fija por si alguien la cambia por una que no
+    // lo sea.
+    for (const id of Object.keys(V)) {
+      const perfecta = nota(id, `${id}-perfect`)
+      const buena = nota(id, `${id}-good`)
+      const mediocre = nota(id, `${id}-mediocre`)
+      const derramador = nota(id, `${id}-spiller`)
+      expect(perfecta, id).toBeGreaterThan(buena)
+      expect(buena, id).toBeGreaterThan(mediocre)
+      expect(mediocre, id).toBeGreaterThan(derramador)
     }
   })
 

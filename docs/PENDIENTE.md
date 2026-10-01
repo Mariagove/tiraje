@@ -1441,6 +1441,69 @@ Un detalle de orden dentro de la regla: `font: inherit` va **antes** que
 `font-family`, porque el atajo reinicia la familia y si fuera al revés la
 variable no serviría de nada.
 
+## Curva de respuesta `gamma 2,2`, y el cierre otra vez a 8 pp
+
+El estudio probó el juego con sus compañeros: **todos sacaban alrededor de 70**.
+Ensanchar la diana había subido el suelo pero aplastado el reparto.
+
+### Lo que se midió antes de tocar nada
+
+Ocho jugadores simulados del mismo nivel —errores medios de 3,3° a 5,5°, que es
+una oficina de novatos— sacaban de **63 a 79**. El sistema sí separaba, pero
+todo amontonado en la mitad alta, porque **45 de los 100 puntos eran casi fijos
+para cualquiera**: llenado y corona daban 18,8 cada uno desde que se ensanchó
+la tolerancia, y la limpieza 7,5 a quien no derramara.
+
+Se probaron tres ideas que parecían obvias y **ninguna funciona**:
+
+| idea | recorrido de los ocho |
+|---|---|
+| como estaba | 16 puntos |
+| σ más estrecha (5° → 2,5°) | **14** |
+| pesar ×2, ×3, ×5 la rampa final | **15** |
+| que cuente el peor segundo | 17 |
+
+Afinar σ **comprime** en vez de separar: con todos lejos del centro de la
+campana, estrecharla los junta más y sólo baja la nota a todos. Y pesar más la
+parte difícil no hace nada porque los jugadores se diferencian por un factor
+casi **constante** durante toda la caña: reordenar el tiempo los reescala a
+todos por igual.
+
+### Lo que sí funciona
+
+`nota = 100 · (bruto/techo)^2,2`, y la tolerancia de cierre de vuelta a 8 pp
+—la de la corona se queda en 10, porque la corona sube a 2,5 pp/s y no es lo
+que decide el instante del toque; el llenado sube a 11,7 pp/s y sí—.
+
+| | antes | ahora |
+|---|---|---|
+| los ocho novatos | 63–79 (16 pts) | **37–59 (22 pts)** |
+| excelente (1,1° de error) | 95 | 89 |
+| bueno (2,8°) | 84 | 68 |
+| normal (4,2°) | 72 | 48 |
+| malo (8,7°) | 49 | 20 |
+
+El 100 pasa a exigir el techo entero: al 95% del techo la nota es **89**.
+
+### La tabla, no la fórmula
+
+`Math.pow` es trascendental y en `src/core/` no entra ninguna —hay un test con
+grep que lo impide—, así que la curva va **horneada en una tabla** de 1001
+entradas indexada por milésimas del techo, igual que las gaussianas. La
+división sí vale: `+ − × ÷ √` son bit-idénticas entre motores y eso es lo que
+permite que el servidor de la fase 2 saque el mismo entero.
+
+Dos tests nuevos: la banda de la traza mediocre baja a 20–45, y uno que fija
+que **la curva no cambia el orden** —es monótona— por si alguien la sustituye
+por una que no lo sea.
+
+### Lo que esto no arregla
+
+Parte del amontonamiento no es del sistema: los compañeros del estudio **se
+parecen mucho entre sí**, y pedirle más separación a jugadores casi idénticos
+es en parte pedirle a la nota que mida ruido. Lo que la curva sí hace es
+ocupar la escala entera en vez de apiñarlo todo entre 60 y 80.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

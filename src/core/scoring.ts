@@ -364,10 +364,16 @@ function computeResult(v: BakedVariety, st: ScoreState): ScoreResult {
 
   // --- De puntos brutos a una nota de 0 a 100 ---------------------------
   //
-  // Lo que se enseña es la FRACCIÓN del techo teórico, que es la puntuación de
-  // una caña perfecta calculada en el horneado. Una nota sobre 100 se entiende
-  // sin explicar nada y se compara entre variedades, que tienen techos
-  // distintos porque tardan distinto en llenarse.
+  // Lo que se enseña sale de la FRACCIÓN del techo teórico —la puntuación de
+  // una caña perfecta, calculada en el horneado— pasada por una curva. Una
+  // nota sobre 100 se entiende sin explicar nada y se compara entre
+  // variedades, que tienen techos distintos porque tardan distinto en
+  // llenarse.
+  //
+  // La curva no es cosmética. Con la fracción a secas, ocho jugadores del
+  // mismo nivel sacaban de 63 a 79: todos amontonados en la mitad alta y el
+  // 100 al alcance de cualquiera que cerrara bien. La curva estira la zona
+  // donde se amontona la gente y aprieta la de arriba.
   //
   // Los puntos brutos no desaparecen: siguen en `breakdown`, que es donde hay
   // que mirar cuando alguien pregunte por qué le falta un punto.
@@ -375,9 +381,9 @@ function computeResult(v: BakedVariety, st: ScoreState): ScoreResult {
   // Se acota a 100: el techo es el de una caña perfecta, pero una partida
   // larguísima puede arañar más puntos de vertido a cambio de fallar el
   // llenado, y un 101 en pantalla no significaría nada.
-  let nota = Math.round((raw / v.maxScore) * 100)
-  if (nota > 100) nota = 100
-  else if (nota < 0) nota = 0
+  // La curva va en tabla, indexada por milésimas del techo: `Math.pow` es
+  // trascendental y aquí dentro no entra ninguna.
+  const nota = v.NOTA[clampInt(((raw / v.maxScore) * 1000 + 0.5) | 0, 0, 1000)]!
 
   return {
     score: nota,
