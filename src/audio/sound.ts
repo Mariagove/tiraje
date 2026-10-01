@@ -46,36 +46,41 @@ import vertidoUrl from '@/assets/audio/vertido.m4a'
 import colaUrl from '@/assets/audio/cola.m4a'
 
 /**
- * El clip del vertido es [ATAQUE][CUERPO], y sólo se repite el cuerpo.
+ * El clip del vertido es la toma entera de 8 s, y sólo se repite su último
+ * tramo: `loopStart` 4,0 s, `loopEnd` al final.
  *
- * Lo vio el estudio: **el primer segundo es la cerveza cayendo sobre VIDRIO**, y
- * eso pasa una sola vez. A partir de ahí cae sobre cerveza y suena distinto, así
- * que repetir el principio sonaba falso.
+ * Dos cosas que esto resuelve de golpe:
  *
- * Y estaba en las mediciones sin que yo lo interpretara: la energía por encima
- * de 3 kHz va al **55%** durante los primeros 0,63 s y al **27%** después. El
- * corte está medido en ese cruce, no puesto a ojo. Comprobado ya cortado: el
- * ataque da 57,5% y el cuerpo del bucle 29,1%.
+ * **El ataque no se repite** —lo pidió el estudio: el primer segundo es la
+ * cerveza cayendo sobre VIDRIO y eso pasa una sola vez—. Aquí ni hay que
+ * recortarlo: la toma suena de corrido desde el principio, así que ocurre una
+ * vez porque así ocurrió al grabarla. Medido en esta toma, la energía por
+ * encima de 3 kHz va al 55% los primeros 0,63 s y al 27% después; el bucle vive
+ * entero en la zona de líquido sobre líquido.
  *
- * Esto es lo que hace un sampler de toda la vida: un solo fichero, y el
- * navegador repite sólo el tramo que se le marque. Hay DOS costuras, y la
- * segunda es la que se escapa fácil:
+ * **Y casi nunca llega a repetirse.** Un vertido normal dura 8,1 s, o sea que
+ * toca los 8 s de grabación y entra en el bucle sólo 0,1 s. Antes el cuerpo
+ * medía 1,13 s y daba 5,4 vueltas: eso era el «disco rayado».
  *
- *   1. final del bucle → principio del bucle, en cada vuelta.
- *   2. final del ataque → principio del bucle, una sola vez.
+ * ---
  *
- * Para que el fundido cruzado deje la vuelta continua, el cuerpo tiene que
- * empezar donde acaba su propia cola. Eso obliga a que el ataque se lleve el
- * cuerpo una vez — que es justo lo natural: se oye el vertido entero desde el
- * principio y después se repite su último tramo.
+ * EL FUNDIDO VA AL REVÉS QUE EN EL MONTAJE ANTERIOR, y es la mejora de fondo.
  *
- * Medido: las dos costuras valen 0,0033 frente a 0,091 de salto típico de la
- * propia señal. Indistinguibles del material.
+ * Con sólo 4,6 s de material, el fundido cruzado tenía que mover la CABEZA del
+ * bucle, y eso obligaba a que el ataque se llevara el cuerpo una vez para que
+ * la junta no chascara: bytes duplicados y una costura delicada.
  *
- * Si se vuelve a cortar el wav, estos dos números salen de `bucle.py`.
+ * Con 8 s hay material ANTES del bucle, así que se funde la COLA del bucle
+ * hacia lo que había justo antes de su principio. Entonces la cabeza queda
+ * intacta y entrar al bucle tocando de corrido es continuo **por naturaleza**,
+ * sin junta que cuidar.
+ *
+ * Medido: las dos costuras valen 0,005 frente a 0,039 de salto típico de la
+ * propia señal.
+ *
+ * Si se vuelve a cortar el wav, estos números salen de `bucle2.py`.
  */
-const ATAQUE_S = 1.98
-const BUCLE_S = 1.13
+const BUCLE_INICIO_S = 4.0
 
 /**
  * Lo que el chorro sube de tono entre vaso vacío y vaso lleno.
@@ -246,15 +251,16 @@ export class Sonido {
     const s = ctx.createBufferSource()
     s.buffer = this.#bufVertido
     s.loop = true
-    // Se arranca desde el principio, así que el ataque —la cerveza contra el
-    // vidrio vacío— suena una vez por caña, y la repetición se queda en el
-    // tramo de cerveza sobre cerveza.
-    s.loopStart = this.#desfase + ATAQUE_S
+    // Se arranca desde el principio, así que la cerveza contra el vidrio vacío
+    // suena una vez por caña y la repetición se queda en el tramo de líquido
+    // sobre líquido.
+    s.loopStart = this.#desfase + BUCLE_INICIO_S
     // Acotado al buffer: `ffmpeg` quita el relleno del códec y deja los 1,750 s
     // exactos, pero no todos los descodificadores hacen lo mismo. Si alguno
     // recorta la cola, un `loopEnd` fuera del buffer rompería el bucle entero;
     // así, en el peor caso, se acorta un poco y se sigue oyendo.
-    s.loopEnd = Math.min(this.#desfase + ATAQUE_S + BUCLE_S, s.buffer.duration)
+    // Hasta el final del fichero: el bucle es su último tramo.
+    s.loopEnd = s.buffer.duration
     s.connect(this.#chorroGain)
     s.start(ctx.currentTime, this.#desfase)
     this.#chorro = s

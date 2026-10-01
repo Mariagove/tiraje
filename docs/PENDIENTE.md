@@ -1842,37 +1842,52 @@ como suena—, pero la fuente es la grabación.
 
 ### Cómo se preparó
 
-El wav son 4,6 s: **2,4 s de vertido y 2,1 s de cola**, separados por una caída
-de 15 dB. Justo las dos fases del juego.
+Material definitivo del estudio: **`Sonido tiraje vertido.wav`** (8,000 s) y
+**`Sonido tiraje cola.wav`** (1,960 s), los dos WAV estéreo a 48 kHz.
 
-- **`vertido.m4a`**, 3,110 s = **1,980 de ataque + 1,130 de cuerpo**, y sólo se
-  repite el cuerpo (`loopStart` 1,980, `loopEnd` 3,110).
+Comprobado antes de tocarlos:
 
-  Lo vio el estudio y era el fallo de verdad del primer montaje: **el primer
-  segundo es la cerveza cayendo sobre VIDRIO**, y eso pasa una sola vez. A
-  partir de ahí cae sobre cerveza y suena distinto, así que repetir el principio
-  sonaba falso. Y **estaba en mis propias mediciones sin que yo lo
-  interpretara**: la energía por encima de 3 kHz va al **55%** los primeros
-  0,63 s y al **27%** después. El corte se puso en ese cruce medido, no a ojo, y
-  ya cortado el ataque da 57,5% y el cuerpo 29,1%.
+| | vertido | cola |
+|---|---|---|
+| pico | −4,4 dBFS | −19,4 dBFS |
+| muestras saturadas | **0** | **0** |
+| RMS | −30,0 dB | −43,1 dB |
 
-  El bucle **no** se hace con `loopStart` a secas: el salto del final al
-  principio chasca, porque la onda no vale lo mismo a un lado y a otro. Fundido
-  cruzado de 200 ms con potencia constante —lineal pierde 3 dB en el centro y se
-  oye un bache cada vuelta—.
+La cola queda 13 dB por debajo del vertido, que es la misma relación que tenía
+la toma original. Y **ningún bloque de 100 ms se repite dentro de los 8 s**
+—comprobado con huellas—, así que el material es continuo de verdad y no una
+toma corta empalmada consigo misma, que habría reproducido el disco rayado por
+otra vía. El primer segundo coincide muestra a muestra con el wav de 4,6 s
+anterior: aquello era un extracto de esta misma toma.
 
-  Y hay **dos** costuras, no una, que es lo que se escapa fácil: la vuelta del
-  bucle, y el paso del ataque al bucle. Para que el fundido deje la vuelta
-  continua, el cuerpo tiene que empezar donde acaba su propia cola; eso obliga a
-  que el ataque se lleve el cuerpo una vez, que es justo lo natural — se oye el
-  vertido entero y luego se repite su último tramo. Medido: **las dos costuras
-  valen 0,0033** frente a **0,091** de salto típico de la señal.
-- **`cola.m4a`**, 1,98 s, de un disparo al cerrar el grifo.
-- **El relleno de AAC.** El códec mete silencio al principio y cada navegador lo
-  quita o lo deja a su manera. Montado el bucle sobre el buffer entero, cada
-  vuelta metería ese hueco. Se busca en el buffer descodificado la primera
-  muestra con señal y se repite desde ahí exactamente 1,750 s, con el final
-  acotado al buffer por si algún descodificador recorta la cola.
+- **`vertido.m4a`**, los **8,000 s enteros**, con `loopStart` en **4,0 s** y
+  `loopEnd` al final.
+
+  **El ataque no hay que recortarlo.** La toma suena de corrido desde el
+  principio, así que la cerveza contra el vidrio vacío ocurre una sola vez
+  porque así ocurrió al grabar. El bucle vive entero en la zona de líquido
+  sobre líquido (el cruce sigue medido en 0,63 s: 55% de agudos antes, 27%
+  después).
+
+  **Y casi nunca llega a repetirse:** un vertido normal dura 8,1 s, o sea que
+  recorre los 8 s de grabación y entra en el bucle sólo 0,1 s. El montaje
+  anterior tenía un cuerpo de 1,13 s que daba **5,4 vueltas**, y eso es lo que
+  el estudio oyó como «un sonido que se repite mucho, como un disco rayado».
+
+  **El fundido va al revés que antes, y es la mejora de fondo.** Con 4,6 s de
+  material el fundido cruzado tenía que mover la CABEZA del bucle, y eso
+  obligaba a que el ataque se llevara el cuerpo una vez para que la junta no
+  chascara: bytes duplicados y una costura delicada. Con 8 s hay material ANTES
+  del bucle, así que se funde la COLA hacia lo que había justo antes de su
+  principio; la cabeza queda intacta y **entrar al bucle tocando de corrido es
+  continuo por naturaleza**. Medido: las dos costuras valen **0,005** frente a
+  **0,039** de salto típico de la señal.
+
+- **`cola.m4a`**, 1,960 s tal cual, con 10 ms de entrada y 80 ms de salida. No
+  necesitaba más: se mantiene entre −40 y −46 dB y muere sola (−77 dB al final).
+
+Peso: 67,5 + 17,1 = **84,6 KB**. El sitio queda en **134,9 KB** comprimidos de
+un tope de 250.
 
 ### Lo que se conserva de la síntesis
 
