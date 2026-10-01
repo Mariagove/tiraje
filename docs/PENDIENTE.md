@@ -1870,6 +1870,59 @@ de 15 dB. Justo las dos fases del juego.
 - **El derrame** es la propia cola a velocidad 0,55: se queda en la misma
   familia de sonido en vez de ser un sintetizador aparte.
 
+### Qué grabar, si se vuelve a grabar
+
+**Lo que se graba y lo que se publica no son lo mismo.** Se graba largo para
+poder elegir; se publica un trozo corto en bucle. A 64 kbps en AAC mono el coste
+es de **8,9 KB por segundo**, medido sobre los clips actuales.
+
+Tiempos reales del juego, sacados del código y del banco de pruebas:
+
+| | |
+|---|---|
+| vertido de una partida normal | **7,8 - 8,4 s** |
+| vertido máximo antes del cierre automático | 15 s (`MAX_POUR_MS`) |
+| reposo tras cerrar el grifo | 2,0 s (`SETTLE_MS`) |
+
+Y lo que cuesta cada opción:
+
+| qué se publica | peso | sitio entero |
+|---|---|---|
+| bucle de 4 s + cola de 3 s | 62 KB | ~113 KB |
+| bucle de 6 s + cola de 3 s | 80 KB | ~131 KB |
+| 16 s seguidos sin bucle + cola | 169 KB | ~220 KB |
+
+El tope es 250 KB y la foto del vaso para el WebGL todavía no ha gastado su
+parte, así que **la opción sin bucle no cabe**: se queda en bucle de 4-6 s.
+
+Qué hace falta grabar:
+
+1. **Una toma entera y continua**, sin parar la grabación: silencio · abrir el
+   grifo · llenar el vaso hasta arriba · cerrar · **cinco segundos de silencio
+   absoluto** mientras baja la espuma · parar. Esta toma da la relación real
+   entre el chorro y la cola, que es lo que no se puede inventar.
+2. **Una toma larga sólo de chorro**, 20-30 s si se puede, cambiando de vaso o
+   dejándolo rebosar. Da igual que no sea «una caña»: es material de bucle, y
+   cuantos más segundos haya, mejor es el trozo que se puede elegir.
+
+Cómo:
+
+- **WAV a 48 kHz.** Nada de mp3: lo que llegue comprimido ya no se puede
+  recortar sin que se note.
+- **Sin procesar.** Ni reducción de ruido, ni ecualización, ni normalizar, ni
+  compresor. Todo eso se puede añadir después; quitarlo no.
+- **Sin saturar.** Que los picos se queden sobre −6 dB.
+- **La sala, lo más callada posible.** El ruido de fondo de la grabación se
+  convierte en un siseo constante al repetirla en bucle, y de ahí ya no sale.
+- **El micrófono a 20-40 cm**, fuera del vaso.
+- Un móvil vale. El wav anterior era de móvil y por eso no tenía nada por debajo
+  de 250 Hz; con un micro mejor aparecerían los graves, pero esto se va a oír
+  por el altavoz de un teléfono en un bar, así que **no merece la pena montar
+  una sesión por eso**.
+
+Lo que llegue se mide igual que el anterior —espectro por bandas, envolvente,
+costura del bucle— y se informa antes de publicarlo.
+
 ### Pendiente del estudio
 
 **¿De quién es la grabación?** Si es suya, nada que hacer. Si salió de un banco
