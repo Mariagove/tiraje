@@ -45,13 +45,17 @@ describe('fixtures dorados', () => {
     }
   })
 
-  it('la traza mediocre se queda entre 20 y 45', () => {
-    // La banda bajó al meter la curva de respuesta: con `gamma 2,2` una
-    // partida del 52% del techo ya no vale 52, vale 24. No es que el juego
-    // haya empeorado, es que la escala dejó de ser lineal.
+  it('una primera partida se queda entre 50 y 75', () => {
+    // La banda subió al ensanchar σ a 8° y aflojar la curva a 1,8. Antes esta
+    // misma traza valía 39 y la banda era 20-45, que es lo que hacía que un
+    // jugador con el vaso bien lleno y la corona casi clavada leyera un 39 y
+    // lo llamara injusto. No es que el juego se haya vuelto fácil: la traza
+    // es la misma, lo que cambió es a qué nota se traduce.
+    //
+    // Lo que fija la banda no es el número, es que nadie la mueva sin querer.
     for (const id of Object.keys(V)) {
-      expect(nota(id, `${id}-mediocre`), id).toBeGreaterThanOrEqual(20)
-      expect(nota(id, `${id}-mediocre`), id).toBeLessThanOrEqual(45)
+      expect(nota(id, `${id}-mediocre`), id).toBeGreaterThanOrEqual(50)
+      expect(nota(id, `${id}-mediocre`), id).toBeLessThanOrEqual(75)
     }
   })
 
@@ -202,11 +206,19 @@ describe('el acoplamiento espuma-ángulo', () => {
     expect(at(0.9)).toBeCloseTo(23.6, 1)
   })
 
-  it('GAUSS reproduce los valores citados en el plan §1.3', () => {
-    expect(ESPECIAL.GAUSS_E[0]).toBeCloseTo(1.0, 2)
-    expect(ESPECIAL.GAUSS_E[1]).toBeCloseTo(0.96, 2)
-    expect(ESPECIAL.GAUSS_E[2]).toBeCloseTo(0.85, 2)
-    expect(ESPECIAL.GAUSS_E[9]).toBeCloseTo(0.04, 2)
+  it('GAUSS tiene la forma del plan §1.3, anclada a σ y no a un número', () => {
+    // El plan §1.3 citaba 0,96 · 0,85 · 0,04 para 1°, 2° y 9°, pero esos tres
+    // valores sólo valen con σ = 5°. Al ensanchar σ a 8° dejaron de cumplirse
+    // sin que nada estuviera mal: ver docs/PENDIENTE.md, «σ de 5° a 8°».
+    //
+    // Así que se fija la FORMA, que es lo que el plan quería decir, y no una
+    // calibración concreta: vale 1 en el cero, 1/e en σ, y baja siempre.
+    const sigma = ESPECIAL.cfg.scoring.sigmaDeg
+    expect(ESPECIAL.GAUSS_E[0]).toBeCloseTo(1.0, 9)
+    expect(ESPECIAL.GAUSS_E[sigma]).toBeCloseTo(Math.E ** -1, 9)
+    for (let e = 1; e < ESPECIAL.GAUSS_E.length; e++) {
+      expect(ESPECIAL.GAUSS_E[e]!, `${e}°`).toBeLessThan(ESPECIAL.GAUSS_E[e - 1]!)
+    }
   })
 })
 

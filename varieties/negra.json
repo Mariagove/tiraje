@@ -41,14 +41,14 @@
     ]
   },
   "scoring": {
-    "sigmaDeg": 5,
+    "sigmaDeg": 8,
     "omegaScaleDegPerSec": 30,
     "pointsPerSecBeer": 865.5,
     "bonusFill": 2500,
     "bonusFoam": 2500,
     "bonusNoSpill": 1000,
     "finalMultiplier": 10,
-    "gamma": 2.2,
+    "gamma": 1.8,
     "spillPenalty": 1500,
     "spillMaxEvents": 3,
     "spillMaxFrac": 0.15,

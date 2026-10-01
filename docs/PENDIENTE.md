@@ -1729,6 +1729,89 @@ literal cierra el literal. Van tres. El comentario del sello lo dice ahora en su
 propia última línea. `tsc` lo caza al instante, que es la única razón de que no
 llegue a producción.
 
+## σ de 5° a 8°, y la curva de 2,2 a 1,8
+
+Partida real: **7° de error medio, 95% lleno, 19% de corona → 39**. Reproducida
+en el banco con `bias −5,5° / wobble 8°`: 6,9° · 95% · 17% · **39**. Misma nota,
+así que lo que sigue no es reconstrucción, es la partida.
+
+El desglose en bruto:
+
+| parte | sacó | de |
+|---|---|---|
+| llenado | 18,8% | 18,8% |
+| corona | 17,2% | 18,8% |
+| sin derrames | 7,5% | 7,5% |
+| **vertido** | **21,2%** | **54,8%** |
+
+Bruto: **64,8% del techo**. Y `gamma 2,2` convierte 64,8 en 39. Dos cosas
+distintas sumándose, y conviene no confundirlas:
+
+1. **σ = 5° era demasiado estrecho.** La gaussiana es `e^−(error/σ)²`, así que
+   con σ=5 un error medio de 7° deja el vertido en el 39% de su parte.
+2. **`gamma 2,2` hunde el centro.** 65% bruto → 39. 70% → 46. 80% → 61.
+
+### Lo que decide el asunto: cuánto error es inevitable
+
+La curva objetivo tiene una pendiente máxima de **10,5 °/s** (al 16% de
+llenado). Con el retardo visomotor humano, que nadie puede entrenar por debajo
+de ~200-250 ms, el retraso mínimo es:
+
+| reacción | retraso | con σ=5 | con σ=8 |
+|---|---|---|---|
+| 200 ms | 2,1° | 84% del vertido | 93% |
+| 250 ms | 2,6° | **76%** | 90% |
+| 300 ms | 3,1° | **67%** | 86% |
+
+Es decir: **con σ=5, un jugador que lo hiciera todo perfecto perdía ya un cuarto
+del vertido sólo por tener reflejos humanos.** Eso no es dificultad, es un
+impuesto. σ=5 se eligió para que 5° costara `1/e`; nunca se contrastó con una
+mano de verdad.
+
+### Lo puesto
+
+`sigmaDeg` 5 → **8**, `gamma` 2,2 → **1,8**, en las dos variedades.
+
+| jugador | antes | ahora |
+|---|---|---|
+| torpe | 24 | 43 |
+| **la partida de arriba** | **39** | **57** |
+| decente | 67 | 84 |
+| bueno | 83 | 92 |
+| perfecto | 95 | 98 |
+
+El 100 sigue siendo inalcanzable en la práctica: la caña sintética perfecta,
+sin temblor ni retraso, saca 98.
+
+**Lo que se paga:** la distancia entre «bueno» y «perfecto» baja de 12 puntos a
+6. Con una sola gaussiana y una sola potencia no hay manera de levantar el
+centro sin aplanar la cima; es monótono, está medido en las dos direcciones. Si
+algún día hace falta separar mejor la cabeza del ranking, el camino no es
+estrechar σ otra vez sino cambiar la FORMA de la respuesta (plana cerca de cero,
+donde vive el ruido humano, y empinada después).
+
+Dos guardas se actualizan a propósito: la banda de la traza mediocre (20-45 →
+50-75) y los tres valores de GAUSS citados en el plan §1.3 —0,96 · 0,85 · 0,04—,
+que sólo valían con σ=5. El test pasa a fijar la FORMA (1 en el cero, 1/e en σ,
+monótona), que es lo que el plan quería decir. **Desviación del plan, anotada.**
+
+Temporada nueva: `tiraje.ranking.v5`.
+
+### Lo que NO he tocado: cuánto pesa cada parte
+
+«El llenado es perfecto, la corona casi; sólo con esos dos deberíamos acercarnos
+al 60.» Hoy llenado+corona son el **38%** del presupuesto y el vertido el 55%.
+Subirlos es una palanca aparte, y es decisión de diseño —dice qué premia el
+juego: el resultado o el pulso—, así que la dejo medida y sin aplicar:
+
+| `bonusFill`/`bonusFoam` | llenado+corona | torpe | la suya | decente | bueno | perfecto |
+|---|---|---|---|---|---|---|
+| 2500 (hoy) | 38% | 43 | 57 | 84 | 92 | 98 |
+| 4000 | 49% | 49 | 63 | 87 | 94 | 98 |
+| 6200 | 60% | 54 | 69 | 89 | 95 | 98 |
+
+Son dos números en los dos `varieties/*.json` y un rehorneado.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin
