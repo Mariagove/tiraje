@@ -9,3 +9,9 @@ traces/
 Sonido tiraje.wav
 Sonido tiraje vertido.wav
 Sonido tiraje cola.wav
+
+# Ficheros de trabajo de Premiere: son del estudio, no del proyecto, y
+# ademas llevan dentro rutas locales del Mac.
+Sonido Tiraje.prproj
+Sonido Tiraje.prin
+Adobe Premiere Pro Auto-Save/
