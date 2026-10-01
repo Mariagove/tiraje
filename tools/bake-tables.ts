@@ -60,7 +60,6 @@ function bake(cfg: VarietyConfig): { src: string; report: Record<string, string>
   const tPerfect = cfg.targets.fill / fp.beerRatePerSec - (fp.foamExpansion - 1) * F
 
   const GAUSS_E = Array.from({ length: 30 }, (_, e) => gauss(e / s.sigmaDeg))
-  const RHO_Q = Array.from({ length: 91 }, (_, r) => gauss(r / s.rhoScaleDeg))
   const OMEGA_Q = Array.from({ length: 201 }, (_, w) => gauss(w / s.omegaScaleDegPerSec))
   const FILL_Q = Array.from({ length: 101 }, (_, d) => gauss(d / cfg.targets.fillTolerancePp))
   const FOAM_Q = Array.from({ length: 101 }, (_, d) => gauss(d / cfg.targets.foamTolerancePp))
@@ -86,7 +85,7 @@ function bake(cfg: VarietyConfig): { src: string; report: Record<string, string>
 
   const maxPoints = s.pointsPerSecBeer * tPerfect
   const maxScore = Math.round(
-    (maxPoints + s.bonusFill + s.bonusFoam + s.bonusClean) * s.finalMultiplier)
+    (maxPoints + s.bonusFill + s.bonusFoam + s.bonusNoSpill) * s.finalMultiplier)
 
   // La curva de la nota, horneada en milésimas del techo. Aquí sí se puede
   // usar `pow`: esto corre en el horno, no en el núcleo.
@@ -107,7 +106,6 @@ export const ${cfg.id.toUpperCase()}: BakedVariety = {
   TARGET_DDEG: ${arr(TARGET_DDEG, 0)},
   SPILL_DDEG: ${arr(SPILL_DDEG, 0)},
   GAUSS_E: ${arr(GAUSS_E, 9)},
-  RHO_Q: ${arr(RHO_Q, 9)},
   OMEGA_Q: ${arr(OMEGA_Q, 9)},
   FILL_Q: ${arr(FILL_Q, 9)},
   FOAM_Q: ${arr(FOAM_Q, 9)},

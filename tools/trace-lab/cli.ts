@@ -69,7 +69,7 @@ console.log(`
   vertido           ${eur(r.breakdown.pour).padStart(9)}
   bono llenado      ${eur(r.breakdown.fill).padStart(9)}   (${pc(r.fill)} de ${pc(v.cfg.targets.fill)})
   bono espuma       ${eur(r.breakdown.foam).padStart(9)}   (${pc(r.foam)} de ${pc(v.cfg.targets.foam)})
-  limpieza          ${eur(r.breakdown.clean).padStart(9)}\n  derrames          ${eur(r.breakdown.penalty).padStart(9)}
+  sin derrames      ${eur(r.breakdown.noSpill).padStart(9)}\n  derrames          ${eur(r.breakdown.penalty).padStart(9)}
   ─────────────────────────────────────────────
   NOTA              ${String(r.score).padStart(9)} / 100   ${r.verdict === 'spilled' ? '· CAÑA DERRAMADA' : ''}
   error medio       ${r.meanErrorDeg.toFixed(1)}°

@@ -42,12 +42,11 @@
   },
   "scoring": {
     "sigmaDeg": 5,
-    "rhoScaleDeg": 20,
     "omegaScaleDegPerSec": 30,
     "pointsPerSecBeer": 900,
     "bonusFill": 2500,
     "bonusFoam": 2500,
-    "bonusClean": 1000,
+    "bonusNoSpill": 1000,
     "finalMultiplier": 10,
     "gamma": 2.2,
     "spillPenalty": 1500,

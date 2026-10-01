@@ -81,9 +81,6 @@ export interface ScoreState {
   points: number
   stepsBeer: number
   prevPhiDdeg: number | null
-  /** Suma de la calidad lateral, para la limpieza. */
-  rhoSum: number
-  rhoCount: number
   /** Suma del error en grados enteros, para el resumen del resultado. */
   errSum: number
   errCount: number
@@ -116,7 +113,7 @@ export function createState(): ScoreState {
     phase: 'ready', steps: 0, f: 0, foam: 0, spilled: 0,
     spilling: false, overflowing: false, spillEvents: 0, points: 0,
     stepsBeer: 0, prevPhiDdeg: null,
-    rhoSum: 0, rhoCount: 0, errSum: 0, errCount: 0,
+    errSum: 0, errCount: 0,
     qRing: Array.from<number>({ length: MEAN_WINDOW_STEPS }).fill(1),
     qRingLen: 0, qRingIdx: 0, blankingLeft: 0, blankedQ: 1,
     lastQuality: 1, lastTargetDdeg: 0, result: null, overflowedAtClose: false,
@@ -224,9 +221,7 @@ export function step(v: BakedVariety, st: ScoreState, smp: TraceSample): void {
     // --- Calidad instantánea ------------------------------------------
     const dErr = aPhi > target ? aPhi - target : target - aPhi
     const e = clampInt(((dErr + 5) / 10) | 0, 0, 29)
-    const aRho = smp.rhoDdeg < 0 ? -smp.rhoDdeg : smp.rhoDdeg
     const q = v.GAUSS_E[e]!
-    const r = v.RHO_Q[clampInt(((aRho + 5) / 10) | 0, 0, 90)]!
 
     // Velocidad angular: derivada de la propia traza, no del giróscopo. Así
     // el servidor obtiene el mismo número sin necesitar los datos crudos.
@@ -238,7 +233,24 @@ export function step(v: BakedVariety, st: ScoreState, smp: TraceSample): void {
     const excess = om - v.omegaAllowedDegPerSec
     const s = v.OMEGA_Q[clampInt(excess > 0 ? ((excess + 0.5) | 0) : 0, 0, 200)]!
 
-    const inst = q * r * s
+    /*
+     * La calidad instantánea es el ángulo por la velocidad de muñeca. **El
+     * ladeo (ρ) ya NO entra**, y el motivo es de ergonomía, no de código.
+     *
+     * Nadie mira un móvil con la pantalla a plomo: se sujeta por debajo de
+     * los ojos y se recuesta hacia la cara. Eso es exactamente ρ. La
+     * calibración de reposo sólo absorbe ±10°, así que la postura normal
+     * dejaba un residuo permanente que multiplicaba TODO el vertido.
+     *
+     * Medido con una partida por lo demás perfecta —error cero, llenado y
+     * corona clavados— variando sólo ese residuo: 0°→95, 10°→69, 20°→33,
+     * 30°→17. Cobraba por sostener el móvil como se sostiene un móvil.
+     *
+     * ρ se sigue grabando en la traza. Dónde tiene sentido es en el
+     * antifraude de la fase 2 —con el móvil plano, φ es ruido puro y
+     * `planarConfidence` = cos ρ lo delata—, no en la nota del jugador.
+     */
+    const inst = q * s
 
     // --- Blanking -------------------------------------------------------
     let used: number
@@ -257,16 +269,10 @@ export function step(v: BakedVariety, st: ScoreState, smp: TraceSample): void {
     st.lastQuality = used
     st.points += sc.pointsPerSecBeer * used * STEP_S
 
-    // Los promedios de la partida —el ladeo, que es el bono de limpieza, y el
-    // error medio del resumen— también saltan la ventana de blanking.
-    //
-    // Estaban fuera, sumando el valor crudo, así que el blanking protegía los
-    // puntos del temblor del propio toque pero NO el bono de limpieza. Y el
-    // toque mueve justo ese ángulo: un pulgar contra la pantalla hace girar
-    // el móvil alrededor de un eje horizontal, que es ρ. Medido en la traza
-    // real del iPhone, ρ pasa de 1,8° a un pico de 4,1° al tocar.
+    // El error medio del resumen también salta la ventana de blanking: si no,
+    // el resumen acusaría el temblor del propio toque que los puntos sí
+    // esquivan.
     if (st.blankingLeft <= 0) {
-      st.rhoSum += r; st.rhoCount++
       st.errSum += e; st.errCount++
     }
 
@@ -330,7 +336,7 @@ export interface ScoreResult {
   /** Para la pantalla de resultado: "error medio: 3°". */
   meanErrorDeg: number
   durationS: number
-  breakdown: { pour: number; fill: number; foam: number; clean: number; penalty: number }
+  breakdown: { pour: number; fill: number; foam: number; noSpill: number; penalty: number }
 }
 
 /**
@@ -345,17 +351,16 @@ function computeResult(v: BakedVariety, st: ScoreState): ScoreResult {
   const dFoam = clampInt(
     Math.abs((((st.foam * 100 + 0.5) | 0) - ((t.foam * 100 + 0.5) | 0))), 0, 100)
 
-  const meanR = st.rhoCount > 0 ? st.rhoSum / st.rhoCount : 0
-  const clean = meanR / (1 + st.spillEvents)
+  const noSpill = 1 / (1 + st.spillEvents)
 
   const bFill = sc.bonusFill * v.FILL_Q[dFill]!
   const bFoam = sc.bonusFoam * v.FOAM_Q[dFoam]!
-  const bClean = sc.bonusClean * clean
+  const bNoSpill = sc.bonusNoSpill * noSpill
 
   // La penalización va en unidades de puntuación final, después del ×10:
   // el plan dice «−1.500 por evento», no −1.500 antes de multiplicar por diez.
   const penalty = sc.spillPenalty * st.spillEvents
-  let raw = (st.points + bFill + bFoam + bClean) * sc.finalMultiplier - penalty
+  let raw = (st.points + bFill + bFoam + bNoSpill) * sc.finalMultiplier - penalty
   if (raw < 0) raw = 0
 
   const spilledOut =
@@ -398,7 +403,7 @@ function computeResult(v: BakedVariety, st: ScoreState): ScoreResult {
       pour: st.points * sc.finalMultiplier,
       fill: bFill * sc.finalMultiplier,
       foam: bFoam * sc.finalMultiplier,
-      clean: bClean * sc.finalMultiplier,
+      noSpill: bNoSpill * sc.finalMultiplier,
       penalty: -penalty,
     },
   }

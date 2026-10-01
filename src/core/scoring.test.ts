@@ -465,24 +465,25 @@ describe('contrato de la puntuación', () => {
     }
   })
 
-  it('el ladeo penaliza, y en su ángulo de escala cuesta 1/e del vertido', () => {
-    // Se lee la escala de la config en vez de escribir el número: la gaussiana
-    // es `e^-(ρ/escala)²`, así que EN la escala vale `1/e` sea cual sea. Antes
-    // decía «a 14°» y se rompió al aflojar el término a 20°, que es un cambio
-    // de calibración, no de comportamiento.
-    const escala = ESPECIAL.cfg.scoring.rhoScaleDeg
+  it('el ladeo YA NO penaliza: la postura normal del móvil no cuesta puntos', () => {
+    // Nadie mira un móvil a plomo. La calibración de reposo sólo absorbe ±10°,
+    // así que cuando ρ puntuaba, el residuo de sujetarlo como se sujeta un
+    // móvil multiplicaba todo el vertido: una caña perfecta sacaba 33 a 20° de
+    // recostado. Ahora es indiferente, y esto lo fija.
     const recto = replay(ESPECIAL, hold(ESPECIAL, 48, 400, 0)).breakdown.pour
-    const ladeado = replay(ESPECIAL, hold(ESPECIAL, 48, 400, escala)).breakdown.pour
-    expect(ladeado / recto).toBeCloseTo(Math.E ** -1, 1)
+    for (const rho of [3, 10, 20, 35, 60]) {
+      expect(replay(ESPECIAL, hold(ESPECIAL, 48, 400, rho)).breakdown.pour, `${rho}°`)
+        .toBeCloseTo(recto, 9)
+    }
   })
 
-  it('ladear siempre cuesta, por poco que sea', () => {
-    const recto = replay(ESPECIAL, hold(ESPECIAL, 48, 400, 0)).breakdown.pour
-    let previo = recto
-    for (const rho of [3, 6, 10, 16, 24]) {
-      const p = replay(ESPECIAL, hold(ESPECIAL, 48, 400, rho)).breakdown.pour
-      expect(p, `${rho}°`).toBeLessThan(previo)
-      previo = p
+  it('el bono que queda mide SÓLO el derrame: entero, mitad, tercio', () => {
+    const sc = ESPECIAL.cfg.scoring
+    const tope = sc.bonusNoSpill * sc.finalMultiplier
+    for (const [derrames, esperado] of [[0, tope], [1, tope / 2], [2, tope / 3]] as const) {
+      const st = createState()
+      st.spillEvents = derrames
+      expect(finalize(ESPECIAL, st).breakdown.noSpill, `${derrames}`).toBeCloseTo(esperado, 6)
     }
   })
 })

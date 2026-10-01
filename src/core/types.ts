@@ -90,12 +90,11 @@ export interface VarietyConfig {
   look: { beer: [number, number, number]; foam: [number, number, number] }
   scoring: {
     sigmaDeg: number
-    rhoScaleDeg: number
     omegaScaleDegPerSec: number
     pointsPerSecBeer: number
     bonusFill: number
     bonusFoam: number
-    bonusClean: number
+    bonusNoSpill: number
     finalMultiplier: number
     /**
      * Curva de respuesta de la nota: `nota = 100 · (bruto/techo)^gamma`.
@@ -127,8 +126,6 @@ export interface BakedVariety {
   SPILL_DDEG: readonly number[]
   /** gauss(e/σ) para el error en grados enteros, 0..29. */
   GAUSS_E: readonly number[]
-  /** gauss(|ρ|/rhoScale) para el ladeo en grados enteros, 0..90. */
-  RHO_Q: readonly number[]
   /** gauss(exceso/omegaScale) para el exceso en °/s enteros, 0..200. */
   OMEGA_Q: readonly number[]
   /** gauss(Δllenado/tolerancia) en puntos porcentuales enteros, 0..100. */

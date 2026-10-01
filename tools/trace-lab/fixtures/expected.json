@@ -6,13 +6,13 @@
     "steps": 814
   },
   "especial-good": {
-    "score": 82,
+    "score": 83,
     "verdict": "ok",
     "err": 1.64,
     "steps": 809
   },
   "especial-mediocre": {
-    "score": 39,
+    "score": 41,
     "verdict": "ok",
     "err": 5.11,
     "steps": 795
@@ -36,13 +36,13 @@
     "steps": 840
   },
   "negra-good": {
-    "score": 80,
+    "score": 81,
     "verdict": "ok",
     "err": 1.64,
     "steps": 834
   },
   "negra-mediocre": {
-    "score": 35,
+    "score": 37,
     "verdict": "ok",
     "err": 5.08,
     "steps": 816

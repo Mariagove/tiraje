@@ -35,8 +35,8 @@ const VARIETIES: Record<string, BakedVariety> = { especial: ESPECIAL, negra: NEG
  * `v3` abre temporada con la curva objetivo suave. Las anteriores se borran:
  * ocupan sitio y no se pueden comparar con nada.
  */
-const RANKING_KEY = 'tiraje.ranking.v3'
-const RANKING_KEYS_VIEJAS = ['tiraje.ranking.v1', 'tiraje.ranking.v2']
+const RANKING_KEY = 'tiraje.ranking.v4'
+const RANKING_KEYS_VIEJAS = ['tiraje.ranking.v1', 'tiraje.ranking.v2', 'tiraje.ranking.v3']
 /** Cada cuánto se repinta el ángulo. */
 const TICK_MS = 500
 

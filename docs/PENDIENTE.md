@@ -1637,6 +1637,64 @@ jugador entienda**, y «limpieza» tampoco —preguntado tres veces—. Si algú
 hay que explicar la nota en pantalla, primero hay que encontrar los nombres; el
 desglose en porcentajes no era eso.
 
+## Fuera el ladeo (ρ): cobraba por sujetar el móvil como se sujeta un móvil
+
+Lo vio el estudio, no yo: **nadie mira un móvil con la pantalla a plomo**. Se
+sujeta por debajo de la altura de los ojos y se recuesta hacia la cara. Eso es
+exactamente ρ, el ángulo que se puntuaba.
+
+La calibración de reposo sólo absorbe **±10°** (`ROLL_OFFSET_CLAMP_DEG`), así
+que la postura normal dejaba un residuo permanente. Y ρ no entraba sólo en el
+bono de 7,5: multiplicaba **cada tick del vertido**, los 55 puntos.
+
+Medido con una partida por lo demás perfecta —error cero, llenado y corona
+clavados— variando sólo el residuo:
+
+| ρ residual | nota de una caña perfecta |
+|---|---|
+| 0° | 95 |
+| 5° | 87 |
+| 10° | 69 |
+| 15° | 49 |
+| 20° | **33** |
+| 25° | 23 |
+| 30° | **17** |
+
+Esto explica «nadie ha pasado de 70» mucho mejor que nada de lo que diagnostiqué
+antes, y **obliga a rebajar el diagnóstico anterior**: cuando reconstruí la
+partida de 26 supuse que el bono de limpieza valía 7,2 de 7,5 y de ahí deduje
+que la culpa era de ω. Ese 7,2 no lo medí —la tarjeta no lo enseñaba y las
+trazas no se guardan—, era una suposición. Con esta tabla delante, ρ es el
+sospechoso principal y ω el secundario.
+
+### Por qué no lo cazó el banco de pruebas
+
+Porque lo escribí yo. Los perfiles sintéticos llevaban `rhoDeg: 2` (good) y
+`rhoDeg: 5` (mediocre): un jugador imaginario que sostiene el móvil casi a
+plomo. Al quitar ρ, los fixtures se mueven 0-2 puntos. **El banco medía la
+postura que yo había dado por supuesta, no la que tiene una persona.**
+
+### Qué queda
+
+- La calidad instantánea es `ángulo × muñeca`. ρ ya no entra.
+- El bono de 7,5 sobrevive, pero ahora mide **una sola cosa**: `1/(1+derrames)`.
+  Entero si no derramas, la mitad con un derrame, un tercio con dos. Se renombra
+  `bonusClean` → `bonusNoSpill` y `breakdown.clean` → `breakdown.noSpill`: la
+  palabra «limpieza» hubo que explicarla tres veces y ya no significaba eso.
+- `RHO_Q` y `rhoScaleDeg` desaparecen de las tablas horneadas y de la config
+  (−1,9 KB de JS). ρ **se sigue grabando en la traza**.
+- Temporada nueva: `tiraje.ranking.v4`.
+
+### Lo que sí hacía ρ, y ahora no hace nadie
+
+Con el móvil plano, `φ = atan2(u.x, u.y)` es ruido puro, y ρ era de facto lo
+único que impedía puntuar así. Hoy no hay guarda: en la práctica el error de
+ángulo hunde la nota igual, pero no está fijado por nada.
+
+Donde esto corresponde es en el **antifraude de la fase 2**, con
+`planarConfidence = cos ρ`, y con el umbral sacado de las 500 trazas reales —no
+inventado ahora.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin
@@ -1648,6 +1706,8 @@ desglose en porcentajes no era eso.
    de tirar siguen siendo placeholder declarado.
 4. **¿Hay premio físico?** Cambia todo el antitrampa de la fase 2.
 5. **Umbrales de antifraude.** 500 trazas reales, percentil 99,5. No inventar.
+6. **Guarda del móvil plano.** La quitó el borrado de ρ. Va con el punto 5:
+   `planarConfidence = cos ρ` ya se calcula, falta el umbral y de dónde sale.
 
 ## Hallazgo sobre el formato de traza
 
