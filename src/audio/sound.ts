@@ -32,9 +32,29 @@
  *    todo lo que suena se ve también. Si no se oye no se pierde nada.
  */
 
-/** Cuánto sube el filtro del chorro entre vaso vacío y vaso lleno. */
-const CHORRO_HZ_VACIO = 320
-const CHORRO_HZ_LLENO = 1400
+/**
+ * El chorro, en dos capas. La primera versión era UNA banda ancha y grave, y
+ * eso no suena a grifo: suena a catarata. Es que literalmente lo es — un salto
+ * de agua es ruido de banda ancha con mucha energía abajo, y el tamaño de lo
+ * que cae se oye en cuánto grave tiene.
+ *
+ * Un grifo llenando un vaso son dos cosas distintas a la vez, y hay que
+ * separarlas:
+ *
+ *   1. La RESONANCIA del vaso: una banda estrecha que sube de tono conforme se
+ *      llena. Estrecha, no ancha. El `Q` es lo que dice el tamaño.
+ *   2. El SISEO del hilo al romper la superficie: muy agudo y muy flojo. Es lo
+ *      que hace que suene a chorro fino y no a masa de agua.
+ *
+ * Sin la 1 suena a sartén; sin la 2, a tubo. Con las dos, a caña.
+ */
+const CHORRO_HZ_VACIO = 700
+const CHORRO_HZ_LLENO = 2400
+/** Estrecho = fuente pequeña. A 0,8 era una banda ancha, o sea, una catarata. */
+const CHORRO_Q = 3.2
+/** El siseo fino, por encima de todo lo demás y casi inaudible por separado. */
+const SISEO_HZ = 3000
+const SISEO_GANANCIA = 0.05
 /** Volumen general. Por debajo de esto el chorro tapa al resto. */
 const VOLUMEN = 0.22
 
@@ -101,13 +121,23 @@ export class Sonido {
     const filtro = ctx.createBiquadFilter()
     filtro.type = 'bandpass'
     filtro.frequency.value = CHORRO_HZ_VACIO
-    // Q bajo: un chorro es ancho de banda, no un silbido.
-    filtro.Q.value = 0.8
+    filtro.Q.value = CHORRO_Q
 
     const gain = ctx.createGain()
     gain.gain.value = 0
 
-    fuente.connect(filtro).connect(gain).connect(maestro)
+    // Capa 1: la resonancia del vaso, que sube al llenarse.
+    fuente.connect(filtro).connect(gain)
+    // Capa 2: el siseo del hilo. Sale del MISMO ruido, así que las dos capas
+    // están correlacionadas y se oyen como una sola fuente. Con dos ruidos
+    // independientes sonarían a dos cosas sucediendo a la vez.
+    const siseo = ctx.createBiquadFilter()
+    siseo.type = 'highpass'
+    siseo.frequency.value = SISEO_HZ
+    const siseoGain = ctx.createGain()
+    siseoGain.gain.value = SISEO_GANANCIA
+    fuente.connect(siseo).connect(siseoGain).connect(gain)
+    gain.connect(maestro)
     fuente.start()
     this.#ruido = fuente
     this.#filtro = filtro
@@ -140,8 +170,10 @@ export class Sonido {
     this.#filtro.frequency.setTargetAtTime(
       CHORRO_HZ_VACIO + (CHORRO_HZ_LLENO - CHORRO_HZ_VACIO) * nivel, t, 0.08)
 
-    // Más espuma, más sibilante y más fuerte: la espuma es aire rompiendo.
-    const objetivo = f.pouring ? 0.5 + 0.5 * f.foamFrac : 0
+    // Más espuma, un poco más fuerte: la espuma es aire rompiendo. Pero sólo
+    // un poco — el primer intento iba de 0,5 a 1,0 y era el triple de lo que
+    // pide una caña. Ahora de 0,20 a 0,36.
+    const objetivo = f.pouring ? 0.20 + 0.16 * f.foamFrac : 0
     this.#chorroGain.gain.setTargetAtTime(objetivo, t, f.pouring ? 0.04 : 0.12)
 
     if (f.pouring) this.#burbujas(t, f.foamFrac)
@@ -198,8 +230,11 @@ export class Sonido {
     const ctx = this.#ctx, maestro = this.#maestro
     if (!ctx || !maestro) return
     if (t < this.#proximaBurbuja) return
-    // De 14 a 45 burbujas por segundo según la espuma que esté haciendo.
-    const porSegundo = 14 + 31 * espuma
+    // De 5 a 16 por segundo. Iban de 14 a 45 y eso no es una corona
+    // asentándose, es un vaso de gaseosa recién servido: tantas por segundo
+    // dejan de oírse como burbujas sueltas y se funden en siseo, que es
+    // justo el efecto catarata que había que quitar.
+    const porSegundo = 5 + 11 * espuma
     this.#proximaBurbuja = t + (0.6 + Math.random() * 0.8) / porSegundo
 
     const osc = ctx.createOscillator()
@@ -210,7 +245,7 @@ export class Sonido {
     osc.frequency.setValueAtTime(base, t)
     osc.frequency.exponentialRampToValueAtTime(base * 1.7, t + 0.035)
     const g = ctx.createGain()
-    g.gain.setValueAtTime(0.06 + Math.random() * 0.05, t)
+    g.gain.setValueAtTime(0.025 + Math.random() * 0.025, t)
     g.gain.exponentialRampToValueAtTime(0.0005, t + 0.045)
     osc.connect(g).connect(maestro)
     osc.start(t)

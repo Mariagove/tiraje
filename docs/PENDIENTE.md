@@ -1824,13 +1824,27 @@ fichero habrían sido entre 150 y 400 KB sobre un presupuesto de 250.
 
 Qué suena:
 
-- **El chorro.** Ruido blanco en bucle por un paso banda. Un líquido cayendo
-  *es* ruido filtrado: no tiene tono, tiene una banda. El filtro **sube de 320
-  a 1.400 Hz conforme se llena el vaso**, que es física de verdad —la columna
-  de aire que resuena encima del líquido se acorta— y da una pista audible del
-  nivel. La ganancia sube con la fracción de espuma, que es aire rompiendo.
-- **Burbujas.** Pulsos de seno de 40 ms que suben de tono al romper, de 14 a 45
-  por segundo según la espuma.
+- **El chorro, en dos capas.** El primer intento era UNA banda ancha y grave y
+  el estudio lo describió exacto: «recuerda más a una catarata vista en
+  televisión que a un grifo echando cerveza». Y es literal — un salto de agua
+  *es* ruido de banda ancha con mucha energía abajo, y el tamaño de lo que cae
+  se oye en cuánto grave tiene. Un grifo llenando un vaso son dos cosas a la
+  vez, y hay que separarlas: la **resonancia del vaso**, una banda **estrecha**
+  que sube de 700 a 2.400 Hz al llenarse, y el **siseo del hilo** al romper la
+  superficie, un paso alto a 3 kHz casi inaudible por separado. Las dos salen
+  del mismo ruido, así que se oyen como una sola fuente; con dos ruidos
+  independientes sonarían a dos cosas sucediendo a la vez.
+
+  | | antes | ahora |
+  |---|---|---|
+  | banda | 320-1.400 Hz | 700-2.400 Hz |
+  | `Q` (lo estrecho = lo pequeño) | 0,8 | **3,2** |
+  | ganancia | 0,50 → 1,00 | **0,20 → 0,36** |
+
+- **Burbujas.** Pulsos de seno de 40 ms que suben de tono al romper, **de 5 a
+  16** por segundo según la espuma, a la mitad de volumen. Iban de 14 a 45 y eso
+  no es una corona asentándose: a esa densidad dejan de oírse como burbujas
+  sueltas y se funden en siseo, que es el mismo efecto catarata por otra vía.
 - **El grifo.** Un chasquido de 80 ms en los dos toques.
 - **El derrame.** Un golpe de ruido grave, **una vez por episodio**, no mientras
   dure.
