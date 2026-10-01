@@ -227,7 +227,11 @@ export class Sonido {
     // los escalones como un crujido.
     this.#chorroGain.gain.setTargetAtTime(
       f.pouring ? CHORRO_VACIO + (CHORRO_LLENO - CHORRO_VACIO) * nivel : 0,
-      t, f.pouring ? 0.04 : 0.10)
+      // Al cerrar, 0,015 de constante: el 95% del apagado cae en 45 ms. Con
+      // 0,10 tardaba 300 ms y se oía el chorro seguir después del toque, que
+      // es lo que el estudio describió como «se corta demasiado tarde». Un
+      // grifo de barril cierra de golpe; no tiene cola.
+      t, f.pouring ? 0.04 : 0.015)
     this.#chorro?.playbackRate.setTargetAtTime(
       VELOCIDAD_VACIO + (VELOCIDAD_LLENO - VELOCIDAD_VACIO) * nivel, t, 0.12)
 
@@ -261,7 +265,9 @@ export class Sonido {
     if (!ctx || !s) return
     this.#chorro = null
     // Se para DESPUÉS de que la ganancia haya bajado; si no, se oye el corte.
-    try { s.stop(ctx.currentTime + 0.4) } catch { /* ya parada */ }
+    // 0,08 s basta porque la constante de apagado es 0,015: a los 60 ms ya
+    // está 50 dB por debajo.
+    try { s.stop(ctx.currentTime + 0.08) } catch { /* ya parada */ }
   }
 
   #cola(): void {

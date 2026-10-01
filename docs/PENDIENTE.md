@@ -1885,58 +1885,55 @@ de 15 dB. Justo las dos fases del juego.
 - **El derrame** es la propia cola a velocidad 0,55: se queda en la misma
   familia de sonido en vez de ser un sintetizador aparte.
 
-### Qué grabar, si se vuelve a grabar
+### Qué hace falta grabar — la especificación
 
-**Lo que se graba y lo que se publica no son lo mismo.** Se graba largo para
-poder elegir; se publica un trozo corto en bucle. A 64 kbps en AAC mono el coste
-es de **8,9 KB por segundo**, medido sobre los clips actuales.
+Sustituye a la versión anterior de este apartado. Nace de dos cosas que el
+estudio oyó en el montaje del wav de 4,6 s:
 
-Tiempos reales del juego, sacados del código y del banco de pruebas:
+1. **«Un sonido que se repite mucho, como un disco rayado.»** El cuerpo del
+   bucle mide 1,13 s, y en un vertido normal de 8,1 s eso son **5,4 vueltas**.
+   No tiene arreglo por código: hace falta más material.
+2. **«El final se corta demasiado tarde.»** Esto sí era mío: la constante de
+   apagado del chorro era 0,10 s, o sea **300 ms** hasta estar 95% apagado. Un
+   grifo de barril cierra de golpe. Puesta en 0,015 → **45 ms**.
 
-| | |
-|---|---|
-| vertido de una partida normal | **7,8 - 8,4 s** |
-| vertido máximo antes del cierre automático | 15 s (`MAX_POUR_MS`) |
-| reposo tras cerrar el grifo | 2,0 s (`SETTLE_MS`) |
+Cuántas vueltas da el bucle según lo que dure, descontado el ataque:
 
-Y lo que cuesta cada opción:
-
-| qué se publica | peso | sitio entero |
+| cuerpo del bucle | vertido normal (8,1 s) | máximo (15 s) |
 |---|---|---|
-| bucle de 4 s + cola de 3 s | 62 KB | ~113 KB |
-| bucle de 6 s + cola de 3 s | 80 KB | ~131 KB |
-| 16 s seguidos sin bucle + cola | 169 KB | ~220 KB |
+| 1,13 s (hoy) | **5,4 vueltas** | 11,5 |
+| 3 s | 2,0 | 4,3 |
+| 4 s | 1,5 | 3,3 |
+| **7 s** | **0,9 — no llega a repetirse** | 1,9 |
+| 13 s | 0,5 | 1,0 |
 
-El tope es 250 KB y la foto del vaso para el WebGL todavía no ha gastado su
-parte, así que **la opción sin bucle no cabe**: se queda en bucle de 4-6 s.
+**Siete segundos de cerveza sobre cerveza** es el objetivo: con eso una partida
+normal no oye nunca una repetición, y sólo las muy largas dan una vuelta.
 
-Qué hace falta grabar:
+Lo que hace falta, dos ficheros:
 
-1. **Una toma entera y continua**, sin parar la grabación: silencio · abrir el
-   grifo · llenar el vaso hasta arriba · cerrar · **cinco segundos de silencio
-   absoluto** mientras baja la espuma · parar. Esta toma da la relación real
-   entre el chorro y la cola, que es lo que no se puede inventar.
-2. **Una toma larga sólo de chorro**, 20-30 s si se puede, cambiando de vaso o
-   dejándolo rebosar. Da igual que no sea «una caña»: es material de bucle, y
-   cuantos más segundos haya, mejor es el trozo que se puede elegir.
+- **Vertido**, ~8 s seguidos: el ataque natural sobre el vaso vacío (≈1 s) y
+  después **7 s o más de cerveza cayendo sobre cerveza**. Si para llegar a esos
+  segundos hay que empalmar varias tomas, se puede — los empalmes se comprueban
+  aquí igual que las costuras del bucle.
+- **Cola**, **2,0 s como mucho**, desde el instante en que se cierra el grifo.
+  Ese es el tope real: `SETTLE_MS` son 2 s y después entran las notas del
+  resultado. Lo que pase de ahí no se oye, y en la grabación anterior el último
+  medio segundo ya estaba por debajo de −45 dB.
 
-Cómo:
+**No hace falta cortar el bucle ni fundirlo**: eso se hornea aquí, porque el
+cuerpo tiene que empezar donde acaba su propia cola para que las dos costuras
+—la vuelta y el paso del ataque al bucle— queden continuas. Material en bruto y
+largo es lo más útil.
 
-- **WAV a 48 kHz.** Nada de mp3: lo que llegue comprimido ya no se puede
-  recortar sin que se note.
-- **Sin procesar.** Ni reducción de ruido, ni ecualización, ni normalizar, ni
-  compresor. Todo eso se puede añadir después; quitarlo no.
-- **Sin saturar.** Que los picos se queden sobre −6 dB.
-- **La sala, lo más callada posible.** El ruido de fondo de la grabación se
-  convierte en un siseo constante al repetirla en bucle, y de ahí ya no sale.
-- **El micrófono a 20-40 cm**, fuera del vaso.
-- Un móvil vale. El wav anterior era de móvil y por eso no tenía nada por debajo
-  de 250 Hz; con un micro mejor aparecerían los graves, pero esto se va a oír
-  por el altavoz de un teléfono en un bar, así que **no merece la pena montar
-  una sesión por eso**.
+Peso: 8 s + 2 s son **89 KB** a 64 kbps en AAC mono, y dejan el sitio sobre
+140 KB de un tope de 250.
 
-Lo que llegue se mide igual que el anterior —espectro por bandas, envolvente,
-costura del bucle— y se informa antes de publicarlo.
+Cómo grabarlo: WAV a 48 kHz, sin procesar (ni reducción de ruido, ni ecualizar,
+ni normalizar, ni comprimir), picos por debajo de −6 dB, sala lo más callada
+posible —el ruido de fondo se vuelve un siseo constante al repetirse en bucle y
+de ahí ya no sale—, micrófono a 20-40 cm y fuera del vaso. Un móvil vale: esto
+se va a oír por el altavoz de un teléfono en un bar.
 
 ### Pendiente del estudio
 
