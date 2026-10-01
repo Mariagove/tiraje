@@ -1524,6 +1524,65 @@ había aplicado al ranking del jugador.
 del jugador. Un ranking con premio necesita que la temporada la diga el
 servidor junto con las reglas, no una constante en el cliente.
 
+## La curva objetivo deja de ser una meseta y un acantilado
+
+Observación del estudio: un camarero pasa de tumbado a recto con **un
+movimiento suave**, y aquí no daba tiempo. Lo atribuía a que la espuma sube
+igual de rápido que el líquido.
+
+El razonamiento lleva al revés —la espuma es **menos densa**, así que la misma
+cerveza ocupa más volumen y por eso al enderezar el nivel sube MÁS rápido,
+18,3 %/s contra 10,8 % tumbado— pero la conclusión era correcta: no daba
+tiempo. Sólo que el culpable era otro.
+
+### El culpable: el objetivo se quedaba clavado media caña
+
+`kSafe 0,55` con el tope de 48° dejaba el objetivo **plantado en 48° hasta el
+54 % del llenado**. Es una meseta en la que no hay nada que hacer, y después
+los cuarenta grados de giro se amontonaban en los **3,2 s** finales, que es
+justo cuando el vaso se llena más rápido:
+
+| llenado | antes | ahora |
+|---|---|---|
+| 20 % | 48,0° · 0 °/s | 46,4° · 4,3 °/s |
+| 55 % | 47,3° · 7,0 °/s | 30,6° · 6,5 °/s |
+| 85 % | 19,8° · 18,7 °/s | 11,1° · 9,8 °/s |
+| 94 % | 8,2° · **22,8 °/s** | 4,5° · **9,5 °/s** |
+
+Con `kSafe 0,30` el giro se reparte por toda la caña: **6,2 s de los 8,1**
+girando, en vez de 3,2, y menos de la mitad de velocidad de muñeca.
+
+### Lo que arrastró, y hay que mirar junto
+
+- **`foamUpright` de 0,74 a 0,32** en la Especial y **de 0,85 a 0,40** en la
+  Negra. Con la curva más baja se pasa mucho más tiempo en ángulos pequeños, y
+  el ángulo pequeño es lo que hace corona: sin retocarlo, un jugador que
+  siguiera la curva acabaría con el 33,5 % de espuma en vez del 20 %. Medido
+  con el par nuevo: 19,5 % y 25,7 %, contra objetivos de 20 % y 25 %.
+- **La ω permitida baja de 36 a 18 °/s.** No se elige: sale de la pendiente
+  máxima de la propia curva. Es coherente —si el objetivo pide la mitad de
+  velocidad, moverse rápido es más claramente «no estás siguiéndolo»—.
+- **El margen de derrame se ensancha**: al 90 % de llenado pasa de 10,1° a
+  16,0°. El juego perdona más el derrame, y eso no se pidió. Si hay que
+  recuperar esa tensión, se compensa aparte.
+- **Los diez fixtures sintéticos se regeneran.** No vale sólo rehacer las
+  expectativas: una traza es una secuencia fija de ángulos, y reproducirla
+  contra otra curva significa que el jugador ya no está siguiendo el objetivo.
+  El generador es un lazo cerrado y produce un jugador que sigue la curva
+  NUEVA.
+- **La traza real del iPhone pasa de 22 a 3**, y se queda así. No se puede
+  regenerar: es una partida de verdad, jugada contra la curva vieja. Sigue
+  sirviendo para lo que está —fijar que el replay da el entero exacto— pero ya
+  no vale como referencia de dificultad. Haría falta volver a grabar.
+- **Temporada `v3` del ranking**, que es para lo que está el mecanismo.
+
+### El precio en el reparto
+
+Los ocho novatos simulados pasan de **37–59** a **44–61**: suben y se juntan un
+poco (22 puntos de recorrido a 17). Era de esperar —un juego más fácil comprime
+hacia arriba— y es el intercambio que se buscaba: se cambia algo de separación
+por poder hacer el movimiento como se hace de verdad.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

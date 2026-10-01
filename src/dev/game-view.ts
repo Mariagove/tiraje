@@ -32,11 +32,11 @@ const VARIETIES: Record<string, BakedVariety> = { especial: ESPECIAL, negra: NEG
  * en una misma lista es mentir. Era lo que estaba pasando — el ranking
  * sobrevivía a cada recalibrado y las notas viejas seguían arriba.
  *
- * `v2` abre temporada con la curva de respuesta. Las anteriores se borran:
+ * `v3` abre temporada con la curva objetivo suave. Las anteriores se borran:
  * ocupan sitio y no se pueden comparar con nada.
  */
-const RANKING_KEY = 'tiraje.ranking.v2'
-const RANKING_KEYS_VIEJAS = ['tiraje.ranking.v1']
+const RANKING_KEY = 'tiraje.ranking.v3'
+const RANKING_KEYS_VIEJAS = ['tiraje.ranking.v1', 'tiraje.ranking.v2']
 /** Cada cuánto se repinta el ángulo. */
 const TICK_MS = 500
 

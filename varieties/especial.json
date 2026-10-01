@@ -8,7 +8,7 @@
   "pour": {
     "beerRatePerSec": 0.105,
     "foamExpansion": 2.0,
-    "foamUpright": 0.74,
+    "foamUpright": 0.32,
     "foamTilted": 0.03,
     "foamRefDeg": 45,
     "spillRatePerSec": 0.015
@@ -24,7 +24,7 @@
     "overflowSettleFrac": 0.09
   },
   "difficulty": {
-    "kSafe": 0.55,
+    "kSafe": 0.3,
     "maxTargetDeg": 48
   },
   "look": {
