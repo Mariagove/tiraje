@@ -1620,16 +1620,22 @@ objetivo** —agitar el móvil, o una traza inventada— se puso a cobrar la
 corrección normal. Se le pone un **suelo de 40 °/s**, configurable por
 variedad. Esa misma partida pasa de 26 a **~35**.
 
-### Y la tarjeta no decía nada de esto
+### La tarjeta: el desglose, puesto y quitado
 
-Enseñaba tres números buenos y debajo una nota baja. Ahora lleva el desglose
-—vertido, llenado, corona, limpieza— **en porcentaje de lo que vale cada
-parte**. No se puede dar en puntos de la nota porque la nota pasa por una
-curva y las partes no sumarían; en porcentaje de su propio máximo sí dice lo
-único que hacía falta: dónde se perdió.
+Enseñaba tres números buenos y debajo una nota baja, sin forma de saber por
+qué, así que se le añadió un desglose —vertido, llenado, corona, limpieza— en
+porcentaje de lo que vale cada parte. Con la partida de arriba habría leído
+`vertido 20% · llenado 98% · corona 91% · limpieza 96%`.
 
-Con esa partida se habría leído `vertido 20% · llenado 98% · corona 91% ·
-limpieza 96%`, y no habría hecho falta esta conversación.
+**Fuera.** El estudio: «no se entiende». Y lleva razón: cuatro porcentajes a
+0,65rem debajo de una nota de 0 a 100 obligan a saber que son porcentajes de
+otra cosa, y que la nota no es su media. Resolvía mi problema de calibración,
+no el del jugador. La tarjeta vuelve a nota + una línea de resumen.
+
+Queda el problema de fondo sin resolver: **«vertido» no es una palabra que el
+jugador entienda**, y «limpieza» tampoco —preguntado tres veces—. Si algún día
+hay que explicar la nota en pantalla, primero hay que encontrar los nombres; el
+desglose en porcentajes no era eso.
 
 ## Sigue abierto, y no lo decide el código
 
