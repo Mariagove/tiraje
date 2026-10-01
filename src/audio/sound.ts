@@ -1,123 +1,86 @@
 /**
- * sound.ts — el sonido del juego, SINTETIZADO. Cero ficheros, cero bytes.
+ * sound.ts — el sonido del juego.
  *
- * No hay samples y no es por tacañería de peso: es que el sonido de esta
- * pantalla **no es un efecto, es un estado continuo**. El chorro dura lo que
- * dure la tirada, cambia con la inclinación y con lo lleno que esté el vaso, y
- * eso con un .mp3 en bucle no se hace: o se nota el corte o no reacciona.
+ * El chorro y la espuma son la GRABACIÓN REAL que dejó el estudio, no síntesis.
+ * El toque de grifo y las notas del resultado siguen sintetizados, porque son
+ * dos chasquidos y tres notas y no merecen un fichero.
  *
- * Y hay un detalle que sale gratis y que es física de verdad: **al llenarse un
- * vaso el sonido sube de tono**, porque la columna de aire que resuena encima
- * del líquido se acorta. Es lo que te deja saber sin mirar que el vaso ya casi
- * está. Aquí el filtro sube de 320 Hz a 1.400 Hz conforme sube el nivel, que es
- * exactamente eso.
+ * ---
+ *
+ * POR QUÉ SE ABANDONÓ LA SÍNTESIS, que es la parte que conviene recordar.
+ *
+ * Hubo cinco versiones sintetizadas. La última se ajustó **midiendo** el wav de
+ * referencia: espectro por bandas de octava, réplica de esta misma cadena de
+ * biquads en Python, y búsqueda en rejilla hasta dejar el error en 14,9 puntos
+ * porcentuales repartidos en ocho bandas, con la banda dominante —500-1.000 Hz,
+ * el 59% de la energía— clavada en 61,7%.
+ *
+ * Y aun así el estudio dijo, con razón, que no se parecía.
+ *
+ * El motivo es que **igualar el espectro medio no basta**. Dos sonidos pueden
+ * repartir la energía igual por bandas y no parecerse en nada, porque lo que
+ * identifica un chorro de verdad es su estructura en el TIEMPO: las
+ * irregularidades, los golpes de gota sueltos, el caudal que titubea. La
+ * envolvente de la grabación salta ±8 dB entre instantes contiguos; el ruido
+ * filtrado es liso por definición. Eso no lo arregla ningún filtro, y menos aún
+ * alguien que no puede oír lo que genera.
+ *
+ * Lo medido no se tira: está en `docs/PENDIENTE.md` y es lo que explica por qué
+ * el chorro suena como suena. Pero la fuente es la grabación.
  *
  * ---
  *
  * Tres cosas de iOS que no son opcionales:
  *
- * 1. **El contexto hay que crearlo DENTRO del gesto del usuario.** Igual que
- *    `requestMotionPermission()`. Si se crea al cargar la página nace
- *    `suspended` y no suena nada, sin ningún error que lo explique. Por eso
- *    `despierta()` se llama desde el mismo `click` del botón del gate.
- *
- * 2. **El interruptor de silencio del iPhone calla el Web Audio** en Safari.
- *    En un bar, la mitad de los móviles lo llevan puesto. `navigator
- *    .audioSession.type = 'playback'` (Safari 16.4+) le dice al sistema que
- *    esto es reproducción y no un pitido, y entonces suena igual. Se consulta
- *    antes de usarla: donde no exista, simplemente no suena con el móvil en
- *    silencio, que es el comportamiento de hoy.
- *
- * 3. **Un bar es ruidoso.** Esto es un acompañamiento, nunca la única señal:
- *    todo lo que suena se ve también. Si no se oye no se pierde nada.
+ * 1. **El contexto hay que crearlo DENTRO del gesto del usuario**, igual que
+ *    `requestMotionPermission()`. Creado al cargar nace `suspended` y no suena
+ *    nada, sin ningún error que lo explique.
+ * 2. **El interruptor de silencio del iPhone calla el Web Audio** en Safari, y
+ *    en un bar media sala lo lleva puesto. `navigator.audioSession.type =
+ *    'playback'` (Safari 16.4+) lo arregla; se consulta antes de usarla.
+ * 3. **Un bar es ruidoso.** Esto acompaña, nunca informa en exclusiva: todo lo
+ *    que suena se ve también.
  */
-
-/*
- * TODO ESTO ESTÁ MEDIDO CONTRA UNA GRABACIÓN REAL, no elegido de oído — yo no
- * lo oigo. El estudio dejó un wav de 4,6 s de un grifo llenando un vaso; se
- * midió su espectro por bandas, se replicó esta misma cadena de filtros en
- * Python y se buscó la combinación que más se le parece. Herramientas y
- * calibración, en `docs/PENDIENTE.md`.
- *
- * El ajuste final yerra 14,9 puntos porcentuales repartidos en ocho bandas, y
- * la banda que manda —500-1.000 Hz, el 59% de la energía— queda en el 61,7%.
- *
- * Lo que la medida DESMINTIÓ de lo que yo había supuesto:
- *
- *   · La potencia del chorro NO está en los graves. En la grabación, la banda
- *     de 250-500 Hz es el 6% y la de 500-1.000 el 59%. Yo tenía un «cuerpo» a
- *     320 Hz que llegó a ser el 52% de mi energía: justamente al revés.
- *   · Me faltaba casi todo entre 2 y 8 kHz: la referencia tiene ahí el 25,5% y
- *     yo tenía el 5,1%. El siseo no era un adorno, era un cuarto del sonido.
- *   · El `Q` nunca fue el problema. 8 reproduce el de la grabación.
- *
- * AVISO sobre la referencia: por debajo de 250 Hz no tiene prácticamente nada
- * (0,1% + 0,9%), que es lo típico de un micrófono de móvil. O sea que de esta
- * grabación NO se puede saber si un grifo real tiene graves. Lo que se copia
- * aquí es lo que suena en el wav, que es lo que se pidió copiar.
- */
+// Vite les pone hash y devuelve la URL con el `base` del build aplicado.
+import vertidoUrl from '@/assets/audio/vertido.m4a'
+import colaUrl from '@/assets/audio/cola.m4a'
 
 /**
- * La resonancia del vaso, que sube al llenarse. Medido: 624 Hz con el vaso
- * vacío y 818 al final de la grabación — un recorrido mucho más corto del que
- * yo tenía (700→2.400). El final se sube un poco respecto a lo medido, a 880,
- * porque la grabación no llena el vaso del todo y el juego sí llega al 95%.
+ * Duración EXACTA del bucle, en segundos, tal y como se horneó.
+ *
+ * El fichero se preparó fundiendo la cola sobre la cabeza con potencia
+ * constante, así que repetir estos 1,750 s es continuo por construcción:
+ * medido, el salto en la costura es 0,018 frente a 0,097 de salto típico de la
+ * propia señal. O sea, indistinguible del material.
+ *
+ * Esta constante tiene que coincidir con la del `bucle.py` que cortó el wav. Si
+ * se vuelve a cortar, se cambia aquí.
  */
-const CHORRO_HZ_VACIO = 600
-const CHORRO_HZ_LLENO = 880
-/** Medido 5,3 con el instrumento; 8 en síntesis reproduce esa lectura. */
-const CHORRO_Q = 8
+const BUCLE_S = 1.75
 
 /**
- * La banda ancha de turbulencia: el chorro rompiendo la superficie.
+ * Lo que el chorro sube de tono entre vaso vacío y vaso lleno.
  *
- * Ya no es un «siseo» agudo y testimonial: es de 1,1 a 5,5 kHz y vale un
- * cuarto de la energía. Antes era un paso alto a 3 kHz sin techo, con ganancia
- * 0,012; de ahí que sonara a hilo de agua y no a grifo.
+ * La grabación ya lleva su propia subida dentro —medida: de 624 a 818 Hz—, pero
+ * al repetirla en bucle esa subida se reinicia cada vuelta y el efecto se
+ * pierde. Esto lo devuelve, y encima atado al llenado de verdad.
+ *
+ * Es `playbackRate`, así que sube el tono y acelera a la vez, igual que una
+ * cinta: con un 9% no se nota como truco y sí como que el vaso se llena.
  */
-const TURBULENCIA_HZ = 1100
-const TURBULENCIA_TECHO_HZ = 5500
-const TURBULENCIA_GANANCIA = 0.08
+const VELOCIDAD_VACIO = 0.97
+const VELOCIDAD_LLENO = 1.06
 
 /**
- * El cuerpo. Queda, pero MUY recortado: de 0,42 a 0,20. En la referencia esta
- * banda es el 6% de la energía, no el plato principal.
+ * El chorro se APAGA conforme sube el nivel. Medido en la grabación: 12 dB de
+ * caída entre el principio y el final del vertido. Cae desde menos altura y el
+ * líquido que ya hay amortigua.
  */
-const CUERPO_HZ = 320
-const CUERPO_Q = 5
-const CUERPO_GANANCIA = 0.20
+const CHORRO_VACIO = 1.0
+const CHORRO_LLENO = 0.4
 
-/**
- * El chorro se APAGA conforme sube el nivel: 12 dB de caída en la grabación,
- * de −21,6 a −33,9. Tiene sentido — cae desde menos altura y el líquido que ya
- * hay amortigua. Es lo contrario del crescendo que había al principio.
- */
-const CHORRO_GANANCIA_VACIO = 0.38
-const CHORRO_GANANCIA_LLENO = 0.135
-
-/** Volumen general. Por debajo de esto el chorro tapa al resto. */
-const VOLUMEN = 0.22
-
-/**
- * El crujido de la corona, y por qué NO va en crescendo.
- *
- * Lo apuntó el estudio: «la caña no suelta gas, las burbujas proceden de la
- * propia fermentación». Correcto. El CO₂ ya viene disuelto —de la
- * fermentación, y en cervecería industrial además añadido en fábrica— y lo que
- * pasa al servir es que se sale de disolución al golpear la superficie. No hay
- * nada que vaya «a más» mientras el grifo está abierto.
- *
- * Y la grabación de referencia lo confirma: tiene 2,4 s de vertido y después
- * 2,1 s de cola unos 15 dB por debajo. El crujido se oye **cuando paras**,
- * porque mientras cae el chorro lo tapa. El juego ya tenía el hueco: los 2 s
- * de reposo entre cerrar y la nota.
- *
- * Son granos de ruido de 8 ms muy agudos, no burbujitas de seno con glissando:
- * aquéllas, sueltas y con tono, eran un arroyo entre piedras.
- */
-const CRUJIDO_HZ = 2600
-const CRUJIDO_POR_SEG = 70
-const CRUJIDO_MS = 2800
+/** Volumen general. */
+const VOLUMEN = 0.5
 
 const CLAVE_SILENCIO = 'tiraje.silencio.v1'
 
@@ -127,25 +90,36 @@ interface SesionDeAudio { type: string }
 export class Sonido {
   #ctx: AudioContext | null = null
   #maestro: GainNode | null = null
-  /** El chorro es UNA fuente continua, no un disparo por frame. */
-  #ruido: AudioBufferSourceNode | null = null
-  #filtro: BiquadFilterNode | null = null
+
+  /** Los dos clips, ya descodificados. */
+  #bufVertido: AudioBuffer | null = null
+  #bufCola: AudioBuffer | null = null
+  /** Dónde empieza el audio de verdad dentro del bucle. Ver `#inicioReal`. */
+  #desfase = 0
+
+  /** La fuente del chorro vive mientras dura el vertido, no por frame. */
+  #chorro: AudioBufferSourceNode | null = null
   #chorroGain: GainNode | null = null
+  #vertiendo = false
+
   #silenciado = false
-  /** Para no disparar el derrame sesenta veces por segundo. */
   #derramando = false
-  /** Reloj del crujido, en segundos del contexto. */
-  #proximoGrano = 0
-  /** Instante en que se cerró el grifo, para apagar el crujido. */
-  #cerradoEn = 0
+  /** Las descargas empiezan al construir; descodificar necesita contexto. */
+  #crudos: Promise<[ArrayBuffer, ArrayBuffer] | null>
 
   constructor() {
     try { this.#silenciado = localStorage.getItem(CLAVE_SILENCIO) === '1' }
     catch { /* modo privado */ }
+    // Se bajan ya, sin esperar al gesto: son 33 KB, y así al tocar el botón
+    // sólo queda descodificar. Si falla la red, el juego sigue sin sonido.
+    this.#crudos = Promise.all([
+      fetch(vertidoUrl).then((r) => r.arrayBuffer()),
+      fetch(colaUrl).then((r) => r.arrayBuffer()),
+    ]).catch(() => null)
   }
 
   get silenciado(): boolean { return this.#silenciado }
-  get disponible(): boolean { return this.#ctx !== null }
+  get disponible(): boolean { return this.#bufVertido !== null }
 
   /**
    * Arranca el audio. **Llamar dentro de un gesto del usuario**, sin `await`
@@ -157,7 +131,6 @@ export class Sonido {
       { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     if (!Ctor) return
 
-    // El interruptor de silencio, antes de nada.
     const sesion = (navigator as unknown as { audioSession?: SesionDeAudio }).audioSession
     if (sesion) { try { sesion.type = 'playback' } catch { /* no soportado */ } }
 
@@ -168,61 +141,38 @@ export class Sonido {
     maestro.connect(ctx.destination)
     this.#maestro = maestro
 
-    // --- El chorro -------------------------------------------------------
-    // Ruido blanco en bucle a través de un paso banda. Un líquido cayendo ES
-    // ruido filtrado: no hay tono, hay una banda que se mueve. Sintetizarlo
-    // sale mejor que grabarlo, y aquí además tiene que responder al ángulo.
-    const segundos = 2
-    const buffer = ctx.createBuffer(1, ctx.sampleRate * segundos, ctx.sampleRate)
-    const datos = buffer.getChannelData(0)
-    for (let i = 0; i < datos.length; i++) datos[i] = Math.random() * 2 - 1
-
-    const fuente = ctx.createBufferSource()
-    fuente.buffer = buffer
-    fuente.loop = true
-
-    const filtro = ctx.createBiquadFilter()
-    filtro.type = 'bandpass'
-    filtro.frequency.value = CHORRO_HZ_VACIO
-    filtro.Q.value = CHORRO_Q
-
     const gain = ctx.createGain()
     gain.gain.value = 0
-
-    // Capa 1: la resonancia del vaso, que sube al llenarse.
-    fuente.connect(filtro).connect(gain)
-    // Las TRES capas salen del MISMO ruido, y eso no es por ahorrar: así están
-    // correlacionadas y el oído las junta en una sola fuente. Con tres ruidos
-    // independientes sonarían a tres cosas sucediendo a la vez.
-    //
-    // Capa 2: la turbulencia, 1,1-5,5 kHz. El techo NO es opcional: sin él
-    // el centroide del espectro se iba 1 kHz por encima de la referencia,
-    // porque un micrófono real no recoge nada por encima de 8 kHz y un paso
-    // alto sintético lo pasa todo hasta Nyquist.
-    const turb = ctx.createBiquadFilter()
-    turb.type = 'highpass'
-    turb.frequency.value = TURBULENCIA_HZ
-    const techo = ctx.createBiquadFilter()
-    techo.type = 'lowpass'
-    techo.frequency.value = TURBULENCIA_TECHO_HZ
-    const turbGain = ctx.createGain()
-    turbGain.gain.value = TURBULENCIA_GANANCIA
-    fuente.connect(turb).connect(techo).connect(turbGain).connect(gain)
-    // Capa 3: el cuerpo. Queda muy recortado respecto a lo que yo había puesto:
-    // medida la referencia, esta banda es el 6% de su energía, no el plato
-    // principal. La «potencia de chorro» no vive aquí abajo.
-    const cuerpo = ctx.createBiquadFilter()
-    cuerpo.type = 'bandpass'
-    cuerpo.frequency.value = CUERPO_HZ
-    cuerpo.Q.value = CUERPO_Q
-    const cuerpoGain = ctx.createGain()
-    cuerpoGain.gain.value = CUERPO_GANANCIA
-    fuente.connect(cuerpo).connect(cuerpoGain).connect(gain)
     gain.connect(maestro)
-    fuente.start()
-    this.#ruido = fuente
-    this.#filtro = filtro
     this.#chorroGain = gain
+
+    void this.#crudos.then(async (crudos) => {
+      if (!crudos) return
+      const [a, b] = crudos
+      this.#bufVertido = await ctx.decodeAudioData(a.slice(0))
+      this.#bufCola = await ctx.decodeAudioData(b.slice(0))
+      this.#desfase = this.#inicioReal(this.#bufVertido)
+      // Si el grifo ya estaba abierto al terminar de cargar, se engancha.
+      if (this.#vertiendo) this.#arrancaChorro()
+    })
+  }
+
+  /**
+   * Dónde empieza el audio de verdad dentro del buffer descodificado.
+   *
+   * **AAC mete silencio al principio** —el *priming delay* del códec, entre mil
+   * y dos mil muestras— y el descodificador de cada navegador lo deja o lo
+   * quita a su manera. Si el bucle se montara sobre el buffer entero, cada
+   * vuelta metería ese silencio y se oiría un hueco rítmico. Se busca la
+   * primera muestra con señal y se repite desde ahí exactamente `BUCLE_S`.
+   */
+  #inicioReal(buf: AudioBuffer): number {
+    const d = buf.getChannelData(0)
+    const limite = Math.min(d.length, buf.sampleRate / 2)
+    for (let i = 0; i < limite; i++) {
+      if (Math.abs(d[i]!) > 0.002) return i / buf.sampleRate
+    }
+    return 0
   }
 
   /** Enmudece sin apagar: el contexto sigue vivo y vuelve al instante. */
@@ -235,50 +185,70 @@ export class Sonido {
     }
   }
 
-  /**
-   * El estado continuo, una vez por frame.
-   *
-   * Nada de `setValueAtTime`: todo con `setTargetAtTime`, que interpola. Si se
-   * salta el valor a cada frame se oyen los escalones como un crujido.
-   */
+  /** El estado continuo, una vez por frame. */
   actualiza(f: { pouring: boolean; fill: number; foamFrac: number; spillingOver: boolean }): void {
     const ctx = this.#ctx
-    if (!ctx || !this.#filtro || !this.#chorroGain) return
+    if (!ctx || !this.#chorroGain) return
     const t = ctx.currentTime
-
-    // El tono sube con el nivel: la columna de aire que resuena se acorta.
     const nivel = f.fill < 0 ? 0 : f.fill > 1 ? 1 : f.fill
-    this.#filtro.frequency.setTargetAtTime(
-      CHORRO_HZ_VACIO + (CHORRO_HZ_LLENO - CHORRO_HZ_VACIO) * nivel, t, 0.08)
 
-    // La ganancia BAJA conforme se llena, 9 dB entre vaso vacío y lleno. En
-    // la grabación de referencia caen 12. Y no depende de la espuma: el
-    // crescendo que había era un invento mío — el grifo echa siempre igual.
-    const objetivo = f.pouring
-      ? CHORRO_GANANCIA_VACIO + (CHORRO_GANANCIA_LLENO - CHORRO_GANANCIA_VACIO) * nivel
-      : 0
-    this.#chorroGain.gain.setTargetAtTime(objetivo, t, f.pouring ? 0.04 : 0.12)
-
-    // El crujido de la corona: muy poco con el grifo abierto —lo tapa el
-    // chorro— y en primer plano justo al cerrar, extinguiéndose. Es el sonido
-    // de una caña recién puesta.
-    if (f.pouring) {
-      this.#cerradoEn = 0
-      this.#crujido(t, 0.18)
-    } else if (f.fill > 0.05) {
-      if (this.#cerradoEn === 0) this.#cerradoEn = t
-      const transcurrido = (t - this.#cerradoEn) * 1000
-      if (transcurrido < CRUJIDO_MS) {
-        // Se apaga de forma cuadrática: empieza fuerte y se va rápido, que es
-        // como se deshace la espuma.
-        const queda = 1 - transcurrido / CRUJIDO_MS
-        this.#crujido(t, queda * queda)
-      }
+    if (f.pouring && !this.#vertiendo) {
+      this.#vertiendo = true
+      this.#arrancaChorro()
+    } else if (!f.pouring && this.#vertiendo) {
+      this.#vertiendo = false
+      this.#paraChorro()
+      // La cola de espuma, justo donde se corta el chorro: es el sonido que
+      // cualquiera reconoce de una caña recién puesta, y mientras cae el
+      // chorro no se oye porque lo tapa.
+      if (f.fill > 0.05) this.#cola()
     }
+
+    // Nada de saltos por frame: `setTargetAtTime` interpola. A saltos se oyen
+    // los escalones como un crujido.
+    this.#chorroGain.gain.setTargetAtTime(
+      f.pouring ? CHORRO_VACIO + (CHORRO_LLENO - CHORRO_VACIO) * nivel : 0,
+      t, f.pouring ? 0.04 : 0.10)
+    this.#chorro?.playbackRate.setTargetAtTime(
+      VELOCIDAD_VACIO + (VELOCIDAD_LLENO - VELOCIDAD_VACIO) * nivel, t, 0.12)
 
     // El derrame suena UNA vez por episodio, no mientras dure.
     if (f.spillingOver && !this.#derramando) this.#salpica()
     this.#derramando = f.spillingOver
+  }
+
+  #arrancaChorro(): void {
+    const ctx = this.#ctx
+    if (!ctx || !this.#bufVertido || !this.#chorroGain || this.#chorro) return
+    const s = ctx.createBufferSource()
+    s.buffer = this.#bufVertido
+    s.loop = true
+    s.loopStart = this.#desfase
+    // Acotado al buffer: `ffmpeg` quita el relleno del códec y deja los 1,750 s
+    // exactos, pero no todos los descodificadores hacen lo mismo. Si alguno
+    // recorta la cola, un `loopEnd` fuera del buffer rompería el bucle entero;
+    // así, en el peor caso, se acorta un poco y se sigue oyendo.
+    s.loopEnd = Math.min(this.#desfase + BUCLE_S, s.buffer.duration)
+    s.connect(this.#chorroGain)
+    s.start(ctx.currentTime, this.#desfase)
+    this.#chorro = s
+  }
+
+  #paraChorro(): void {
+    const ctx = this.#ctx, s = this.#chorro
+    if (!ctx || !s) return
+    this.#chorro = null
+    // Se para DESPUÉS de que la ganancia haya bajado; si no, se oye el corte.
+    try { s.stop(ctx.currentTime + 0.4) } catch { /* ya parada */ }
+  }
+
+  #cola(): void {
+    const ctx = this.#ctx, maestro = this.#maestro
+    if (!ctx || !maestro || !this.#bufCola) return
+    const s = ctx.createBufferSource()
+    s.buffer = this.#bufCola
+    s.connect(maestro)
+    s.start(ctx.currentTime)
   }
 
   /** Toque de grifo: un chasquido corto, seco y sin tono definido. */
@@ -291,23 +261,21 @@ export class Sonido {
     osc.frequency.setValueAtTime(220, t)
     osc.frequency.exponentialRampToValueAtTime(90, t + 0.06)
     const g = ctx.createGain()
-    g.gain.setValueAtTime(0.9, t)
+    g.gain.setValueAtTime(0.4, t)
     g.gain.exponentialRampToValueAtTime(0.001, t + 0.08)
     osc.connect(g).connect(maestro)
     osc.start(t)
     osc.stop(t + 0.1)
   }
 
-  /** Resultado: tres notas. Sube si la caña fue buena, baja si fue mala. */
+  /** Resultado: tres notas. Suben si la caña fue buena, bajan si fue mala. */
   resultado(nota: number): void {
     const ctx = this.#ctx, maestro = this.#maestro
     if (!ctx || !maestro) return
     const t = ctx.currentTime
-    // Si/mi/si de una pentatónica: suena a premio sin sonar a máquina
-    // tragaperras. Al revés para una caña mala, que es lo que todo el mundo
-    // entiende sin que se lo expliquen.
-    const buena = nota >= 60
-    const notas = buena ? [392, 523.25, 659.25] : [392, 329.63, 261.63]
+    // Pentatónica: suena a premio sin sonar a máquina tragaperras. Al revés
+    // para una caña mala, que lo entiende todo el mundo sin explicación.
+    const notas = nota >= 60 ? [392, 523.25, 659.25] : [392, 329.63, 261.63]
     notas.forEach((hz, i) => {
       const inicio = t + i * 0.11
       const osc = ctx.createOscillator()
@@ -315,7 +283,7 @@ export class Sonido {
       osc.frequency.value = hz
       const g = ctx.createGain()
       g.gain.setValueAtTime(0, inicio)
-      g.gain.linearRampToValueAtTime(0.5, inicio + 0.015)
+      g.gain.linearRampToValueAtTime(0.22, inicio + 0.015)
       g.gain.exponentialRampToValueAtTime(0.001, inicio + 0.38)
       osc.connect(g).connect(maestro)
       osc.start(inicio)
@@ -324,52 +292,24 @@ export class Sonido {
   }
 
   /**
-   * Un grano de crujido: 8 ms de ruido agudo. Nada de tono.
+   * Derrame: la propia cola de espuma, grave y a destiempo.
    *
-   * Lo que había antes eran senos con glissando, uno cada 60-200 ms. Eso, por
-   * separado y con tono, es el sonido de un arroyo entre piedras; de ahí el
-   * «riachuelo». La espuma de la cerveza no hace notas: hace chasquidos muy
-   * finos, muy densos y muy agudos, que es lo que son estos granos.
+   * Reusar el clip en vez de sintetizar un golpe mantiene el sonido en la misma
+   * familia; bajarle la velocidad a 0,55 lo convierte en algo pesado que no se
+   * confunde con la corona asentándose.
    */
-  #crujido(t: number, intensidad: number): void {
-    const ctx = this.#ctx, maestro = this.#maestro
-    if (!ctx || !maestro || !this.#ruido?.buffer || intensidad <= 0.01) return
-    if (t < this.#proximoGrano) return
-    this.#proximoGrano = t + (0.5 + Math.random()) / (CRUJIDO_POR_SEG * intensidad)
-
-    const f = ctx.createBufferSource()
-    f.buffer = this.#ruido.buffer
-    // Cada grano arranca en un punto distinto del ruido: si todos salieran del
-    // mismo sitio se oiría el patrón repetido como un zumbido.
-    const desde = Math.random() * (this.#ruido.buffer.duration - 0.05)
-    const hp = ctx.createBiquadFilter()
-    hp.type = 'highpass'
-    hp.frequency.value = CRUJIDO_HZ * (0.7 + Math.random() * 0.9)
-    const g = ctx.createGain()
-    g.gain.setValueAtTime(0.14 * intensidad, t)
-    g.gain.exponentialRampToValueAtTime(0.0005, t + 0.008)
-    f.connect(hp).connect(g).connect(maestro)
-    f.start(t, desde, 0.01)
-  }
-
-  /** Derrame: un golpe de ruido grave. Se nota sin necesidad de mirar. */
   #salpica(): void {
     const ctx = this.#ctx, maestro = this.#maestro
-    if (!ctx || !maestro || !this.#ruido?.buffer) return
+    if (!ctx || !maestro || !this.#bufCola) return
     const t = ctx.currentTime
-    const f = ctx.createBufferSource()
-    f.buffer = this.#ruido.buffer
-    f.loop = true
-    const lp = ctx.createBiquadFilter()
-    lp.type = 'lowpass'
-    lp.frequency.setValueAtTime(900, t)
-    lp.frequency.exponentialRampToValueAtTime(180, t + 0.3)
+    const s = ctx.createBufferSource()
+    s.buffer = this.#bufCola
+    s.playbackRate.value = 0.55
     const g = ctx.createGain()
-    g.gain.setValueAtTime(0.0001, t)
-    g.gain.exponentialRampToValueAtTime(0.8, t + 0.02)
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.35)
-    f.connect(lp).connect(g).connect(maestro)
-    f.start(t)
-    f.stop(t + 0.4)
+    g.gain.setValueAtTime(0.9, t)
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.5)
+    s.connect(g).connect(maestro)
+    s.start(t)
+    s.stop(t + 0.55)
   }
 }

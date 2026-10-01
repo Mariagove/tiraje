@@ -1812,61 +1812,71 @@ juego: el resultado o el pulso—, así que la dejo medida y sin aplicar:
 
 Son dos números en los dos `varieties/*.json` y un rehorneado.
 
-## Sonido: sintetizado, sin un solo fichero
+## Sonido: la grabación del estudio, no síntesis
 
-Pedido por el estudio. **No hay samples**, y no por ahorrar peso: el sonido de
-esta pantalla no es un efecto, es un **estado continuo**. El chorro dura lo que
-dure la tirada y cambia con la inclinación y con el nivel; con un `.mp3` en
-bucle o se oye el corte o no reacciona a nada.
+**El chorro y la espuma son el wav real.** El toque de grifo y las tres notas
+del resultado siguen sintetizados, que son dos chasquidos y tres notas.
 
-Coste medido: **1,3 KB comprimidos** (50.679 → 51.982 bytes). Once efectos en
-fichero habrían sido entre 150 y 400 KB sobre un presupuesto de 250.
+Peso: **33 KB** los dos clips en AAC mono a 64 kbps. El sitio entero pasa de
+52,1 a **84,6 KB** comprimidos, sobre un tope de 250.
 
-Qué suena:
+### Por qué se abandonó la síntesis después de cinco versiones
 
-- **El chorro, en tres capas, y afinado en tres pasadas.** La primera versión
-  era UNA banda ancha y grave, y el estudio la describió exacto: «recuerda más
-  a una catarata vista en televisión que a un grifo echando cerveza». Es
-  literal — un salto de agua *es* ruido de banda ancha con mucha energía abajo,
-  y el tamaño de lo que cae se oye en cuánto grave tiene.
+La última versión sintetizada se ajustó **midiendo** la grabación: espectro por
+bandas, réplica de la cadena de biquads en Python, búsqueda en rejilla. Quedó en
+14,9 puntos porcentuales de error en ocho bandas, con la banda dominante
+—500-1.000 Hz, el 59% de la energía— en el 61,7%.
 
-  | | v1 «catarata» | v2 | v3 «tubular» | v4 (hoy) |
-  |---|---|---|---|---|
-  | resonancia | 320-1.400 Hz | 700-2.400 | 700-2.400 | 700-2.400 |
-  | `Q` | 0,8 | 3,2 | **9** | 9 |
-  | siseo agudo | — | 0,05 | 0,012 | 0,012 |
-  | cuerpo grave | — | — | — | **320 Hz, `Q` 5** |
-  | ganancia | 0,50→1,00 | 0,20→0,36 | 0,18→0,30 | **0,34 fija** |
+Y aun así el estudio dijo que no se parecía. Tenía razón, y el motivo merece
+quedar escrito porque es un error de método, no de parámetros:
 
-  La v3 corrigió la catarata pero se pasó: «suena demasiado a riachuelo, debe
-  tener más potencia de chorro». Un hilo cayendo por su peso no tiene presión
-  detrás; un grifo de barril sí, y **la presión se oye abajo**. De ahí la
-  tercera capa. La clave es que va abajo **y estrecha**: grave + ancho es la
-  catarata otra vez, grave + `Q` 5 es caudal.
+**Igualar el espectro medio no basta.** Dos sonidos pueden repartir la energía
+igual por bandas y no parecerse en nada, porque lo que identifica un chorro de
+verdad es su estructura **en el tiempo**: las irregularidades, los golpes de
+gota sueltos, el caudal que titubea. La envolvente de la grabación salta ±8 dB
+entre instantes contiguos; el ruido filtrado es liso por definición. Ningún
+filtro arregla eso, y menos aún alguien que no puede oír lo que genera.
 
-  Las tres capas salen del **mismo** ruido, así que se oyen como una sola
-  fuente; con ruidos independientes el oído separa y suenan a tres cosas a la
-  vez.
+Lo medido no se tira —sigue abajo, y es lo que explica por qué el chorro suena
+como suena—, pero la fuente es la grabación.
 
-- **El crujido de la corona, y por qué ya no va en crescendo.** Lo apuntó el
-  estudio: «la caña no suelta gas, las burbujas proceden de la propia
-  fermentación». Correcto, y tiene consecuencia sonora. El CO₂ ya viene
-  disuelto en la cerveza —de la fermentación, y en cervecería industrial además
-  añadido en fábrica— y lo que ocurre al servir es que **se sale de disolución**
-  al golpear la superficie. No hay nada que vaya «a más» mientras el grifo está
-  abierto, así que la ganancia pasa a ser fija.
+### Cómo se preparó
 
-  Y hay algo mejor que corregir el error: **el crujido se oye sobre todo cuando
-  paras**. Mientras cae el chorro lo tapa; al cerrar se queda solo y se extingue
-  en unos segundos. Es el sonido que cualquiera reconoce de una caña recién
-  puesta, y el juego ya tenía el hueco — los 2 s de reposo entre cerrar y la
-  nota. Ahora suena ahí, apagándose de forma cuadrática.
+El wav son 4,6 s: **2,4 s de vertido y 2,1 s de cola**, separados por una caída
+de 15 dB. Justo las dos fases del juego.
 
-  Y son **granos de ruido de 8 ms muy agudos**, no las burbujitas de seno con
-  glissando que había antes. Aquéllas, sueltas y con tono, eran literalmente un
-  arroyo entre piedras: la otra mitad del «riachuelo».
+- **`vertido.m4a`**, 1,750 s, en bucle. El vertido dura lo que el jugador
+  aguante, así que hay que repetirlo. El bucle **no** se hace con `loopStart` a
+  secas: ahí el salto del final al principio chasca, porque la onda no vale lo
+  mismo a un lado y a otro. Se horneó un fundido cruzado de 250 ms con potencia
+  constante —lineal pierde 3 dB en el centro y se oye un bache cada vuelta—.
+  Comprobado: el salto en la costura es **0,018** frente a **0,097** de salto
+  típico de la propia señal, o sea indistinguible del material.
+- **`cola.m4a`**, 1,98 s, de un disparo al cerrar el grifo.
+- **El relleno de AAC.** El códec mete silencio al principio y cada navegador lo
+  quita o lo deja a su manera. Montado el bucle sobre el buffer entero, cada
+  vuelta metería ese hueco. Se busca en el buffer descodificado la primera
+  muestra con señal y se repite desde ahí exactamente 1,750 s, con el final
+  acotado al buffer por si algún descodificador recorta la cola.
 
-### La grabación de referencia, y lo que desmintió
+### Lo que se conserva de la síntesis
+
+- **El tono sube con el llenado.** La grabación lo trae dentro (624 → 818 Hz
+  medidos), pero al repetirla en bucle la subida se reinicia cada vuelta. Se
+  devuelve con `playbackRate` de 0,97 a 1,06 atado al llenado real: un 9%, que
+  no se nota como truco y sí como que el vaso se llena.
+- **El chorro se apaga al llenarse**, 12 dB medidos en la grabación. Cae desde
+  menos altura y el líquido amortigua.
+- **El derrame** es la propia cola a velocidad 0,55: se queda en la misma
+  familia de sonido en vez de ser un sintetizador aparte.
+
+### Pendiente del estudio
+
+**¿De quién es la grabación?** Si es suya, nada que hacer. Si salió de un banco
+de sonidos, hay que comprobar que la licencia cubre una campaña comercial — y
+eso se mira antes de la activación, no después.
+
+### Lo medido de la grabación, que sigue valiendo
 
 El estudio dejó `Sonido tiraje.wav`: 4,6 s de un grifo llenando un vaso. **No
 puedo oírlo, así que lo medí**, y a partir de ahí el ajuste dejó de ser a ojo.
@@ -1943,11 +1953,14 @@ es la decisión que uno toma al sacar el móvil, no a mitad de tirada.
 
 ### Lo que NO está comprobado
 
-**No lo he oído.** Compila, pasa los 110 tests y los nodos se crean, pero
-verificar que suena —y que suena bien— exige abrir el navegador, y eso no lo
-hago sin permiso. La paleta además es mía: los tonos, el carácter del chasquido
-y las notas del final son decisión de diseño y están puestos como punto de
-partida, no como arte final.
+**No lo he oído.** Sigue sin oírse desde aquí. Lo que sí está comprobado sin
+navegador: compila, pasa los 110 tests, la costura del bucle mide 0,018 frente a
+0,097 de salto típico, y el bucle cabe dentro del fichero descodificado
+(1,7500 s de duración, 0 ms de silencio de cabecera con `ffmpeg`).
+
+Lo que **no** puede comprobarse sin oírlo: que el bucle no cante al repetirse en
+un vertido largo, y que el `playbackRate` de la subida de tono no suene a cinta
+acelerada. Son las dos cosas que hay que escuchar en una partida entera.
 
 ## Sigue abierto, y no lo decide el código
 
