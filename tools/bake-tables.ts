@@ -77,7 +77,12 @@ function bake(cfg: VarietyConfig): { src: string; report: Record<string, string>
     const d = Math.abs(TARGET_DDEG[i]! - TARGET_DDEG[i - 1]!) / 10 * FILL_STEPS
     if (i / FILL_STEPS <= cfg.targets.fill) maxSlope = Math.max(maxSlope, d * fRateBeer)
   }
-  const omegaAllowedDegPerSec = Math.ceil(maxSlope * 1.5)
+  // El mayor de los dos: lo que exige la curva, y lo que hace una mano
+  // corrigiendo. Este término está para detectar que ya NO estás siguiendo el
+  // objetivo —agitar el móvil, o una traza inventada—, no para cobrarte las
+  // correcciones.
+  const omegaAllowedDegPerSec = Math.max(
+    Math.ceil(maxSlope * 1.5), cfg.difficulty.omegaFloorDegPerSec)
 
   const maxPoints = s.pointsPerSecBeer * tPerfect
   const maxScore = Math.round(

@@ -65,7 +65,22 @@ export interface VarietyConfig {
     overflowSettleFrac: number
   }
   /** Plan §1.3: la curva objetivo es la de derrame con margen. */
-  difficulty: { kSafe: number; maxTargetDeg: number }
+  difficulty: {
+    kSafe: number
+    maxTargetDeg: number
+    /**
+     * Suelo de la velocidad angular permitida, en grados por segundo.
+     *
+     * La permitida sale de la pendiente de la curva objetivo, pero ese número
+     * mide lo que exige el OBJETIVO, no lo que hace una mano. Una persona no
+     * sigue una curva: se queda corta y corrige a tirones, y corregir 2° en
+     * una décima ya son 20 °/s. Sin suelo, al suavizar la curva el presupuesto
+     * de velocidad se partió por la mitad —de 36 a 18 °/s— y se puso a
+     * castigar la corrección normal, que es justo lo contrario de lo que este
+     * término existe para detectar.
+     */
+    omegaFloorDegPerSec: number
+  }
   /**
    * Gradiente del líquido (plan §1.5). Con la pantalla como vaso, la silueta
    * ya no distingue una cerveza de otra: el color es lo que las separa.

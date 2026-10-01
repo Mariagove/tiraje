@@ -25,7 +25,8 @@
   },
   "difficulty": {
     "kSafe": 0.3,
-    "maxTargetDeg": 48
+    "maxTargetDeg": 48,
+    "omegaFloorDegPerSec": 40
   },
   "look": {
     "beer": [

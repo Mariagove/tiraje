@@ -1583,6 +1583,54 @@ poco (22 puntos de recorrido a 17). Era de esperar —un juego más fácil compr
 hacia arriba— y es el intercambio que se buscaba: se cambia algo de separación
 por poder hacer el movimiento como se hace de verdad.
 
+## Una partida buena puntuaba 26, y el culpable era mío
+
+El estudio informa de una partida con **5° de error medio, 96% de llenado y
+23% de corona** que sacó **26**, y que no se entendía por qué.
+
+Reconstruida con esos tres números —la traza no se guarda, así que esto es
+aritmética inversa sobre el techo y las tablas—, el reparto era:
+
+| parte | se llevó |
+|---|---|
+| llenado (96%, 1 pp de desvío) | 18,5 de 18,8 |
+| corona (23%, 3 pp) | 17,2 de 18,8 |
+| limpieza | ~7,2 de 7,5 |
+| **vertido** | **10,9 de 55** |
+
+O sea que el resultado estaba casi clavado y todo se perdió en el vertido. Y
+dentro del vertido, el ángulo a 5° de error vale 0,368 —la σ es 5°, así que 5°
+es exactamente `e⁻¹`—, lo que deja un **0,538 para el producto ladeo ×
+velocidad de muñeca**.
+
+Y ahí está la pista: el bono de limpieza, 7,2 de 7,5, dice que **el ladeo valió
+0,96**. Por eliminación, la velocidad de muñeca valió **0,56**: se comió el 44%
+del vertido.
+
+### La causa: suavizar la curva partió por la mitad el presupuesto de muñeca
+
+`omegaAllowed` salía de `pendiente máxima × 1,5`. Al suavizar la curva objetivo
+la pendiente bajó, y con ella el presupuesto: **de 36 a 18 °/s**. Pero ese
+número mide lo que exige el OBJETIVO, no lo que hace una mano. Una persona no
+sigue una curva: se queda corta y corrige a tirones, y corregir 2° en una
+décima de segundo ya son 20 °/s.
+
+Así que el término que existe para detectar que **ya no estás siguiendo el
+objetivo** —agitar el móvil, o una traza inventada— se puso a cobrar la
+corrección normal. Se le pone un **suelo de 40 °/s**, configurable por
+variedad. Esa misma partida pasa de 26 a **~35**.
+
+### Y la tarjeta no decía nada de esto
+
+Enseñaba tres números buenos y debajo una nota baja. Ahora lleva el desglose
+—vertido, llenado, corona, limpieza— **en porcentaje de lo que vale cada
+parte**. No se puede dar en puntos de la nota porque la nota pasa por una
+curva y las partes no sumarían; en porcentaje de su propio máximo sí dice lo
+único que hacía falta: dónde se perdió.
+
+Con esa partida se habría leído `vertido 20% · llenado 98% · corona 91% ·
+limpieza 96%`, y no habría hecho falta esta conversación.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

@@ -6,13 +6,13 @@
     "steps": 814
   },
   "especial-good": {
-    "score": 81,
+    "score": 82,
     "verdict": "ok",
     "err": 1.64,
     "steps": 809
   },
   "especial-mediocre": {
-    "score": 38,
+    "score": 39,
     "verdict": "ok",
     "err": 5.11,
     "steps": 795
@@ -36,19 +36,19 @@
     "steps": 840
   },
   "negra-good": {
-    "score": 79,
+    "score": 80,
     "verdict": "ok",
     "err": 1.64,
     "steps": 834
   },
   "negra-mediocre": {
-    "score": 34,
+    "score": 35,
     "verdict": "ok",
     "err": 5.08,
     "steps": 816
   },
   "negra-perfect": {
-    "score": 94,
+    "score": 95,
     "verdict": "ok",
     "err": 0.35,
     "steps": 840

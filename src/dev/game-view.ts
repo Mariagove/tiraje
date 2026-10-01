@@ -134,6 +134,11 @@ const INSTRUCCIONES = [
   'y un segundo toque para cerrarlo.',
 ].map((l) => `<div>${l}</div>`).join('')
 
+/** Un componente del desglose, en porcentaje de lo que vale esa parte. */
+function pc(x: number, tope: number): string {
+  return `${Math.round(Math.max(0, Math.min(1, x / tope)) * 100)}%`
+}
+
 const PROMPTS: Partial<Record<GameState, string>> = {
   CALIBRATE: INSTRUCCIONES,
   READY: INSTRUCCIONES,
@@ -182,6 +187,7 @@ export function mountGameView(
           <div class="text-[0.6rem] tracking-widest">PUNTUACIÓN</div>
           <div id="score" class="font-mono text-5xl tabular-nums">0</div>
           <div id="verdict" class="mt-0.5 text-[0.7rem]"></div>
+          <div id="desglose" class="mt-1.5 flex flex-wrap justify-center gap-x-2 gap-y-0.5 text-[0.65rem]"></div>
         </div>
         <div class="flex items-center justify-center gap-3">
           ${[0, 1, 2].map((i) => `
@@ -275,6 +281,24 @@ export function mountGameView(
         $('#verdict').innerHTML = (r.verdict === 'spilled' ? '<b>CAÑA DERRAMADA</b> · ' : '') +
           `error medio ${r.meanErrorDeg.toFixed(0)}° · ${(r.fill * 100).toFixed(0)}% lleno, ` +
           `${(r.foam * 100).toFixed(0)}% de corona`
+        // El desglose, en porcentaje de lo que vale CADA parte.
+        //
+        // Sin esto la tarjeta enseñaba tres números buenos —error, llenado y
+        // corona— y debajo una nota baja, sin forma de saber por qué. No se
+        // puede dar en puntos de la nota porque la nota pasa por una curva y
+        // las partes no sumarían; en porcentaje de su propio máximo sí dice lo
+        // que hace falta: dónde se perdió.
+        const sc = v.cfg.scoring
+        const topeFill = sc.bonusFill * sc.finalMultiplier
+        const topeFoam = sc.bonusFoam * sc.finalMultiplier
+        const topeClean = sc.bonusClean * sc.finalMultiplier
+        const topePour = v.maxScore - topeFill - topeFoam - topeClean
+        $('#desglose').innerHTML = [
+          ['vertido', pc(r.breakdown.pour, topePour)],
+          ['llenado', pc(r.breakdown.fill, topeFill)],
+          ['corona', pc(r.breakdown.foam, topeFoam)],
+          ['limpieza', pc(r.breakdown.clean, topeClean)],
+        ].map(([k, val]) => `<span class="whitespace-nowrap">${k} <b>${val}</b></span>`).join(' \u00b7 ')
         card.classList.remove('hidden'); card.classList.add('flex')
         renderRanking()
       },
