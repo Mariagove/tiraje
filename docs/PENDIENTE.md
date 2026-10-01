@@ -1812,6 +1812,56 @@ juego: el resultado o el pulso—, así que la dejo medida y sin aplicar:
 
 Son dos números en los dos `varieties/*.json` y un rehorneado.
 
+## Sonido: sintetizado, sin un solo fichero
+
+Pedido por el estudio. **No hay samples**, y no por ahorrar peso: el sonido de
+esta pantalla no es un efecto, es un **estado continuo**. El chorro dura lo que
+dure la tirada y cambia con la inclinación y con el nivel; con un `.mp3` en
+bucle o se oye el corte o no reacciona a nada.
+
+Coste medido: **1,3 KB comprimidos** (50.679 → 51.982 bytes). Once efectos en
+fichero habrían sido entre 150 y 400 KB sobre un presupuesto de 250.
+
+Qué suena:
+
+- **El chorro.** Ruido blanco en bucle por un paso banda. Un líquido cayendo
+  *es* ruido filtrado: no tiene tono, tiene una banda. El filtro **sube de 320
+  a 1.400 Hz conforme se llena el vaso**, que es física de verdad —la columna
+  de aire que resuena encima del líquido se acorta— y da una pista audible del
+  nivel. La ganancia sube con la fracción de espuma, que es aire rompiendo.
+- **Burbujas.** Pulsos de seno de 40 ms que suben de tono al romper, de 14 a 45
+  por segundo según la espuma.
+- **El grifo.** Un chasquido de 80 ms en los dos toques.
+- **El derrame.** Un golpe de ruido grave, **una vez por episodio**, no mientras
+  dure.
+- **El resultado.** Tres notas pentatónicas: ascendentes por encima de 60,
+  descendentes por debajo.
+
+### Tres cosas de iOS que no son opcionales
+
+1. **El `AudioContext` se crea DENTRO del gesto**, en la misma línea que
+   `requestMotionPermission()`. Creado al cargar nace `suspended` y no suena
+   nada sin dar ningún error. Si alguien mueve esa llamada, el audio muere en
+   silencio.
+2. **El interruptor de silencio del iPhone calla el Web Audio** en Safari, y en
+   un bar media sala lo lleva puesto. `navigator.audioSession.type =
+   'playback'` (Safari 16.4+) lo arregla; se consulta antes de usarla, así que
+   donde no exista simplemente no suena en silencio.
+3. **Un bar es ruidoso.** Esto acompaña, nunca informa en exclusiva: todo lo que
+   suena se ve también.
+
+Interruptor en la pantalla de inicio, con la preferencia recordada. Va ahí y no
+en la del vaso porque en la del vaso no cabe otro control sin estorbar, y porque
+es la decisión que uno toma al sacar el móvil, no a mitad de tirada.
+
+### Lo que NO está comprobado
+
+**No lo he oído.** Compila, pasa los 110 tests y los nodos se crean, pero
+verificar que suena —y que suena bien— exige abrir el navegador, y eso no lo
+hago sin permiso. La paleta además es mía: los tonos, el carácter del chasquido
+y las notas del final son decisión de diseño y están puestos como punto de
+partida, no como arte final.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

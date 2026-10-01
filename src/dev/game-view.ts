@@ -21,6 +21,7 @@ import { ThumbSource } from '@/sensors/thumbSource'
 import type { Fusion } from '@/sensors/fusion'
 import type { AngleSource } from '@/game/loop'
 import type { Angles } from '@/sensors/fusion'
+import type { Sonido } from '@/audio/sound'
 
 const VARIETIES: Record<string, BakedVariety> = { especial: ESPECIAL, negra: NEGRA }
 /**
@@ -145,6 +146,7 @@ const PROMPTS: Partial<Record<GameState, string>> = {
 
 export function mountGameView(
   root: HTMLElement, fusion: Fusion, qrVariety: string | null = null,
+  sonido: Sonido | null = null,
 ): () => void {
   // El móvil es el vaso: el canvas es la pantalla entera, en `fixed`, y la UI
   // flota encima. Sólo los controles reciben punteros; el resto de la
@@ -266,6 +268,7 @@ export function mountGameView(
         if (s === 'READY') { hud.style.opacity = '1'; card.classList.add('hidden'); card.classList.remove('flex') }
       },
       onResult: (r, t) => {
+        sonido?.resultado(r.score)
         lastResult = r; lastTrace = t
         // El HUD se queda oculto; el resumen en grados enteros va en la
         // tarjeta. Se vacía para no dejar un ángulo obsoleto en el DOM.
@@ -301,14 +304,16 @@ export function mountGameView(
   let downY = 0
   let moved = 0
   canvas.addEventListener('pointerdown', (e) => {
-    if (!src.practice) { loop.queueTap(); return }
+    if (!src.practice) { sonido?.toque(); loop.queueTap(); return }
     downAt = performance.now(); downY = e.clientY; moved = 0
   })
   canvas.addEventListener('pointermove', (e) => {
     if (src.practice && downAt > 0) moved = Math.max(moved, Math.abs(e.clientY - downY))
   })
   canvas.addEventListener('pointerup', () => {
-    if (src.practice && downAt > 0 && moved < 8 && performance.now() - downAt < 400) loop.queueTap()
+    if (src.practice && downAt > 0 && moved < 8 && performance.now() - downAt < 400) {
+      sonido?.toque(); loop.queueTap()
+    }
     downAt = 0
   })
 
@@ -403,8 +408,13 @@ export function mountGameView(
     loop.advance(now)
 
     const t0 = performance.now()
-    renderer.draw(loop.frame())
+    const gf = loop.frame()
+    renderer.draw(gf)
     drawMs = performance.now() - t0
+    // El sonido va DESPUÉS de dibujar y fuera del cronómetro: lo que se mide
+    // aquí es el coste de nuestro dibujo, y meter el audio dentro degradaría
+    // el tier de render por algo que no es render.
+    sonido?.actualiza(gf)
 
     // Se mide el coste de NUESTRO dibujo, no el intervalo entre frames: una
     // pantalla bloqueada a 30 Hz daría 33 ms de intervalo con un dibujo

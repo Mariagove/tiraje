@@ -19,6 +19,7 @@ import { Fusion, requestMotionPermission, type SensorStatus } from '@/sensors/fu
 import { mountSensorSlice } from '@/dev/sensor-slice'
 import { mountTraceRecorder } from '@/dev/trace-recorder'
 import { mountGameView } from '@/dev/game-view'
+import { Sonido } from '@/audio/sound'
 // Vite le pone hash al nombre y devuelve la URL ya con el `base` del build
 // aplicado. Referenciarlo a mano como '/ambar.png' daría 404 en Pages, donde
 // el sitio vive en /tiraje/.
@@ -125,6 +126,12 @@ export function mountShell(root: HTMLElement): void {
              probó un cambio contra la versión vieja y la sesión de pruebas
              entera no valió. Quien prueba canta el sello y se sabe cuál es.
              (Sin comillas invertidas aquí dentro: cierran este literal.) -->
+        <!-- El sonido se apaga ANTES de entrar, no durante. En la pantalla
+             del vaso no cabe un control más sin estorbar, y además es la
+             decisión que uno toma al sacar el móvil en un bar, no a mitad de
+             tirada. La preferencia se recuerda. -->
+        <button id="sonido" class="text-center text-xs text-ambar-dim underline
+                decoration-dotted underline-offset-4"></button>
         <p class="text-center text-[0.65rem] text-ambar-dim">${SELLO_BUILD}</p>
       </section>
 
@@ -169,6 +176,19 @@ export function mountShell(root: HTMLElement): void {
   }
 
   const fusion = new Fusion({ onStatus: paintStatus })
+  const sonido = new Sonido()
+
+  const botonSonido = $<HTMLButtonElement>('sonido')
+  function pintaSonido(): void {
+    botonSonido.textContent = sonido.silenciado ? 'sonido desactivado' : 'sonido activado'
+  }
+  pintaSonido()
+  botonSonido.addEventListener('click', (e) => {
+    // No debe disparar el botón de entrar ni confirmar la edad.
+    e.stopPropagation()
+    sonido.silencia(!sonido.silenciado)
+    pintaSonido()
+  })
 
   let teardown: (() => void) | null = null
   skin('ui')
@@ -178,7 +198,7 @@ export function mountShell(root: HTMLElement): void {
     skin(view === 'game' ? 'game' : 'ui')
     teardown = view === 'trace' ? mountTraceRecorder(viewEl, fusion)
       : view === 'sensor' ? mountSensorSlice(viewEl, fusion)
-        : mountGameView(viewEl, fusion, qrVariety)
+        : mountGameView(viewEl, fusion, qrVariety, sonido)
   }
 
   $('go').addEventListener('click', () => {
@@ -186,6 +206,11 @@ export function mountShell(root: HTMLElement): void {
     // sin `async` en el handler. Si esto se mueve, en iOS deja de funcionar
     // y no da ningún error que lo explique.
     const p = requestMotionPermission()
+
+    // El audio, por el mismo motivo y en el mismo gesto: un AudioContext
+    // creado fuera de un toque nace `suspended` y no suena nada, sin ningún
+    // error que lo explique. Va aquí, no dentro del `then`.
+    sonido.despierta()
 
     // Todo lo demás, después. El age gate va aquí porque ya no exige gesto.
     confirmAge()
