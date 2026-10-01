@@ -1695,6 +1695,40 @@ Donde esto corresponde es en el **antifraude de la fase 2**, con
 `planarConfidence = cos ρ`, y con el umbral sacado de las 500 trazas reales —no
 inventado ahora.
 
+## El sello del build, y la sesión de pruebas que se perdió
+
+Se probó el borrado de ρ y el veredicto fue «no noto nada, y además el desglose
+sigue ahí». Comprobado contra lo que sirve GitHub Pages:
+
+```
+curl -s .../assets/index-BBDE4wUt.js | grep -c desglose   → 0
+```
+
+El desglose no estaba. Lo que corría en el móvil era el bundle anterior:
+`index.html` se sirve con `cache-control: max-age=600`, y el `<script>` que
+apunta al JS con hash va dentro de ese HTML. Diez minutos en los que el móvil
+pide el JS viejo, que sí tiene caché eterna porque su nombre lleva hash. En un
+iPhone con el sitio en la pantalla de inicio, más. No hay service worker.
+
+El coste real no fue el retraso: fue que **una ronda de pruebas entera se hizo
+contra código viejo** y nadie podía saberlo. «No noto nada» y «estoy probando la
+versión de antes» se ven exactamente igual.
+
+Así que la pantalla de inicio lleva ahora el **sello del build** —sha corto más
+fecha, inyectado con `define` desde `vite.config.ts`—. Quien prueba lo canta y
+se sabe qué código tiene en la mano. Un `+` detrás del sha significa que se
+compiló con cambios sin confirmar, así que los builds de Pages nunca lo llevan.
+
+Para forzar la actualización sin esperar: recargar con la pestaña cerrada y
+vuelta a abrir, o añadir `?v=2` a la URL.
+
+### Tercera vez con las comillas invertidas
+
+Escribir `` `index.html` `` dentro de un comentario HTML que vive en un template
+literal cierra el literal. Van tres. El comentario del sello lo dice ahora en su
+propia última línea. `tsc` lo caza al instante, que es la única razón de que no
+llegue a producción.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

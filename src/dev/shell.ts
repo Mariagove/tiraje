@@ -119,6 +119,13 @@ export function mountShell(root: HTMLElement): void {
           Al tocar, el móvil te pedirá permiso para usar el sensor de movimiento.
           Es lo que mide el ángulo del vaso: sin eso no hay juego.
         </p>
+        <!-- El sello del build. Pequeño y apagado, pero presente: el
+             index.html se sirve con max-age=600, así que el móvil puede estar
+             ejecutando el bundle anterior sin que nada lo delate. Ya pasó: se
+             probó un cambio contra la versión vieja y la sesión de pruebas
+             entera no valió. Quien prueba canta el sello y se sabe cuál es.
+             (Sin comillas invertidas aquí dentro: cierran este literal.) -->
+        <p class="text-center text-[0.65rem] text-ambar-dim">${SELLO_BUILD}</p>
       </section>
 
       <section id="view"></section>
