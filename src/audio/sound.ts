@@ -72,8 +72,46 @@ const CHORRO_Q = 9
  */
 const SISEO_HZ = 3000
 const SISEO_GANANCIA = 0.012
+/**
+ * El CUERPO: la fuerza del grifo.
+ *
+ * Con sólo la resonancia aguda y el siseo, el chorro sonaba a riachuelo — un
+ * hilo de agua cayendo por su propio peso. Un grifo de barril tiene presión
+ * detrás, y la presión se oye abajo.
+ *
+ * Pero abajo **y estrecho**, que es toda la diferencia con el primer intento:
+ * grave + ancho es una catarata, grave + `Q` 5 es un golpe de caudal. La banda
+ * no se mueve con el llenado; la que sube es la resonancia, que es la que
+ * cuenta cuánto queda.
+ */
+const CUERPO_HZ = 320
+const CUERPO_Q = 5
+const CUERPO_GANANCIA = 0.42
 /** Volumen general. Por debajo de esto el chorro tapa al resto. */
 const VOLUMEN = 0.22
+
+/**
+ * El chisporroteo de la corona, y por qué ya NO va en crescendo.
+ *
+ * Lo apuntó el estudio y tiene razón: el grifo no suelta gas. El CO₂ ya viene
+ * disuelto en la cerveza —de la fermentación, y en cervecería industrial
+ * además añadido en fábrica— y lo que pasa al servir es que se sale de
+ * disolución al golpear la superficie. O sea que no hay nada que vaya «a más»
+ * mientras el grifo está abierto.
+ *
+ * Y hay algo mejor: el crujido de la corona **se oye sobre todo cuando paras**.
+ * Mientras cae el chorro lo tapa; al cerrar el grifo se queda solo y se
+ * extingue en unos segundos. Es el sonido que todo el mundo reconoce de una
+ * caña recién puesta, y el juego ya tiene su sitio — los 2 s de reposo entre
+ * cerrar y la nota.
+ *
+ * Por eso son granos de ruido muy cortos y agudos, no las burbujitas de seno
+ * que había antes: aquellas, sueltas y con glissando, eran exactamente un
+ * riachuelo.
+ */
+const CRUJIDO_HZ = 2600
+const CRUJIDO_POR_SEG = 70
+const CRUJIDO_MS = 2800
 
 const CLAVE_SILENCIO = 'tiraje.silencio.v1'
 
@@ -90,8 +128,10 @@ export class Sonido {
   #silenciado = false
   /** Para no disparar el derrame sesenta veces por segundo. */
   #derramando = false
-  /** Reloj de las burbujas, en segundos del contexto. */
-  #proximaBurbuja = 0
+  /** Reloj del crujido, en segundos del contexto. */
+  #proximoGrano = 0
+  /** Instante en que se cerró el grifo, para apagar el crujido. */
+  #cerradoEn = 0
 
   constructor() {
     try { this.#silenciado = localStorage.getItem(CLAVE_SILENCIO) === '1' }
@@ -154,6 +194,14 @@ export class Sonido {
     const siseoGain = ctx.createGain()
     siseoGain.gain.value = SISEO_GANANCIA
     fuente.connect(siseo).connect(siseoGain).connect(gain)
+    // Capa 3: el cuerpo. Grave pero estrecho — la presión del barril.
+    const cuerpo = ctx.createBiquadFilter()
+    cuerpo.type = 'bandpass'
+    cuerpo.frequency.value = CUERPO_HZ
+    cuerpo.Q.value = CUERPO_Q
+    const cuerpoGain = ctx.createGain()
+    cuerpoGain.gain.value = CUERPO_GANANCIA
+    fuente.connect(cuerpo).connect(cuerpoGain).connect(gain)
     gain.connect(maestro)
     fuente.start()
     this.#ruido = fuente
@@ -187,13 +235,29 @@ export class Sonido {
     this.#filtro.frequency.setTargetAtTime(
       CHORRO_HZ_VACIO + (CHORRO_HZ_LLENO - CHORRO_HZ_VACIO) * nivel, t, 0.08)
 
-    // Más espuma, un poco más fuerte: la espuma es aire rompiendo. El primer
-    // intento iba de 0,50 a 1,00, el segundo de 0,20 a 0,36, y éste de 0,18 a
-    // 0,30 — poco, porque el recorte de verdad lo hace el `Q`.
-    const objetivo = f.pouring ? 0.18 + 0.12 * f.foamFrac : 0
+    // Ganancia FIJA mientras el grifo está abierto. Antes subía con la
+    // espuma y eso era el crescendo que sobraba: el grifo no echa más fuerte
+    // según avanza la caña, echa igual. Lo que cambia es el tono, no el
+    // volumen.
+    const objetivo = f.pouring ? 0.34 : 0
     this.#chorroGain.gain.setTargetAtTime(objetivo, t, f.pouring ? 0.04 : 0.12)
 
-    if (f.pouring) this.#burbujas(t, f.foamFrac)
+    // El crujido de la corona: muy poco con el grifo abierto —lo tapa el
+    // chorro— y en primer plano justo al cerrar, extinguiéndose. Es el sonido
+    // de una caña recién puesta.
+    if (f.pouring) {
+      this.#cerradoEn = 0
+      this.#crujido(t, 0.18)
+    } else if (f.fill > 0.05) {
+      if (this.#cerradoEn === 0) this.#cerradoEn = t
+      const transcurrido = (t - this.#cerradoEn) * 1000
+      if (transcurrido < CRUJIDO_MS) {
+        // Se apaga de forma cuadrática: empieza fuerte y se va rápido, que es
+        // como se deshace la espuma.
+        const queda = 1 - transcurrido / CRUJIDO_MS
+        this.#crujido(t, queda * queda)
+      }
+    }
 
     // El derrame suena UNA vez por episodio, no mientras dure.
     if (f.spillingOver && !this.#derramando) this.#salpica()
@@ -242,31 +306,33 @@ export class Sonido {
     })
   }
 
-  /** Burbujas: pulsos cortos de tono aleatorio, como la corona al asentarse. */
-  #burbujas(t: number, espuma: number): void {
+  /**
+   * Un grano de crujido: 8 ms de ruido agudo. Nada de tono.
+   *
+   * Lo que había antes eran senos con glissando, uno cada 60-200 ms. Eso, por
+   * separado y con tono, es el sonido de un arroyo entre piedras; de ahí el
+   * «riachuelo». La espuma de la cerveza no hace notas: hace chasquidos muy
+   * finos, muy densos y muy agudos, que es lo que son estos granos.
+   */
+  #crujido(t: number, intensidad: number): void {
     const ctx = this.#ctx, maestro = this.#maestro
-    if (!ctx || !maestro) return
-    if (t < this.#proximaBurbuja) return
-    // De 5 a 16 por segundo. Iban de 14 a 45 y eso no es una corona
-    // asentándose, es un vaso de gaseosa recién servido: tantas por segundo
-    // dejan de oírse como burbujas sueltas y se funden en siseo, que es
-    // justo el efecto catarata que había que quitar.
-    const porSegundo = 5 + 11 * espuma
-    this.#proximaBurbuja = t + (0.6 + Math.random() * 0.8) / porSegundo
+    if (!ctx || !maestro || !this.#ruido?.buffer || intensidad <= 0.01) return
+    if (t < this.#proximoGrano) return
+    this.#proximoGrano = t + (0.5 + Math.random()) / (CRUJIDO_POR_SEG * intensidad)
 
-    const osc = ctx.createOscillator()
-    osc.type = 'sine'
-    // Una burbuja al romper sube de tono. Es lo que la hace sonar a burbuja y
-    // no a pitido.
-    const base = 600 + Math.random() * 1600
-    osc.frequency.setValueAtTime(base, t)
-    osc.frequency.exponentialRampToValueAtTime(base * 1.7, t + 0.035)
+    const f = ctx.createBufferSource()
+    f.buffer = this.#ruido.buffer
+    // Cada grano arranca en un punto distinto del ruido: si todos salieran del
+    // mismo sitio se oiría el patrón repetido como un zumbido.
+    const desde = Math.random() * (this.#ruido.buffer.duration - 0.05)
+    const hp = ctx.createBiquadFilter()
+    hp.type = 'highpass'
+    hp.frequency.value = CRUJIDO_HZ * (0.7 + Math.random() * 0.9)
     const g = ctx.createGain()
-    g.gain.setValueAtTime(0.025 + Math.random() * 0.025, t)
-    g.gain.exponentialRampToValueAtTime(0.0005, t + 0.045)
-    osc.connect(g).connect(maestro)
-    osc.start(t)
-    osc.stop(t + 0.05)
+    g.gain.setValueAtTime(0.14 * intensidad, t)
+    g.gain.exponentialRampToValueAtTime(0.0005, t + 0.008)
+    f.connect(hp).connect(g).connect(maestro)
+    f.start(t, desde, 0.01)
   }
 
   /** Derrame: un golpe de ruido grave. Se nota sin necesidad de mirar. */

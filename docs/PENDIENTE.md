@@ -1824,32 +1824,47 @@ fichero habrían sido entre 150 y 400 KB sobre un presupuesto de 250.
 
 Qué suena:
 
-- **El chorro, en dos capas.** El primer intento era UNA banda ancha y grave y
-  el estudio lo describió exacto: «recuerda más a una catarata vista en
-  televisión que a un grifo echando cerveza». Y es literal — un salto de agua
-  *es* ruido de banda ancha con mucha energía abajo, y el tamaño de lo que cae
-  se oye en cuánto grave tiene. Un grifo llenando un vaso son dos cosas a la
-  vez, y hay que separarlas: la **resonancia del vaso**, una banda **estrecha**
-  que sube de 700 a 2.400 Hz al llenarse, y el **siseo del hilo** al romper la
-  superficie, un paso alto a 3 kHz casi inaudible por separado. Las dos salen
-  del mismo ruido, así que se oyen como una sola fuente; con dos ruidos
-  independientes sonarían a dos cosas sucediendo a la vez.
+- **El chorro, en tres capas, y afinado en tres pasadas.** La primera versión
+  era UNA banda ancha y grave, y el estudio la describió exacto: «recuerda más
+  a una catarata vista en televisión que a un grifo echando cerveza». Es
+  literal — un salto de agua *es* ruido de banda ancha con mucha energía abajo,
+  y el tamaño de lo que cae se oye en cuánto grave tiene.
 
-  | | antes | ahora |
-  |---|---|---|
-  | banda | 320-1.400 Hz | 700-2.400 Hz |
-  | `Q` (lo estrecho = lo pequeño) | 0,8 | **3,2** |
-  | ganancia | 0,50 → 1,00 | **0,20 → 0,36** |
+  | | v1 «catarata» | v2 | v3 «tubular» | v4 (hoy) |
+  |---|---|---|---|---|
+  | resonancia | 320-1.400 Hz | 700-2.400 | 700-2.400 | 700-2.400 |
+  | `Q` | 0,8 | 3,2 | **9** | 9 |
+  | siseo agudo | — | 0,05 | 0,012 | 0,012 |
+  | cuerpo grave | — | — | — | **320 Hz, `Q` 5** |
+  | ganancia | 0,50→1,00 | 0,20→0,36 | 0,18→0,30 | **0,34 fija** |
 
-- **Burbujas.** Pulsos de seno de 40 ms que suben de tono al romper, **de 5 a
-  16** por segundo según la espuma, a la mitad de volumen. Iban de 14 a 45 y eso
-  no es una corona asentándose: a esa densidad dejan de oírse como burbujas
-  sueltas y se funden en siseo, que es el mismo efecto catarata por otra vía.
-- **El grifo.** Un chasquido de 80 ms en los dos toques.
-- **El derrame.** Un golpe de ruido grave, **una vez por episodio**, no mientras
-  dure.
-- **El resultado.** Tres notas pentatónicas: ascendentes por encima de 60,
-  descendentes por debajo.
+  La v3 corrigió la catarata pero se pasó: «suena demasiado a riachuelo, debe
+  tener más potencia de chorro». Un hilo cayendo por su peso no tiene presión
+  detrás; un grifo de barril sí, y **la presión se oye abajo**. De ahí la
+  tercera capa. La clave es que va abajo **y estrecha**: grave + ancho es la
+  catarata otra vez, grave + `Q` 5 es caudal.
+
+  Las tres capas salen del **mismo** ruido, así que se oyen como una sola
+  fuente; con ruidos independientes el oído separa y suenan a tres cosas a la
+  vez.
+
+- **El crujido de la corona, y por qué ya no va en crescendo.** Lo apuntó el
+  estudio: «la caña no suelta gas, las burbujas proceden de la propia
+  fermentación». Correcto, y tiene consecuencia sonora. El CO₂ ya viene
+  disuelto en la cerveza —de la fermentación, y en cervecería industrial además
+  añadido en fábrica— y lo que ocurre al servir es que **se sale de disolución**
+  al golpear la superficie. No hay nada que vaya «a más» mientras el grifo está
+  abierto, así que la ganancia pasa a ser fija.
+
+  Y hay algo mejor que corregir el error: **el crujido se oye sobre todo cuando
+  paras**. Mientras cae el chorro lo tapa; al cerrar se queda solo y se extingue
+  en unos segundos. Es el sonido que cualquiera reconoce de una caña recién
+  puesta, y el juego ya tenía el hueco — los 2 s de reposo entre cerrar y la
+  nota. Ahora suena ahí, apagándose de forma cuadrática.
+
+  Y son **granos de ruido de 8 ms muy agudos**, no las burbujitas de seno con
+  glissando que había antes. Aquéllas, sueltas y con tono, eran literalmente un
+  arroyo entre piedras: la otra mitad del «riachuelo».
 
 ### Tres cosas de iOS que no son opcionales
 
