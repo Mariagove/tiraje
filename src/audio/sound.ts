@@ -50,11 +50,28 @@
  */
 const CHORRO_HZ_VACIO = 700
 const CHORRO_HZ_LLENO = 2400
-/** Estrecho = fuente pequeña. A 0,8 era una banda ancha, o sea, una catarata. */
-const CHORRO_Q = 3.2
-/** El siseo fino, por encima de todo lo demás y casi inaudible por separado. */
+/**
+ * Estrecho = fuente pequeña, y MUY estrecho = tubo.
+ *
+ * 0,8 era una banda ancha, o sea una catarata. 3,2 seguía siendo ruido con
+ * color. A 9 el filtro deja de sonar a ruido filtrado y empieza a sonar a
+ * RESONANCIA: es lo que hace una botella cuando soplas por la boca, y es lo
+ * que de verdad pasa dentro de un vaso llenándose — un resonador de Helmholtz
+ * excitado por el chorro.
+ *
+ * Subir el `Q` baja el volumen solo, sin tocar la ganancia: al estrechar la
+ * banda de 3,2 a 9 pasa un tercio de la energía, unos 4,5 dB menos. Por eso la
+ * ganancia baja poco; si bajara al mismo tiempo que sube el `Q`, no se oiría.
+ */
+const CHORRO_Q = 9
+/**
+ * El siseo fino. Es lo que más «cantidad de agua» aporta, así que es lo
+ * primero que hay que recortar cuando sobra: de 0,05 a 0,012. Queda como un
+ * aire muy tenue que impide que la resonancia suene a tono puro de sintetizador,
+ * pero ya no se oye como chorro por sí mismo.
+ */
 const SISEO_HZ = 3000
-const SISEO_GANANCIA = 0.05
+const SISEO_GANANCIA = 0.012
 /** Volumen general. Por debajo de esto el chorro tapa al resto. */
 const VOLUMEN = 0.22
 
@@ -170,10 +187,10 @@ export class Sonido {
     this.#filtro.frequency.setTargetAtTime(
       CHORRO_HZ_VACIO + (CHORRO_HZ_LLENO - CHORRO_HZ_VACIO) * nivel, t, 0.08)
 
-    // Más espuma, un poco más fuerte: la espuma es aire rompiendo. Pero sólo
-    // un poco — el primer intento iba de 0,5 a 1,0 y era el triple de lo que
-    // pide una caña. Ahora de 0,20 a 0,36.
-    const objetivo = f.pouring ? 0.20 + 0.16 * f.foamFrac : 0
+    // Más espuma, un poco más fuerte: la espuma es aire rompiendo. El primer
+    // intento iba de 0,50 a 1,00, el segundo de 0,20 a 0,36, y éste de 0,18 a
+    // 0,30 — poco, porque el recorte de verdad lo hace el `Q`.
+    const objetivo = f.pouring ? 0.18 + 0.12 * f.foamFrac : 0
     this.#chorroGain.gain.setTargetAtTime(objetivo, t, f.pouring ? 0.04 : 0.12)
 
     if (f.pouring) this.#burbujas(t, f.foamFrac)
