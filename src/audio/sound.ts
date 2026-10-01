@@ -32,82 +32,88 @@
  *    todo lo que suena se ve también. Si no se oye no se pierde nada.
  */
 
-/**
- * El chorro, en dos capas. La primera versión era UNA banda ancha y grave, y
- * eso no suena a grifo: suena a catarata. Es que literalmente lo es — un salto
- * de agua es ruido de banda ancha con mucha energía abajo, y el tamaño de lo
- * que cae se oye en cuánto grave tiene.
+/*
+ * TODO ESTO ESTÁ MEDIDO CONTRA UNA GRABACIÓN REAL, no elegido de oído — yo no
+ * lo oigo. El estudio dejó un wav de 4,6 s de un grifo llenando un vaso; se
+ * midió su espectro por bandas, se replicó esta misma cadena de filtros en
+ * Python y se buscó la combinación que más se le parece. Herramientas y
+ * calibración, en `docs/PENDIENTE.md`.
  *
- * Un grifo llenando un vaso son dos cosas distintas a la vez, y hay que
- * separarlas:
+ * El ajuste final yerra 14,9 puntos porcentuales repartidos en ocho bandas, y
+ * la banda que manda —500-1.000 Hz, el 59% de la energía— queda en el 61,7%.
  *
- *   1. La RESONANCIA del vaso: una banda estrecha que sube de tono conforme se
- *      llena. Estrecha, no ancha. El `Q` es lo que dice el tamaño.
- *   2. El SISEO del hilo al romper la superficie: muy agudo y muy flojo. Es lo
- *      que hace que suene a chorro fino y no a masa de agua.
+ * Lo que la medida DESMINTIÓ de lo que yo había supuesto:
  *
- * Sin la 1 suena a sartén; sin la 2, a tubo. Con las dos, a caña.
+ *   · La potencia del chorro NO está en los graves. En la grabación, la banda
+ *     de 250-500 Hz es el 6% y la de 500-1.000 el 59%. Yo tenía un «cuerpo» a
+ *     320 Hz que llegó a ser el 52% de mi energía: justamente al revés.
+ *   · Me faltaba casi todo entre 2 y 8 kHz: la referencia tiene ahí el 25,5% y
+ *     yo tenía el 5,1%. El siseo no era un adorno, era un cuarto del sonido.
+ *   · El `Q` nunca fue el problema. 8 reproduce el de la grabación.
+ *
+ * AVISO sobre la referencia: por debajo de 250 Hz no tiene prácticamente nada
+ * (0,1% + 0,9%), que es lo típico de un micrófono de móvil. O sea que de esta
+ * grabación NO se puede saber si un grifo real tiene graves. Lo que se copia
+ * aquí es lo que suena en el wav, que es lo que se pidió copiar.
  */
-const CHORRO_HZ_VACIO = 700
-const CHORRO_HZ_LLENO = 2400
+
 /**
- * Estrecho = fuente pequeña, y MUY estrecho = tubo.
- *
- * 0,8 era una banda ancha, o sea una catarata. 3,2 seguía siendo ruido con
- * color. A 9 el filtro deja de sonar a ruido filtrado y empieza a sonar a
- * RESONANCIA: es lo que hace una botella cuando soplas por la boca, y es lo
- * que de verdad pasa dentro de un vaso llenándose — un resonador de Helmholtz
- * excitado por el chorro.
- *
- * Subir el `Q` baja el volumen solo, sin tocar la ganancia: al estrechar la
- * banda de 3,2 a 9 pasa un tercio de la energía, unos 4,5 dB menos. Por eso la
- * ganancia baja poco; si bajara al mismo tiempo que sube el `Q`, no se oiría.
+ * La resonancia del vaso, que sube al llenarse. Medido: 624 Hz con el vaso
+ * vacío y 818 al final de la grabación — un recorrido mucho más corto del que
+ * yo tenía (700→2.400). El final se sube un poco respecto a lo medido, a 880,
+ * porque la grabación no llena el vaso del todo y el juego sí llega al 95%.
  */
-const CHORRO_Q = 9
+const CHORRO_HZ_VACIO = 600
+const CHORRO_HZ_LLENO = 880
+/** Medido 5,3 con el instrumento; 8 en síntesis reproduce esa lectura. */
+const CHORRO_Q = 8
+
 /**
- * El siseo fino. Es lo que más «cantidad de agua» aporta, así que es lo
- * primero que hay que recortar cuando sobra: de 0,05 a 0,012. Queda como un
- * aire muy tenue que impide que la resonancia suene a tono puro de sintetizador,
- * pero ya no se oye como chorro por sí mismo.
+ * La banda ancha de turbulencia: el chorro rompiendo la superficie.
+ *
+ * Ya no es un «siseo» agudo y testimonial: es de 1,1 a 5,5 kHz y vale un
+ * cuarto de la energía. Antes era un paso alto a 3 kHz sin techo, con ganancia
+ * 0,012; de ahí que sonara a hilo de agua y no a grifo.
  */
-const SISEO_HZ = 3000
-const SISEO_GANANCIA = 0.012
+const TURBULENCIA_HZ = 1100
+const TURBULENCIA_TECHO_HZ = 5500
+const TURBULENCIA_GANANCIA = 0.08
+
 /**
- * El CUERPO: la fuerza del grifo.
- *
- * Con sólo la resonancia aguda y el siseo, el chorro sonaba a riachuelo — un
- * hilo de agua cayendo por su propio peso. Un grifo de barril tiene presión
- * detrás, y la presión se oye abajo.
- *
- * Pero abajo **y estrecho**, que es toda la diferencia con el primer intento:
- * grave + ancho es una catarata, grave + `Q` 5 es un golpe de caudal. La banda
- * no se mueve con el llenado; la que sube es la resonancia, que es la que
- * cuenta cuánto queda.
+ * El cuerpo. Queda, pero MUY recortado: de 0,42 a 0,20. En la referencia esta
+ * banda es el 6% de la energía, no el plato principal.
  */
 const CUERPO_HZ = 320
 const CUERPO_Q = 5
-const CUERPO_GANANCIA = 0.42
+const CUERPO_GANANCIA = 0.20
+
+/**
+ * El chorro se APAGA conforme sube el nivel: 12 dB de caída en la grabación,
+ * de −21,6 a −33,9. Tiene sentido — cae desde menos altura y el líquido que ya
+ * hay amortigua. Es lo contrario del crescendo que había al principio.
+ */
+const CHORRO_GANANCIA_VACIO = 0.38
+const CHORRO_GANANCIA_LLENO = 0.135
+
 /** Volumen general. Por debajo de esto el chorro tapa al resto. */
 const VOLUMEN = 0.22
 
 /**
- * El chisporroteo de la corona, y por qué ya NO va en crescendo.
+ * El crujido de la corona, y por qué NO va en crescendo.
  *
- * Lo apuntó el estudio y tiene razón: el grifo no suelta gas. El CO₂ ya viene
- * disuelto en la cerveza —de la fermentación, y en cervecería industrial
- * además añadido en fábrica— y lo que pasa al servir es que se sale de
- * disolución al golpear la superficie. O sea que no hay nada que vaya «a más»
- * mientras el grifo está abierto.
+ * Lo apuntó el estudio: «la caña no suelta gas, las burbujas proceden de la
+ * propia fermentación». Correcto. El CO₂ ya viene disuelto —de la
+ * fermentación, y en cervecería industrial además añadido en fábrica— y lo que
+ * pasa al servir es que se sale de disolución al golpear la superficie. No hay
+ * nada que vaya «a más» mientras el grifo está abierto.
  *
- * Y hay algo mejor: el crujido de la corona **se oye sobre todo cuando paras**.
- * Mientras cae el chorro lo tapa; al cerrar el grifo se queda solo y se
- * extingue en unos segundos. Es el sonido que todo el mundo reconoce de una
- * caña recién puesta, y el juego ya tiene su sitio — los 2 s de reposo entre
- * cerrar y la nota.
+ * Y la grabación de referencia lo confirma: tiene 2,4 s de vertido y después
+ * 2,1 s de cola unos 15 dB por debajo. El crujido se oye **cuando paras**,
+ * porque mientras cae el chorro lo tapa. El juego ya tenía el hueco: los 2 s
+ * de reposo entre cerrar y la nota.
  *
- * Por eso son granos de ruido muy cortos y agudos, no las burbujitas de seno
- * que había antes: aquellas, sueltas y con glissando, eran exactamente un
- * riachuelo.
+ * Son granos de ruido de 8 ms muy agudos, no burbujitas de seno con glissando:
+ * aquéllas, sueltas y con tono, eran un arroyo entre piedras.
  */
 const CRUJIDO_HZ = 2600
 const CRUJIDO_POR_SEG = 70
@@ -185,16 +191,26 @@ export class Sonido {
 
     // Capa 1: la resonancia del vaso, que sube al llenarse.
     fuente.connect(filtro).connect(gain)
-    // Capa 2: el siseo del hilo. Sale del MISMO ruido, así que las dos capas
-    // están correlacionadas y se oyen como una sola fuente. Con dos ruidos
-    // independientes sonarían a dos cosas sucediendo a la vez.
-    const siseo = ctx.createBiquadFilter()
-    siseo.type = 'highpass'
-    siseo.frequency.value = SISEO_HZ
-    const siseoGain = ctx.createGain()
-    siseoGain.gain.value = SISEO_GANANCIA
-    fuente.connect(siseo).connect(siseoGain).connect(gain)
-    // Capa 3: el cuerpo. Grave pero estrecho — la presión del barril.
+    // Las TRES capas salen del MISMO ruido, y eso no es por ahorrar: así están
+    // correlacionadas y el oído las junta en una sola fuente. Con tres ruidos
+    // independientes sonarían a tres cosas sucediendo a la vez.
+    //
+    // Capa 2: la turbulencia, 1,1-5,5 kHz. El techo NO es opcional: sin él
+    // el centroide del espectro se iba 1 kHz por encima de la referencia,
+    // porque un micrófono real no recoge nada por encima de 8 kHz y un paso
+    // alto sintético lo pasa todo hasta Nyquist.
+    const turb = ctx.createBiquadFilter()
+    turb.type = 'highpass'
+    turb.frequency.value = TURBULENCIA_HZ
+    const techo = ctx.createBiquadFilter()
+    techo.type = 'lowpass'
+    techo.frequency.value = TURBULENCIA_TECHO_HZ
+    const turbGain = ctx.createGain()
+    turbGain.gain.value = TURBULENCIA_GANANCIA
+    fuente.connect(turb).connect(techo).connect(turbGain).connect(gain)
+    // Capa 3: el cuerpo. Queda muy recortado respecto a lo que yo había puesto:
+    // medida la referencia, esta banda es el 6% de su energía, no el plato
+    // principal. La «potencia de chorro» no vive aquí abajo.
     const cuerpo = ctx.createBiquadFilter()
     cuerpo.type = 'bandpass'
     cuerpo.frequency.value = CUERPO_HZ
@@ -235,11 +251,12 @@ export class Sonido {
     this.#filtro.frequency.setTargetAtTime(
       CHORRO_HZ_VACIO + (CHORRO_HZ_LLENO - CHORRO_HZ_VACIO) * nivel, t, 0.08)
 
-    // Ganancia FIJA mientras el grifo está abierto. Antes subía con la
-    // espuma y eso era el crescendo que sobraba: el grifo no echa más fuerte
-    // según avanza la caña, echa igual. Lo que cambia es el tono, no el
-    // volumen.
-    const objetivo = f.pouring ? 0.34 : 0
+    // La ganancia BAJA conforme se llena, 9 dB entre vaso vacío y lleno. En
+    // la grabación de referencia caen 12. Y no depende de la espuma: el
+    // crescendo que había era un invento mío — el grifo echa siempre igual.
+    const objetivo = f.pouring
+      ? CHORRO_GANANCIA_VACIO + (CHORRO_GANANCIA_LLENO - CHORRO_GANANCIA_VACIO) * nivel
+      : 0
     this.#chorroGain.gain.setTargetAtTime(objetivo, t, f.pouring ? 0.04 : 0.12)
 
     // El crujido de la corona: muy poco con el grifo abierto —lo tapa el

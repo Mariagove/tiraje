@@ -3,3 +3,7 @@ dist
 .DS_Store
 *.local
 traces/
+
+# El wav de referencia del sonido. No se versiona: son 890 KB y no
+# lo necesita el build, sólo el analisis.
+Sonido tiraje.wav

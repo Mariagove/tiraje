@@ -1866,6 +1866,64 @@ Qué suena:
   glissando que había antes. Aquéllas, sueltas y con tono, eran literalmente un
   arroyo entre piedras: la otra mitad del «riachuelo».
 
+### La grabación de referencia, y lo que desmintió
+
+El estudio dejó `Sonido tiraje.wav`: 4,6 s de un grifo llenando un vaso. **No
+puedo oírlo, así que lo medí**, y a partir de ahí el ajuste dejó de ser a ojo.
+
+Herramientas (en el scratchpad, no en el repositorio):
+
+- `analiza.py` — espectrograma con FFT escrita a mano, sin numpy. Saca la
+  resonancia, su `Q`, el centroide y la energía por encima de 3 kHz.
+- `bandas.py` — el perfil de energía en ocho bandas de octava.
+- `resintetiza.py` — **replica esta misma cadena de filtros en Python** (biquad
+  RBJ, los mismos que Web Audio) para poder medir mi propio sonido con la misma
+  vara. Sin esto estaría ajustando a ciegas.
+- `envol.py` — la envolvente, que es lo que separó las dos fases.
+
+**El instrumento se calibró antes de usarlo**, y menos mal: la primera versión
+del estimador de `Q` daba 48, 37 y 37 para filtros de `Q` real 1, 3,2 y 9. Era
+ruido: el espectro instantáneo de una señal aleatoria fluctúa bin a bin, así que
+el ancho a −3 dB alrededor del bin más alto es un accidente. Se arregla
+promediando marcos y suavizando. Calibración final: tono de 880 Hz → 883; `Q`
+real 1 → 1,7; 3,2 → 4,6; 9 → 8,7.
+
+**La estructura de la grabación:** 2,4 s de vertido y 2,1 s de cola unos 15 dB
+por debajo. Exactamente las dos fases del juego.
+
+**Lo que la medida desmintió, y era todo mío:**
+
+| | yo suponía | la grabación dice |
+|---|---|---|
+| dónde está la potencia | en los graves (puse 320 Hz al 52% de mi energía) | **250-500 Hz es el 6%**. Manda 500-1.000 Hz con el **59%** |
+| cuánto agudo hace falta | 5,1% entre 2 y 8 kHz | **25,5%**. El siseo no era adorno, era un cuarto del sonido |
+| el `Q` | el problema | nunca lo fue: 8 reproduce su lectura |
+| el recorrido del tono | 700 → 2.400 Hz | **624 → 818 Hz**, y acelerando |
+| el volumen durante el vertido | constante | **cae 12 dB** al llenarse: menos altura de caída y el líquido amortigua |
+
+Ajuste final por búsqueda en rejilla, minimizando el error por bandas:
+
+| banda | referencia | síntesis |
+|---|---|---|
+| 250-500 | 6,0% | 3,2% |
+| **500-1.000** | **59,0%** | **61,7%** |
+| 1.000-2.000 | 7,8% | 4,1% |
+| 2.000-4.000 | 9,8% | 13,6% |
+| 4.000-8.000 | 15,7% | 16,6% |
+
+**14,9 puntos porcentuales de error** repartidos en ocho bandas.
+
+Dos decisiones que la medida tomó en contra de mi intuición: el techo de 5,5 kHz
+en la turbulencia (sin él el centroide se iba 1 kHz arriba, porque un paso alto
+sintético pasa hasta Nyquist y un micrófono real no), y **siseo constante en vez
+de decreciente** — probé el decaimiento que había medido en la grabación y
+empeoró el ajuste global de 14,9 a 23,9 pp.
+
+**Aviso sobre la referencia:** por debajo de 250 Hz no tiene casi nada (0,1% +
+0,9%), que es lo típico de un micrófono de móvil. De este wav **no se puede
+saber si un grifo real tiene graves**. Lo que se ha copiado es lo que suena en
+él, que es lo que se pidió copiar.
+
 ### Tres cosas de iOS que no son opcionales
 
 1. **El `AudioContext` se crea DENTRO del gesto**, en la misma línea que
