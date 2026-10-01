@@ -21,7 +21,11 @@ function sello(): string {
   try {
     const sha = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim()
     const limpio = execSync('git status --porcelain', { encoding: 'utf8' }).trim() === ''
+    // La zona, fijada. El runner de Pages compila en UTC, así que sin esto el
+    // sello marcaba dos horas menos que el reloj de quien está probando — que
+    // es justo la duda que el sello viene a quitar.
     const fecha = new Date().toLocaleString('es-ES', {
+      timeZone: 'Europe/Madrid',
       day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
     })
     return `${sha}${limpio ? '' : '+'} · ${fecha}`
