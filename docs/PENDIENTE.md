@@ -1845,13 +1845,28 @@ como suena—, pero la fuente es la grabación.
 El wav son 4,6 s: **2,4 s de vertido y 2,1 s de cola**, separados por una caída
 de 15 dB. Justo las dos fases del juego.
 
-- **`vertido.m4a`**, 1,750 s, en bucle. El vertido dura lo que el jugador
-  aguante, así que hay que repetirlo. El bucle **no** se hace con `loopStart` a
-  secas: ahí el salto del final al principio chasca, porque la onda no vale lo
-  mismo a un lado y a otro. Se horneó un fundido cruzado de 250 ms con potencia
-  constante —lineal pierde 3 dB en el centro y se oye un bache cada vuelta—.
-  Comprobado: el salto en la costura es **0,018** frente a **0,097** de salto
-  típico de la propia señal, o sea indistinguible del material.
+- **`vertido.m4a`**, 3,110 s = **1,980 de ataque + 1,130 de cuerpo**, y sólo se
+  repite el cuerpo (`loopStart` 1,980, `loopEnd` 3,110).
+
+  Lo vio el estudio y era el fallo de verdad del primer montaje: **el primer
+  segundo es la cerveza cayendo sobre VIDRIO**, y eso pasa una sola vez. A
+  partir de ahí cae sobre cerveza y suena distinto, así que repetir el principio
+  sonaba falso. Y **estaba en mis propias mediciones sin que yo lo
+  interpretara**: la energía por encima de 3 kHz va al **55%** los primeros
+  0,63 s y al **27%** después. El corte se puso en ese cruce medido, no a ojo, y
+  ya cortado el ataque da 57,5% y el cuerpo 29,1%.
+
+  El bucle **no** se hace con `loopStart` a secas: el salto del final al
+  principio chasca, porque la onda no vale lo mismo a un lado y a otro. Fundido
+  cruzado de 200 ms con potencia constante —lineal pierde 3 dB en el centro y se
+  oye un bache cada vuelta—.
+
+  Y hay **dos** costuras, no una, que es lo que se escapa fácil: la vuelta del
+  bucle, y el paso del ataque al bucle. Para que el fundido deje la vuelta
+  continua, el cuerpo tiene que empezar donde acaba su propia cola; eso obliga a
+  que el ataque se lleve el cuerpo una vez, que es justo lo natural — se oye el
+  vertido entero y luego se repite su último tramo. Medido: **las dos costuras
+  valen 0,0033** frente a **0,091** de salto típico de la señal.
 - **`cola.m4a`**, 1,98 s, de un disparo al cerrar el grifo.
 - **El relleno de AAC.** El códec mete silencio al principio y cada navegador lo
   quita o lo deja a su manera. Montado el bucle sobre el buffer entero, cada

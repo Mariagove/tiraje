@@ -46,17 +46,36 @@ import vertidoUrl from '@/assets/audio/vertido.m4a'
 import colaUrl from '@/assets/audio/cola.m4a'
 
 /**
- * Duración EXACTA del bucle, en segundos, tal y como se horneó.
+ * El clip del vertido es [ATAQUE][CUERPO], y sólo se repite el cuerpo.
  *
- * El fichero se preparó fundiendo la cola sobre la cabeza con potencia
- * constante, así que repetir estos 1,750 s es continuo por construcción:
- * medido, el salto en la costura es 0,018 frente a 0,097 de salto típico de la
- * propia señal. O sea, indistinguible del material.
+ * Lo vio el estudio: **el primer segundo es la cerveza cayendo sobre VIDRIO**, y
+ * eso pasa una sola vez. A partir de ahí cae sobre cerveza y suena distinto, así
+ * que repetir el principio sonaba falso.
  *
- * Esta constante tiene que coincidir con la del `bucle.py` que cortó el wav. Si
- * se vuelve a cortar, se cambia aquí.
+ * Y estaba en las mediciones sin que yo lo interpretara: la energía por encima
+ * de 3 kHz va al **55%** durante los primeros 0,63 s y al **27%** después. El
+ * corte está medido en ese cruce, no puesto a ojo. Comprobado ya cortado: el
+ * ataque da 57,5% y el cuerpo del bucle 29,1%.
+ *
+ * Esto es lo que hace un sampler de toda la vida: un solo fichero, y el
+ * navegador repite sólo el tramo que se le marque. Hay DOS costuras, y la
+ * segunda es la que se escapa fácil:
+ *
+ *   1. final del bucle → principio del bucle, en cada vuelta.
+ *   2. final del ataque → principio del bucle, una sola vez.
+ *
+ * Para que el fundido cruzado deje la vuelta continua, el cuerpo tiene que
+ * empezar donde acaba su propia cola. Eso obliga a que el ataque se lleve el
+ * cuerpo una vez — que es justo lo natural: se oye el vertido entero desde el
+ * principio y después se repite su último tramo.
+ *
+ * Medido: las dos costuras valen 0,0033 frente a 0,091 de salto típico de la
+ * propia señal. Indistinguibles del material.
+ *
+ * Si se vuelve a cortar el wav, estos dos números salen de `bucle.py`.
  */
-const BUCLE_S = 1.75
+const ATAQUE_S = 1.98
+const BUCLE_S = 1.13
 
 /**
  * Lo que el chorro sube de tono entre vaso vacío y vaso lleno.
@@ -223,12 +242,15 @@ export class Sonido {
     const s = ctx.createBufferSource()
     s.buffer = this.#bufVertido
     s.loop = true
-    s.loopStart = this.#desfase
+    // Se arranca desde el principio, así que el ataque —la cerveza contra el
+    // vidrio vacío— suena una vez por caña, y la repetición se queda en el
+    // tramo de cerveza sobre cerveza.
+    s.loopStart = this.#desfase + ATAQUE_S
     // Acotado al buffer: `ffmpeg` quita el relleno del códec y deja los 1,750 s
     // exactos, pero no todos los descodificadores hacen lo mismo. Si alguno
     // recorta la cola, un `loopEnd` fuera del buffer rompería el bucle entero;
     // así, en el peor caso, se acorta un poco y se sigue oyendo.
-    s.loopEnd = Math.min(this.#desfase + BUCLE_S, s.buffer.duration)
+    s.loopEnd = Math.min(this.#desfase + ATAQUE_S + BUCLE_S, s.buffer.duration)
     s.connect(this.#chorroGain)
     s.start(ctx.currentTime, this.#desfase)
     this.#chorro = s
