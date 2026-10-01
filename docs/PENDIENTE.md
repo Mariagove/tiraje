@@ -1826,6 +1826,13 @@ Son dos números en los dos `varieties/*.json` y un rehorneado.
 6. **Guarda del móvil plano.** La quitó el borrado de ρ. Va con el punto 5:
    `planarConfidence = cos ρ` ya se calcula, falta el umbral y de dónde sale.
 
+7. **El segundo juego.** Plan escrito en `docs/PLAN-JUEGO-2.md`. Pendiente del
+   estudio: nombre, lista final de iconos (con los tres avisos: la Virgen del
+   Pilar como distractor, la gilda que es vasca, y la marca propia como cosa que
+   no hay que tocar), duración, si el castigo es tiempo o puntos, cómo queda la
+   pantalla de inicio con dos juegos, y que el cliente confirme los
+   ingredientes. Los iconos, en SVG: en PNG se comen el presupuesto de peso.
+
 ## Hallazgo sobre el formato de traza
 
 El plan dimensiona TRZ1 en 3 bytes/muestra, ~2,5 KB comprimido, frente a
