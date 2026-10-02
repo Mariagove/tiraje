@@ -141,8 +141,7 @@ export interface BakedVariety {
    */
   maxScore: number
   /**
-   * La nota final en CENTÉSIMAS de punto (0..10000), indexada por milésimas
-   * del techo: `NOTA[fracción·1000]`. Entre dos entradas se interpola.
+   * La nota final, indexada por milésimas del techo: `NOTA[fracción·1000]`.
    *
    * Es una tabla y no una fórmula porque `Math.pow` es trascendental y el
    * núcleo no puede usarlas: no son bit-idénticas entre motores, y la fase 2

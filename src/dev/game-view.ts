@@ -36,10 +36,10 @@ const VARIETIES: Record<string, BakedVariety> = { especial: ESPECIAL, negra: NEG
  * `v3` abre temporada con la curva objetivo suave. Las anteriores se borran:
  * ocupan sitio y no se pueden comparar con nada.
  */
-const RANKING_KEY = 'tiraje.ranking.v6'
+const RANKING_KEY = 'tiraje.ranking.v7'
 const RANKING_KEYS_VIEJAS = [
   'tiraje.ranking.v1', 'tiraje.ranking.v2', 'tiraje.ranking.v3',
-  'tiraje.ranking.v4', 'tiraje.ranking.v5',
+  'tiraje.ranking.v4', 'tiraje.ranking.v5', 'tiraje.ranking.v6',
 ]
 /** Cada cuánto se repinta el ángulo. */
 const TICK_MS = 500
@@ -66,27 +66,10 @@ export function gradosDelJugador(phiDeg: number): number {
   const g = 90 - a
   return Math.round(g < 0 ? 0 : g > 90 ? 90 : g)
 }
-/**
- * Centésimas enteras -> lo que se lee en pantalla. Un único sitio.
- *
- * Con coma, que es como se escriben los decimales en español. `toFixed` da
- * punto porque es la convención de JavaScript, no la del idioma.
- */
-function nota(cent: number): string {
-  return (cent / 100).toFixed(2).replace('.', ',')
-}
-
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 interface Entry {
   initials: string
-  /**
-   * En CENTÉSIMAS de punto y entero, igual que `scoreCent` del núcleo.
-   *
-   * Guardar aquí el número con decimales sería guardar un `number` de coma
-   * flotante y ordenar por él: dos partidas empatadas podrían alternar de
-   * puesto según el último bit. El formato se aplica al pintar.
-   */
   score: number
   variety: string
   at: number
@@ -294,7 +277,7 @@ export function mountGameView(
         hud.style.opacity = '0'
         hud.textContent = ''
         // Una nota de 0 a 100: sin separador de miles y sin decimales.
-        $('#score').textContent = nota(r.scoreCent)
+        $('#score').textContent = String(r.score)
         $('#verdict').innerHTML = (r.verdict === 'spilled' ? '<b>CAÑA DERRAMADA</b> · ' : '') +
           `error medio ${r.meanErrorDeg.toFixed(0)}° · ${(r.fill * 100).toFixed(0)}% lleno, ` +
           `${(r.foam * 100).toFixed(0)}% de corona`
@@ -404,7 +387,7 @@ export function mountGameView(
       `<li class="mb-1 tracking-widest">${src.practice ? 'RANKING DE PRÁCTICA' : 'RANKING OFICIAL'}</li>` +
       mine.slice(0, 5).map((r, i) =>
         `<li class="flex justify-between"><span>${i + 1}. ${r.initials} · ${r.variety}</span>` +
-        `<span class="font-bold">${nota(r.score)}</span></li>`).join('')
+        `<span class="font-bold">${r.score}</span></li>`).join('')
   }
 
   $('#save').addEventListener('click', () => {
@@ -412,7 +395,7 @@ export function mountGameView(
       const rows = readRanking()
       rows.push({
         initials: initials.map((i) => LETTERS[i]!).join(''),
-        score: lastResult.scoreCent, variety: v.id, at: Date.now(),
+        score: lastResult.score, variety: v.id, at: Date.now(),
         mode: src.practice ? 'practice' : 'sensor',
       })
       writeRanking(rows.toSorted((a, b) => b.score - a.score || a.at - b.at))

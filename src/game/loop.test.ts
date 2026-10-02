@@ -167,7 +167,7 @@ describe('la máquina de estados del plan §1.2', () => {
     expect(loop.state).toBe('RESULT')
     expect(seen).toEqual(['READY', 'POUR_BEER', 'CLOSING', 'SETTLE', 'RESULT'])
     expect(loop.result).not.toBeNull()
-    expect(Number.isInteger(loop.result!.scoreCent)).toBe(true)
+    expect(Number.isInteger(loop.result!.score)).toBe(true)
   })
 
   it('el toque se aplica en un paso de simulación, no en el del evento', () => {
@@ -226,7 +226,7 @@ describe('la traza que graba el bucle es la que el servidor recalcula', () => {
     expect(loop.state).toBe('RESULT')
     const own = loop.result!
     const server = replay(ESPECIAL, loop.trace())
-    expect(server.scoreCent).toBe(own.scoreCent)
+    expect(server.score).toBe(own.score)
     expect(server).toEqual(own)
   })
 

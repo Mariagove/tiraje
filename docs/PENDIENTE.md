@@ -2096,54 +2096,38 @@ Lo que **no** puede comprobarse sin oírlo: que el bucle no cante al repetirse e
 un vertido largo, y que el `playbackRate` de la subida de tono no suene a cinta
 acelerada. Son las dos cosas que hay que escuchar en una partida entera.
 
-## Dos decimales en la nota
+## Decimales en la nota: probados y retirados
 
-Pedido por el estudio. Tiene una trampa que no se ve de entrada: **la nota sale
-de una tabla horneada de 1.001 escalones**, así que los decimales saldrían a
-saltos. Medido el salto entre entradas contiguas:
+Se pidieron dos decimales, se montaron, y el estudio los retiró al verlos: «no
+me funciona, es más lioso». La nota vuelve a ser **entera, de 0 a 100**.
 
-| | salto |
-|---|---|
-| a mitad de curva (`NOTA[500]`) | 0,10 puntos |
-| cerca del techo (`NOTA[999]`) | 0,18 puntos |
+Queda escrito porque el callejón tiene algo que aprovechar si alguna vez se
+vuelve a plantear:
 
-O sea que sin tocar nada, el segundo decimal habría sido decorativo: sólo
-aparecerían unos pocos valores. Dos salidas:
+- **La tabla de la nota tiene 1.001 escalones**, así que dos entradas contiguas
+  se llevan 0,10 puntos a mitad de curva y 0,18 cerca del techo. Sin más, el
+  segundo decimal habría sido decorativo: sólo aparecerían unos pocos valores.
+- La salida barata era **interpolar entre entradas** —gratis en bytes, y sólo
+  usa `+ − × ÷`, así que no cruza la frontera de determinismo—. Funcionaba: el
+  error medido frente a la curva real, barriendo 200.000 puntos, era de 0,005
+  puntos, y lo ponía el redondeo de la tabla, no la interpolación.
+- También hizo falta separar **`scoreCent`** (entero, canónico, el que se
+  guarda y recalcularía el servidor) de **`score`** (con decimales, sólo para
+  enseñar). Esa separación es sana y habría que rehacerla igual.
 
-- **Agrandar la tabla por diez.** 10.001 entradas por variedad, unos 100 KB
-  antes de comprimir. Caro para lo que da.
-- **Interpolar entre dos entradas.** Gratis en bytes, y —esto es lo que la hace
-  viable aquí— sólo usa `+ − × ÷`, así que **no cruza la frontera de
-  determinismo** del núcleo.
+Lo que falló no fue técnico: **dos decimales no aportan nada a quien juega.** La
+nota ya la decide una curva, y poner 57,12 en lugar de 57 sugiere una precisión
+que no cambia ninguna decisión del jugador ni ningún puesto del ranking.
 
-Puesta la interpolación. **Error medido frente a la curva de verdad, barriendo
-200.000 puntos: 0,005 como mucho.** Y no lo pone la interpolación —la curvatura
-sobre un intervalo de 0,1% es despreciable— sino el redondeo de la propia tabla
-a centésimas enteras, que ya vale ±0,005 por sí solo. Justo medio dígito del
-último decimal que se enseña: invisible.
+Y una corrección de método anotada de paso: al escribirlo, estimé a mano el
+error de interpolación con la cota de curvatura `h²/8·máx|f''|` y puse «por
+debajo de 0,0001». Medido salió **0,005, cincuenta veces más**, porque la cota
+se dejaba el término dominante. La cuenta a mano no sustituye a la medida ni en
+un caso tan simple.
 
-(Aviso de método: primero escribí en el código que el error estaba «por debajo
-de 0,0001», estimándolo con la cota de curvatura `h²/8·máx|f''|`. Al medirlo
-salió 0,005, cincuenta veces más, porque la cota olvidaba el término dominante.
-La cuenta a mano no sustituye a la medida ni en un caso tan simple.)
-
-### Dos campos, y por qué
-
-- **`scoreCent`**, entero 0..10000 en centésimas: el valor **canónico**. Es el
-  que se guarda en el ranking, el que comparan los fixtures y el que
-  recalculará el servidor de la fase 2. Entero a propósito — dos motores pueden
-  discrepar en el último bit de un número con decimales, y un ranking con premio
-  no se juega a eso.
-- **`score`**, 0..100 con decimales: sólo para enseñar. Derivado, nunca
-  comparado.
-
-En pantalla va con **coma**, que es como se escriben los decimales en español;
-`toFixed` da punto porque esa es la convención de JavaScript, no la del idioma.
-El formato vive en una sola función.
-
-Temporada nueva: **`tiraje.ranking.v6`**, y se borran las anteriores. Lo pidió
-el estudio al cambiar la forma de puntuar, que es además la regla que ya estaba
-escrita en el test de fixtures: la puntuación no se parchea viva.
+Temporada nueva: **`tiraje.ranking.v7`**. Dos reseteos seguidos, pero la regla
+está escrita en el banco de pruebas y vale en las dos direcciones — las notas en
+centésimas y las enteras no son comparables.
 
 ## Sigue abierto, y no lo decide el código
 

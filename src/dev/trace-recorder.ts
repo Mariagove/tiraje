@@ -155,7 +155,7 @@ export function mountTraceRecorder(root: HTMLElement, fusion: Fusion): () => voi
     if (closedAt !== null && result === null && now - closedAt > SETTLE_MS) {
       result = finalize(v, st)
       hud.classList.remove('opacity-0')
-      hud.textContent = result.score.toFixed(2)
+      hud.textContent = result.score.toLocaleString('es-ES')
       padLabel.innerHTML = `error medio <b class="text-ambar-foam">${result.meanErrorDeg.toFixed(0)}°</b>` +
         (result.verdict === 'spilled' ? ' · <b>CAÑA DERRAMADA</b>' : '')
       padLabel.classList.remove('hidden')

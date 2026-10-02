@@ -88,9 +88,7 @@ describe('fixtures dorados', () => {
     for (const [name, want] of Object.entries(expected)) {
       const t = load(name)
       const r = replay(varietyOf(t), t)
-      // Se compara `scoreCent`, el entero canónico: comparar el número con
-      // decimales sería comparar coma flotante al último bit.
-      expect({ name, score: r.scoreCent, verdict: r.verdict }).toEqual(
+      expect({ name, score: r.score, verdict: r.verdict }).toEqual(
         { name, score: want.score, verdict: want.verdict })
     }
   })
@@ -144,7 +142,7 @@ describe('determinismo', () => {
     const a = replay(ESPECIAL, t)
     const b = replay(ESPECIAL, JSON.parse(JSON.stringify(t)) as GameTrace)
     expect(a).toEqual(b)
-    expect(Number.isInteger(a.scoreCent)).toBe(true)
+    expect(Number.isInteger(a.score)).toBe(true)
   })
 
   it('la puntuación no depende de cómo se trocee el bucle', () => {
@@ -474,7 +472,7 @@ describe('contrato de la puntuación', () => {
     for (const name of Object.keys(expected)) {
       const t = load(name)
       const r = replay(varietyOf(t), t)
-      expect(Number.isInteger(r.scoreCent)).toBe(true)
+      expect(Number.isInteger(r.score)).toBe(true)
       expect(r.score).toBeGreaterThanOrEqual(0)
     }
   })
