@@ -2014,6 +2014,40 @@ empeoró el ajuste global de 14,9 a 23,9 pp.
 saber si un grifo real tiene graves**. Lo que se ha copiado es lo que suena en
 él, que es lo que se pidió copiar.
 
+### Cuando el sonido no suena y la pantalla dice que sí
+
+Reportado: «no puedo escuchar el audio, en el móvil veo que el sonido está
+activado y tengo el volumen a tope».
+
+**La causa es la caché, otra vez, pero con una vuelta de tuerca.** `index.html`
+se sirve con `max-age=600`; durante esos diez minutos el móvil sigue ejecutando
+el bundle anterior. Y ese bundle pide los clips con el hash que tenían ENTONCES
+—`vertido-DnrQcRep.m4a`, por ejemplo—, que tras un despliegue nuevo **ya no
+existen**. Comprobado: dan 404.
+
+Lo grave no era eso, que se cura solo en diez minutos. Lo grave era mío:
+
+1. **El fallo se tragaba en silencio.** `Promise.all(...).catch(() => null)` y a
+   seguir. El juego funcionaba perfecto y no sonaba, sin ninguna pista.
+2. **La pantalla mentía.** El botón decía «sonido activado» porque sólo miraba
+   la preferencia guardada, nunca si los clips habían llegado.
+3. **Y `fetch` no rechaza con un 404**: resuelve con `ok: false`. Sin comprobar
+   `r.ok`, la página de error de GitHub se colaba como si fuera audio y lo que
+   reventaba era el descodificador, más adentro y más tarde.
+
+Puesto:
+
+- `r.ok` comprobado en cada descarga.
+- Un estado `cargando | listo | fallo` que la vista **enseña**: el botón pasa a
+  decir «sonido no disponible · recarga la página» y se desactiva.
+- Reintento dentro del gesto del botón de entrar, que es el momento con más
+  probabilidad de tener red. No salva el caso del hash viejo —esa URL ya no
+  existe—, pero sí una caída de red al cargar.
+
+La lección es la misma que la del sello del build: **un fallo invisible cuesta
+más que el fallo.** Diez minutos de caché son molestos; media hora buscando por
+qué no suena, no.
+
 ### Tres cosas de iOS que no son opcionales
 
 1. **El `AudioContext` se crea DENTRO del gesto**, en la misma línea que

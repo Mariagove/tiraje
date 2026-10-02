@@ -179,9 +179,20 @@ export function mountShell(root: HTMLElement): void {
   const sonido = new Sonido()
 
   const botonSonido = $<HTMLButtonElement>('sonido')
+  /**
+   * El botón dice lo que PASA, no lo que se pidió.
+   *
+   * Decía «sonido activado» aunque la descarga de los clips hubiera fallado, y
+   * eso convierte una avería en un misterio: pasó de verdad, con el JS viejo en
+   * caché pidiendo unos audios con hash antiguo que ya daban 404.
+   */
   function pintaSonido(): void {
-    botonSonido.textContent = sonido.silenciado ? 'sonido desactivado' : 'sonido activado'
+    botonSonido.textContent = sonido.estado === 'fallo'
+      ? 'sonido no disponible · recarga la página'
+      : sonido.silenciado ? 'sonido desactivado' : 'sonido activado'
+    botonSonido.disabled = sonido.estado === 'fallo'
   }
+  sonido.alCambiar = pintaSonido
   pintaSonido()
   botonSonido.addEventListener('click', (e) => {
     // No debe disparar el botón de entrar ni confirmar la edad.

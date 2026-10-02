@@ -111,6 +111,17 @@ const CLAVE_SILENCIO = 'tiraje.silencio.v1'
 /** Tipos de `navigator.audioSession`, que todavía no está en lib.dom. */
 interface SesionDeAudio { type: string }
 
+/**
+ * `r.ok` es obligatorio: `fetch` NO rechaza con un 404, resuelve con
+ * `ok: false`. Sin esta comprobación, la página de error de GitHub se colaría
+ * como si fuera audio y reventaría al descodificar.
+ */
+async function bajaUno(url: string): Promise<ArrayBuffer> {
+  const r = await fetch(url)
+  if (!r.ok) throw new Error(`${r.status} en ${url}`)
+  return r.arrayBuffer()
+}
+
 export class Sonido {
   #ctx: AudioContext | null = null
   #maestro: GainNode | null = null
@@ -128,6 +139,16 @@ export class Sonido {
 
   #silenciado = false
   #derramando = false
+  /**
+   * Si los clips se bajaron, fallaron o siguen en camino.
+   *
+   * Esto NO es contabilidad interna: se enseña en pantalla. El botón de la
+   * pantalla de inicio decía «sonido activado» aunque la descarga hubiera
+   * fallado, y eso convierte un fallo en un misterio — pasó: con el JS viejo
+   * en caché, los audios con hash antiguo dan 404, el `catch` se los tragaba y
+   * el juego seguía anunciando que había sonido.
+   */
+  #estado: 'cargando' | 'listo' | 'fallo' = 'cargando'
   /** Las descargas empiezan al construir; descodificar necesita contexto. */
   #crudos: Promise<[ArrayBuffer, ArrayBuffer] | null>
 
@@ -136,14 +157,25 @@ export class Sonido {
     catch { /* modo privado */ }
     // Se bajan ya, sin esperar al gesto: son 33 KB, y así al tocar el botón
     // sólo queda descodificar. Si falla la red, el juego sigue sin sonido.
-    this.#crudos = Promise.all([
-      fetch(vertidoUrl).then((r) => r.arrayBuffer()),
-      fetch(colaUrl).then((r) => r.arrayBuffer()),
-    ]).catch(() => null)
+    this.#crudos = this.#baja()
+  }
+
+  /**
+   * Baja los dos clips. `r.ok` es obligatorio: `fetch` NO rechaza con un 404,
+   * resuelve con `ok: false`, así que sin esta comprobación la página de error
+   * se colaría como si fuera audio y reventaría al descodificar.
+   */
+  #baja(): Promise<[ArrayBuffer, ArrayBuffer] | null> {
+    return Promise.all([bajaUno(vertidoUrl), bajaUno(colaUrl)])
+      .catch(() => { this.#estado = 'fallo'; return null })
   }
 
   get silenciado(): boolean { return this.#silenciado }
   get disponible(): boolean { return this.#bufVertido !== null }
+  /** Para que la pantalla pueda decir la verdad sobre el sonido. */
+  get estado(): 'cargando' | 'listo' | 'fallo' { return this.#estado }
+  /** Se avisa cuando cambia, porque el botón ya está pintado para entonces. */
+  alCambiar: (() => void) | null = null
 
   /**
    * Arranca el audio. **Llamar dentro de un gesto del usuario**, sin `await`
@@ -170,12 +202,21 @@ export class Sonido {
     gain.connect(maestro)
     this.#chorroGain = gain
 
+    // Si la primera descarga falló —red caída, o el JS en caché pidiendo unos
+    // audios con hash viejo que ya dan 404— se reintenta aquí. El gesto del
+    // usuario es el momento con más probabilidad de tener red.
+    if (this.#estado === 'fallo') { this.#estado = 'cargando'; this.#crudos = this.#baja() }
+
     void this.#crudos.then(async (crudos) => {
-      if (!crudos) return
+      if (!crudos) { this.#avisa(); return }
       const [a, b] = crudos
-      this.#bufVertido = await ctx.decodeAudioData(a.slice(0))
-      this.#bufCola = await ctx.decodeAudioData(b.slice(0))
+      try {
+        this.#bufVertido = await ctx.decodeAudioData(a.slice(0))
+        this.#bufCola = await ctx.decodeAudioData(b.slice(0))
+      } catch { this.#estado = 'fallo'; this.#avisa(); return }
       this.#desfase = this.#inicioReal(this.#bufVertido)
+      this.#estado = 'listo'
+      this.#avisa()
       // Si el grifo ya estaba abierto al terminar de cargar, se engancha.
       if (this.#vertiendo) this.#arrancaChorro()
     })
@@ -198,6 +239,8 @@ export class Sonido {
     }
     return 0
   }
+
+  #avisa(): void { try { this.alCambiar?.() } catch { /* la vista ya no está */ } }
 
   /** Enmudece sin apagar: el contexto sigue vivo y vuelve al instante. */
   silencia(valor: boolean): void {
