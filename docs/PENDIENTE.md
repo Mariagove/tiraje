@@ -2048,6 +2048,26 @@ La lección es la misma que la del sello del build: **un fallo invisible cuesta
 más que el fallo.** Diez minutos de caché son molestos; media hora buscando por
 qué no suena, no.
 
+### «Se sigue escuchando caer cerveza cuando ya ha parado»
+
+No era el chorro: ése ya se apaga en 45 ms. Era **la cola, que entraba más
+fuerte que el propio vertido**.
+
+La aritmética: la ganancia del chorro baja con el llenado, así que con el vaso
+al 95% suena a **0,43**. Y yo lanzaba la cola a **1,00**, sin atenuar. Eso es un
+salto de **+7,3 dB en el instante exacto del cierre** — justo donde no tiene que
+haber ninguno.
+
+Lo irónico es que la relación buena ya venía dentro de los ficheros: la cola
+está grabada **13,1 dB por debajo** del vertido. Era yo quien la rompía al
+reproducirlos, atenuando uno y el otro no.
+
+Puesto: la cola entra **a la misma ganancia que tenía el chorro al parar**, así
+que no hay salto; y además se apaga —0,25 s sostenida y luego constante 0,45,
+que la deja al 12% a los 1,2 s y al 4% a los 1,7—. El clip es plano hasta el
+segundo 1,7 y eso sonaba a que la cosa seguía pasando; la espuma se deshace, no
+se mantiene.
+
 ### Tres cosas de iOS que no son opcionales
 
 1. **El `AudioContext` se crea DENTRO del gesto**, en la misma línea que

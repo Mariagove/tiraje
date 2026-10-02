@@ -103,6 +103,16 @@ const VELOCIDAD_LLENO = 1.06
 const CHORRO_VACIO = 1.0
 const CHORRO_LLENO = 0.4
 
+/**
+ * Cuánto se sostiene la cola de espuma antes de apagarse, y con qué constante.
+ *
+ * El clip dura 1,96 s y se mantiene plano hasta el 1,7. Sonaba a que la cosa
+ * seguía pasando. Con esto quedan unos 0,25 s en primer plano y luego se
+ * deshace: al 12% a los 1,2 s, al 4% a los 1,7.
+ */
+const COLA_SOSTEN_S = 0.25
+const COLA_CAIDA_S = 0.45
+
 /** Volumen general. */
 const VOLUMEN = 0.5
 
@@ -268,7 +278,7 @@ export class Sonido {
       // La cola de espuma, justo donde se corta el chorro: es el sonido que
       // cualquiera reconoce de una caña recién puesta, y mientras cae el
       // chorro no se oye porque lo tapa.
-      if (f.fill > 0.05) this.#cola()
+      if (f.fill > 0.05) this.#cola(nivel)
     }
 
     // Nada de saltos por frame: `setTargetAtTime` interpola. A saltos se oyen
@@ -319,13 +329,33 @@ export class Sonido {
     try { s.stop(ctx.currentTime + 0.08) } catch { /* ya parada */ }
   }
 
-  #cola(): void {
+  /**
+   * La cola de espuma, al cerrar el grifo.
+   *
+   * **Entra a la ganancia que tenía el chorro justo antes de parar**, no a 1.
+   * Antes entraba sin atenuar y eso daba un salto de **+7,3 dB en el instante
+   * del cierre** con el vaso al 95%, porque el chorro a esas alturas ya suena a
+   * 0,43. O sea que lo que debía ser el final sonaba más fuerte que el propio
+   * vertido, y se leía como «sigue cayendo cerveza cuando ya ha parado».
+   *
+   * La relación buena ya venía dentro de los ficheros —la cola está grabada
+   * 13,1 dB por debajo del vertido— y era yo quien la rompía al reproducirlos.
+   *
+   * Y encima se apaga: 0,25 s a plena ganancia y después una caída con
+   * constante 0,45, que la deja al 12% al segundo y pico. La espuma se
+   * deshace, no se mantiene.
+   */
+  #cola(nivel: number): void {
     const ctx = this.#ctx, maestro = this.#maestro
     if (!ctx || !maestro || !this.#bufCola) return
+    const t = ctx.currentTime
     const s = ctx.createBufferSource()
     s.buffer = this.#bufCola
-    s.connect(maestro)
-    s.start(ctx.currentTime)
+    const g = ctx.createGain()
+    g.gain.setValueAtTime(CHORRO_VACIO + (CHORRO_LLENO - CHORRO_VACIO) * nivel, t)
+    g.gain.setTargetAtTime(0.0001, t + COLA_SOSTEN_S, COLA_CAIDA_S)
+    s.connect(g).connect(maestro)
+    s.start(t)
   }
 
   /** Toque de grifo: un chasquido corto, seco y sin tono definido. */
