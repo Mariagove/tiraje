@@ -2096,6 +2096,55 @@ Lo que **no** puede comprobarse sin oírlo: que el bucle no cante al repetirse e
 un vertido largo, y que el `playbackRate` de la subida de tono no suene a cinta
 acelerada. Son las dos cosas que hay que escuchar en una partida entera.
 
+## Dos decimales en la nota
+
+Pedido por el estudio. Tiene una trampa que no se ve de entrada: **la nota sale
+de una tabla horneada de 1.001 escalones**, así que los decimales saldrían a
+saltos. Medido el salto entre entradas contiguas:
+
+| | salto |
+|---|---|
+| a mitad de curva (`NOTA[500]`) | 0,10 puntos |
+| cerca del techo (`NOTA[999]`) | 0,18 puntos |
+
+O sea que sin tocar nada, el segundo decimal habría sido decorativo: sólo
+aparecerían unos pocos valores. Dos salidas:
+
+- **Agrandar la tabla por diez.** 10.001 entradas por variedad, unos 100 KB
+  antes de comprimir. Caro para lo que da.
+- **Interpolar entre dos entradas.** Gratis en bytes, y —esto es lo que la hace
+  viable aquí— sólo usa `+ − × ÷`, así que **no cruza la frontera de
+  determinismo** del núcleo.
+
+Puesta la interpolación. **Error medido frente a la curva de verdad, barriendo
+200.000 puntos: 0,005 como mucho.** Y no lo pone la interpolación —la curvatura
+sobre un intervalo de 0,1% es despreciable— sino el redondeo de la propia tabla
+a centésimas enteras, que ya vale ±0,005 por sí solo. Justo medio dígito del
+último decimal que se enseña: invisible.
+
+(Aviso de método: primero escribí en el código que el error estaba «por debajo
+de 0,0001», estimándolo con la cota de curvatura `h²/8·máx|f''|`. Al medirlo
+salió 0,005, cincuenta veces más, porque la cota olvidaba el término dominante.
+La cuenta a mano no sustituye a la medida ni en un caso tan simple.)
+
+### Dos campos, y por qué
+
+- **`scoreCent`**, entero 0..10000 en centésimas: el valor **canónico**. Es el
+  que se guarda en el ranking, el que comparan los fixtures y el que
+  recalculará el servidor de la fase 2. Entero a propósito — dos motores pueden
+  discrepar en el último bit de un número con decimales, y un ranking con premio
+  no se juega a eso.
+- **`score`**, 0..100 con decimales: sólo para enseñar. Derivado, nunca
+  comparado.
+
+En pantalla va con **coma**, que es como se escriben los decimales en español;
+`toFixed` da punto porque esa es la convención de JavaScript, no la del idioma.
+El formato vive en una sola función.
+
+Temporada nueva: **`tiraje.ranking.v6`**, y se borran las anteriores. Lo pidió
+el estudio al cambiar la forma de puntuar, que es además la regla que ya estaba
+escrita en el test de fixtures: la puntuación no se parchea viva.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

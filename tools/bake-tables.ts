@@ -89,8 +89,11 @@ function bake(cfg: VarietyConfig): { src: string; report: Record<string, string>
 
   // La curva de la nota, horneada en milésimas del techo. Aquí sí se puede
   // usar `pow`: esto corre en el horno, no en el núcleo.
+  // En CENTÉSIMAS de punto, 0..10000, porque la nota se enseña con dos
+  // decimales. En enteros y no en coma flotante: es el valor que el servidor
+  // de la fase 2 tiene que recalcular idéntico.
   const NOTA = Array.from({ length: 1001 }, (_, i) =>
-    Math.min(100, Math.round(100 * Math.pow(i / 1000, s.gamma))))
+    Math.min(10_000, Math.round(10_000 * Math.pow(i / 1000, s.gamma))))
 
   const src = `// GENERADO POR tools/bake-tables.ts — NO EDITAR A MANO.
 // Fuente: varieties/${cfg.id}.json
@@ -126,7 +129,7 @@ export const ${cfg.id.toUpperCase()}: BakedVariety = {
       'ω permitida': `${omegaAllowedDegPerSec} °/s`,
       'caña perfecta': `${tPerfect.toFixed(2)}s de grifo abierto`,
       'máximo teórico': maxScore.toLocaleString('es-ES'),
-      'curva de la nota': `gamma ${s.gamma} · 70% del techo = ${NOTA[700]}`,
+      'curva de la nota': `gamma ${s.gamma} · 70% del techo = ${(NOTA[700]! / 100).toFixed(2)}`,
     },
   }
 }
