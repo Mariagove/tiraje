@@ -2,7 +2,8 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ESPECIAL } from '@/core/baked/especial'
-import { NEGRA } from '@/core/baked/negra'
+import { EXPORT } from '@/core/baked/export'
+import { RADLER } from '@/core/baked/radler'
 import {
   MAX_SPILL_RATE_PER_SEC, TAP_BLANKING_MS, createState, finalize, replay, step, tap,
   type GameTrace, type ScoreState, type TraceSample,
@@ -15,7 +16,7 @@ const load = (n: string): GameTrace =>
 const expected = JSON.parse(readFileSync(join(FIXTURES, 'expected.json'), 'utf8')) as
   Record<string, { score: number; verdict: string; err: number; steps: number }>
 
-const V: Record<string, BakedVariety> = { especial: ESPECIAL, negra: NEGRA }
+const V: Record<string, BakedVariety> = { especial: ESPECIAL, export: EXPORT, radler: RADLER }
 
 /**
  * La variedad la dice la TRAZA, no el nombre del fichero.
@@ -93,12 +94,22 @@ describe('fixtures dorados', () => {
     }
   })
 
-  it('las dos variedades están equilibradas: <2% entre sus máximos', () => {
+  it('las TRES variedades están equilibradas: <2% entre sus máximos', () => {
     // Plan §Verificación: es lo que impide que una variedad desbalanceada
-    // reviente el ranking global.
-    const a = replay(ESPECIAL, load('especial-perfect')).score
-    const b = replay(NEGRA, load('negra-perfect')).score
-    expect(Math.abs(a - b) / Math.max(a, b)).toBeLessThan(0.02)
+    // reviente el ranking, que es uno solo para las tres.
+    //
+    // El equilibrio no es casualidad: `pointsPerSecBeer` se despeja por
+    // variedad para que `maxScore` salga igual, porque el tiempo de grifo de
+    // una caña perfecta cambia con el ritmo y con la corona objetivo. Si
+    // alguien toca `targets.foam` sin recalcularlo, esto salta.
+    const notas = Object.keys(V).map((id) => replay(V[id]!, load(`${id}-perfect`)).score)
+    const alto = Math.max(...notas), bajo = Math.min(...notas)
+    expect((alto - bajo) / alto, notas.join(' · ')).toBeLessThan(0.02)
+  })
+
+  it('las tres tienen el mismo techo teórico, al punto', () => {
+    const techos = Object.values(V).map((v) => v.maxScore)
+    expect(new Set(techos).size, techos.join(' · ')).toBe(1)
   })
 
   it('derramar se castiga y se declara', () => {

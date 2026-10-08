@@ -1,6 +1,6 @@
 {
-  "id": "negra",
-  "name": "Ambar Negra",
+  "id": "export",
+  "name": "Ambar Export",
   "glass": {
     "heightMm": 150,
     "radiusMm": 38
@@ -8,14 +8,14 @@
   "pour": {
     "beerRatePerSec": 0.098,
     "foamExpansion": 2.0,
-    "foamUpright": 0.4,
+    "foamUpright": 0.26,
     "foamTilted": 0.04,
     "foamRefDeg": 45,
     "spillRatePerSec": 0.015
   },
   "targets": {
     "fill": 0.95,
-    "foam": 0.25,
+    "foam": 0.2,
     "fillTolerancePp": 8,
     "foamTolerancePp": 10
   },
@@ -30,20 +30,20 @@
   },
   "look": {
     "beer": [
-      58,
-      30,
-      16
+      165,
+      70,
+      28
     ],
     "foam": [
-      206,
-      178,
-      136
+      214,
+      188,
+      148
     ]
   },
   "scoring": {
     "sigmaDeg": 8,
     "omegaScaleDegPerSec": 30,
-    "pointsPerSecBeer": 865.5,
+    "pointsPerSecBeer": 840.0,
     "bonusFill": 2500,
     "bonusFoam": 2500,
     "bonusNoSpill": 1000,

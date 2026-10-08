@@ -1,0 +1,57 @@
+{
+  "id": "radler",
+  "name": "Ambar Radler",
+  "glass": {
+    "heightMm": 140,
+    "radiusMm": 32
+  },
+  "pour": {
+    "beerRatePerSec": 0.105,
+    "foamExpansion": 1.7,
+    "foamUpright": 0.28,
+    "foamTilted": 0.02,
+    "foamRefDeg": 45,
+    "spillRatePerSec": 0.015
+  },
+  "targets": {
+    "fill": 0.95,
+    "foam": 0.15,
+    "fillTolerancePp": 8,
+    "foamTolerancePp": 10
+  },
+  "settle": {
+    "drainRatePerSec": 0.055,
+    "overflowSettleFrac": 0.09
+  },
+  "difficulty": {
+    "kSafe": 0.3,
+    "maxTargetDeg": 48,
+    "omegaFloorDegPerSec": 40
+  },
+  "look": {
+    "beer": [
+      228,
+      206,
+      96
+    ],
+    "foam": [
+      248,
+      246,
+      236
+    ]
+  },
+  "scoring": {
+    "sigmaDeg": 8,
+    "omegaScaleDegPerSec": 30,
+    "pointsPerSecBeer": 861.26,
+    "bonusFill": 2500,
+    "bonusFoam": 2500,
+    "bonusNoSpill": 1000,
+    "finalMultiplier": 10,
+    "gamma": 1.8,
+    "spillPenalty": 1500,
+    "spillMaxEvents": 3,
+    "spillMaxFrac": 0.15,
+    "spilledMultiplier": 0.35
+  }
+}

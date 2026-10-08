@@ -11,7 +11,8 @@
  * reales y se calibra σ con datos en vez de con opiniones.
  */
 import { ESPECIAL } from '@/core/baked/especial'
-import { NEGRA } from '@/core/baked/negra'
+import { EXPORT } from '@/core/baked/export'
+import { RADLER } from '@/core/baked/radler'
 import {
   STEP_MS, createState, finalize, step, tap,
   type GameTrace, type ScoreResult, type ScoreState, type TraceSample,
@@ -19,7 +20,7 @@ import {
 import type { BakedVariety } from '@/core/types'
 import { toDdeg, type Fusion } from '@/sensors/fusion'
 
-const VARIETIES: Record<string, BakedVariety> = { especial: ESPECIAL, negra: NEGRA }
+const VARIETIES: Record<string, BakedVariety> = { especial: ESPECIAL, export: EXPORT, radler: RADLER }
 /** Tras cerrar el grifo, 2 s de reposo antes del resultado (plan §1.2). */
 const SETTLE_MS = 2000
 /** Techo de recuperación del acumulador: nunca alcanzar más de esto de golpe. */
@@ -31,7 +32,8 @@ export function mountTraceRecorder(root: HTMLElement, fusion: Fusion): () => voi
       <div class="flex items-center gap-2">
         <select id="variety" class="flex-1 rounded border border-current bg-transparent px-2 py-2 text-sm">
           <option value="especial">Ambar Especial</option>
-          <option value="negra">Ambar Negra</option>
+          <option value="export">Ambar Export</option>
+          <option value="radler">Ambar Radler</option>
         </select>
         <button id="reset" class="boton px-3 py-2 text-sm">REINICIAR</button>
       </div>

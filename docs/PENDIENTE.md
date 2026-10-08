@@ -2129,6 +2129,93 @@ Temporada nueva: **`tiraje.ranking.v7`**. Dos reseteos seguidos, pero la regla
 está escrita en el banco de pruebas y vale en las dos direcciones — las notas en
 centésimas y las enteras no son comparables.
 
+## Tres variedades: Especial, Export y Radler
+
+La «Negra» no existía. Lo corrigió el estudio: **en Ambar no hay negra de
+tirador, la de barril es la tostada, que se llama Export.** Así que la variedad
+se renombra —`id`, nombre, fixtures y pestaña— y deja de ser casi negra.
+
+Y se añade la **Radler**, la de limón.
+
+### Lo que la corona objetivo arrastra consigo
+
+El estudio preguntó, bien visto, si al ser tostada y no negra la corona no
+debería ser del 20% como la Especial en vez del 25%. Sí. Pero bajarla **sola**
+rompe dos cosas, y las dos saltaron en el banco de pruebas antes de publicar:
+
+**1. El objetivo se queda fuera de alcance.** La corona no se pide, se produce:
+sale de lo recto que lleves el móvil, por la recta entre `foamTilted` y
+`foamUpright`. Con `foamUpright` en 0,40, un jugador que siga la curva objetivo
+al milímetro acaba en el **25,7%** de corona. Con el objetivo en 25 encajaba;
+con el objetivo en 20, ese mismo jugador perfecto sacaba **85 en vez de 98**,
+castigado por acertar.
+
+Medido, barriendo `foamUpright`:
+
+| `foamUpright` | corona que sale | nota de la caña perfecta |
+|---|---|---|
+| 0,22 | 17,4% | 97 |
+| **0,26** | **19,3%** | **98** |
+| 0,30 | 21,2% | 97 |
+| 0,40 (antes) | 25,7% | 85 |
+
+Puesto **0,26**. La regla general: `targets.foam` y `pour.foamUpright` se mueven
+juntos, o el objetivo deja de ser alcanzable.
+
+**2. El techo se descuadra.** `maxScore` depende del tiempo de grifo de una caña
+perfecta, y ése depende de la corona objetivo. Al bajarla, la Export ganaba
+techo y el ranking —que es **uno solo para las tres**— habría premiado elegirla.
+`pointsPerSecBeer` se despeja para compensar:
+
+```
+ppsb = (techo/multiplicador − bonos) / tPerfect
+```
+
+| | tPerfect | `pointsPerSecBeer` | techo |
+|---|---|---|---|
+| Especial | 8,10 s | 900,00 | 132.857 |
+| Export | 8,67 s | 840,00 | 132.857 |
+| Radler | 8,46 s | 861,26 | 132.857 |
+
+Idénticos al punto, y hay un test nuevo que lo fija.
+
+### La Radler
+
+- **Corona del 15%**, que es menos que las otras dos, como pidió el estudio.
+- **`foamExpansion` 1,7** en vez de 2,0: menos gas, así que el mismo volumen de
+  espuma ocupa menos. Es lo que de verdad la distingue, más que el `foamUpright`
+  (0,28, parecido al 0,32 de la Especial).
+- **`drainRatePerSec` 0,055**: la corona se deshace antes, que es lo que hace
+  una bebida con menos proteína.
+- **Vaso 140×32, el de la Especial.** No inventado: no hay foto de un vaso de
+  Radler, y la geometría inventada de la antigua Negra ya está anotada como
+  deuda. Mejor repetir una medida real que fabricar otra falsa.
+
+### Colores
+
+Lo que se ve NO es el token: el líquido se dibuja con alfa 0,97 arriba y 0,74
+abajo, así que el rojo de marca se cuela por detrás y lo tiñe.
+
+| | token | arriba | abajo |
+|---|---|---|---|
+| Especial | `#e8a33d` | `#e69f3d` | `#d9843a` |
+| Export | `#a5461c` | `#a5451d` | `#a83f21` |
+| Radler | `#e4ce60` | `#e2c95f` | `#d6a454` |
+
+Son un punto de partida mío, no arte final: el tono lo decide el estudio.
+
+Temporada nueva, **`tiraje.ranking.v8`**: cambia la escala de la Export y entra
+una variedad más.
+
+### Y un test para un error que iba por su cuarta vez
+
+Una comilla invertida dentro de un comentario HTML **cierra el template literal**
+donde vive el marcado. El fallo no menciona ni comentarios ni comillas: `tsc`
+dice «';' expected» en una línea cualquiera de más abajo. Ha pasado con
+`tabular-nums`, `flex-1`, `index.html` y `px-4`. Cuatro veces es un patrón, así
+que ahora hay un test que recorre `src/` y lo caza. Comprobado que falla cuando
+debe: se metió una comilla a propósito y saltó.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

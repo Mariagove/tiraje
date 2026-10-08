@@ -1,7 +1,7 @@
 /**
  * cli.ts — el banco de pruebas de escritorio.
  *
- *   node tools/trace-lab/cli.ts --synth mediocre [--variety negra]
+ *   node tools/trace-lab/cli.ts --synth mediocre [--variety export]
  *   node tools/trace-lab/cli.ts traces/2026-09-21-bar.json
  *   node tools/trace-lab/cli.ts --synth perfect --save traces/perfect.json
  *
@@ -14,10 +14,11 @@ import { dirname } from 'node:path'
 import type { GameTrace } from '../../src/core/scoring.ts'
 import type { BakedVariety } from '../../src/core/types.ts'
 import { ESPECIAL } from '../../src/core/baked/especial.ts'
-import { NEGRA } from '../../src/core/baked/negra.ts'
+import { EXPORT } from '../../src/core/baked/export.ts'
+import { RADLER } from '../../src/core/baked/radler.ts'
 import { PROFILES, scoreOf, synthTrace } from './synth.ts'
 
-const VARIETIES: Record<string, BakedVariety> = { especial: ESPECIAL, negra: NEGRA }
+const VARIETIES: Record<string, BakedVariety> = { especial: ESPECIAL, export: EXPORT, radler: RADLER }
 
 const args = process.argv.slice(2)
 const flag = (n: string): string | undefined => {

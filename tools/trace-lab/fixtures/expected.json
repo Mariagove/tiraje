@@ -29,34 +29,64 @@
     "err": 19.81,
     "steps": 2000
   },
-  "negra-fake": {
-    "score": 97,
+  "export-fake": {
+    "score": 98,
     "verdict": "ok",
-    "err": 0.34,
-    "steps": 840
+    "err": 0.36,
+    "steps": 872
   },
-  "negra-good": {
-    "score": 91,
+  "export-good": {
+    "score": 93,
     "verdict": "ok",
-    "err": 1.64,
-    "steps": 834
+    "err": 1.67,
+    "steps": 868
   },
-  "negra-mediocre": {
-    "score": 62,
+  "export-mediocre": {
+    "score": 65,
     "verdict": "ok",
-    "err": 5.08,
-    "steps": 816
+    "err": 5.2,
+    "steps": 856
   },
-  "negra-perfect": {
-    "score": 97,
+  "export-perfect": {
+    "score": 98,
     "verdict": "ok",
     "err": 0.35,
-    "steps": 840
+    "steps": 872
   },
-  "negra-spiller": {
+  "export-spiller": {
     "score": 1,
     "verdict": "spilled",
-    "err": 19.89,
+    "err": 19.88,
+    "steps": 2000
+  },
+  "radler-fake": {
+    "score": 98,
+    "verdict": "ok",
+    "err": 0.4,
+    "steps": 849
+  },
+  "radler-good": {
+    "score": 92,
+    "verdict": "ok",
+    "err": 1.71,
+    "steps": 845
+  },
+  "radler-mediocre": {
+    "score": 65,
+    "verdict": "ok",
+    "err": 5.2,
+    "steps": 836
+  },
+  "radler-perfect": {
+    "score": 98,
+    "verdict": "ok",
+    "err": 0.41,
+    "steps": 849
+  },
+  "radler-spiller": {
+    "score": 1,
+    "verdict": "spilled",
+    "err": 19.82,
     "steps": 2000
   },
   "real-iphone-1": {

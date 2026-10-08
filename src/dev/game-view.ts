@@ -9,7 +9,8 @@
  * retroalimentación es diegética.
  */
 import { ESPECIAL } from '@/core/baked/especial'
-import { NEGRA } from '@/core/baked/negra'
+import { EXPORT } from '@/core/baked/export'
+import { RADLER } from '@/core/baked/radler'
 import type { GameTrace, ScoreResult } from '@/core/scoring'
 import type { BakedVariety } from '@/core/types'
 import { GameLoop, HUD_FADE_MS, type GameState } from '@/game/loop'
@@ -23,7 +24,7 @@ import type { AngleSource } from '@/game/loop'
 import type { Angles } from '@/sensors/fusion'
 import type { Sonido } from '@/audio/sound'
 
-const VARIETIES: Record<string, BakedVariety> = { especial: ESPECIAL, negra: NEGRA }
+const VARIETIES: Record<string, BakedVariety> = { especial: ESPECIAL, export: EXPORT, radler: RADLER }
 /**
  * Temporada del ranking. **Se sube cada vez que cambian las reglas de
  * puntuación.**
@@ -36,10 +37,11 @@ const VARIETIES: Record<string, BakedVariety> = { especial: ESPECIAL, negra: NEG
  * `v3` abre temporada con la curva objetivo suave. Las anteriores se borran:
  * ocupan sitio y no se pueden comparar con nada.
  */
-const RANKING_KEY = 'tiraje.ranking.v7'
+const RANKING_KEY = 'tiraje.ranking.v8'
 const RANKING_KEYS_VIEJAS = [
   'tiraje.ranking.v1', 'tiraje.ranking.v2', 'tiraje.ranking.v3',
   'tiraje.ranking.v4', 'tiraje.ranking.v5', 'tiraje.ranking.v6',
+  'tiraje.ranking.v7',
 ]
 /** Cada cuánto se repinta el ángulo. */
 const TICK_MS = 500
@@ -201,13 +203,16 @@ export function mountGameView(
       </div>
     </div>
 
-    <!-- La variedad, en dos pestañas. La activa va en blanco sólido con la
+    <!-- La variedad, en tres pestañas. La activa va en blanco sólido con la
          tinta de marca: el botón de marca es rojo sobre blanco, pero aquí el
-         fondo YA es ese rojo, así que rojo sobre rojo no se vería. -->
+         fondo YA es ese rojo, así que rojo sobre rojo no se vería.
+         El relleno baja de px-4 a px-3 al pasar de dos pestañas a tres:
+         con 4, las tres suman ~258 px y en un iPhone SE sólo hay 280 de ancho
+         útil. Con 3 quedan ~234 y respiran. -->
     <div class="pointer-events-none fixed inset-x-0 top-0 z-20 flex items-start justify-center gap-1.5
                 px-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
-      ${[['especial', 'ESPECIAL'], ['negra', 'NEGRA']].map(([id, label]) => `
-        <button data-variety="${id}" class="pointer-events-auto rounded-full px-4 py-1.5 text-xs font-bold tracking-wide">${label}</button>`).join('')}
+      ${[['especial', 'ESPECIAL'], ['export', 'EXPORT'], ['radler', 'RADLER']].map(([id, label]) => `
+        <button data-variety="${id}" class="pointer-events-auto rounded-full px-3 py-1.5 text-xs font-bold tracking-wide">${label}</button>`).join('')}
     </div>
 
     <dl id="dbg" class="pointer-events-none fixed left-5 top-[max(2.8rem,calc(env(safe-area-inset-top)+2.4rem))] z-20
