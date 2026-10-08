@@ -2216,6 +2216,56 @@ dice «';' expected» en una línea cualquiera de más abajo. Ha pasado con
 que ahora hay un test que recorre `src/` y lo caza. Comprobado que falla cuando
 debe: se metió una comilla a propósito y saltó.
 
+## Las burbujas, en tres fases
+
+Lo pidió el estudio y describe lo que de verdad pasa: «cuando el chorro se
+mezcla con el líquido surgen muchas más burbujas por todo el volumen y con un
+movimiento mucho más aleatorio; cuando se endereza y sale la espuma, disminuyen
+y se distribuyen de manera más uniforme; cuando reposa ya se parece a lo que
+tenemos».
+
+**No hizo falta inventar una variable para distinguir las fases: el juego ya
+calcula la magnitud exacta.** Es `foamFrac`, la fracción de lo que entra que se
+convierte en espuma. Tumbado vale casi nada —la cerveza resbala por la pared y
+el chorro apuñala el líquido— y recto sube al máximo —cae a plomo y forma
+corona—. Y eso es precisamente el mecanismo físico: **cuando hay corona, el
+chorro cae sobre un colchón de espuma y deja de revolver la cerveza.** La
+turbulencia es su complementario, y con el grifo cerrado, cero.
+
+| ángulo en pantalla | `foamFrac` | turbulencia | burbujas (tier 0) |
+|---|---|---|---|
+| 45° (tumbado, al abrir) | 0,030 | **1,00** | **240** |
+| 65° | 0,159 | 0,56 | 200 |
+| 82° | 0,268 | 0,18 | 166 |
+| 90° (recto, hay corona) | 0,320 | **0,00** | **150** |
+| grifo cerrado | — | 0 | **45** |
+
+De 240 a 45: un factor 5,3 entre el pico y el reposo.
+
+Qué cambia con la turbulencia, además del recuento:
+
+- **Reaparecen por todo el volumen.** En reposo brotan del tercio inferior —el
+  gas sale de los puntos de nucleación del cristal—; revolviendo, desde el 5%
+  de profundidad, o sea por toda la columna. Eso es lo de «por todo el
+  volumen».
+- **Vaivén lateral**, perpendicular a la gravedad del MUNDO (que con el vaso
+  inclinado no es hacia abajo de la pantalla). Hasta 26 px/s en el pico.
+- **La velocidad de ascenso deja de ser la misma.** Sin esto el enjambre sube
+  ordenado aunque serpentee, y se lee como una cortina ondulando en vez de como
+  un líquido revuelto.
+- **Cada burbuja lleva su propia fase y su propia amplitud.** Con una sola fase
+  para todas, el enjambre entero se mueve a la vez: bandera, no remolino.
+
+El depósito se reserva un 60% más grande que el presupuesto del tier, pero las
+de más **sólo se dibujan en el pico**, que dura un par de segundos por caña. En
+reposo se usa el recuento de siempre, así que un móvil lento no paga por un
+momento que casi no ocurre — y si aun así le cuesta, el medidor de tier ya está
+puesto para degradar solo.
+
+`turbulencia()` está exportada y fijada con tres tests: las tres fases en orden,
+que baje de forma monótona al enderezar, y que no se salga de 0..1 ni con
+entradas absurdas.
+
 ## Sigue abierto, y no lo decide el código
 
 1. **Cristalería.** ¿Sesión de foto o render 3D? ¿Ambar cede las piezas? Sin

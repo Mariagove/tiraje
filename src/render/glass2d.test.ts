@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { areaBelow, gravityOnScreen, surfaceTilt, waveShape } from '@/render/glass2d'
+import { areaBelow, gravityOnScreen, surfaceTilt, turbulencia, waveShape } from '@/render/glass2d'
+import { ESPECIAL } from '@/core/baked/especial'
 
 /** Rectángulo de semiancho w y semialto h, girado phi grados. */
 function glass(w: number, h: number, phiDeg: number): number[][] {
@@ -161,5 +162,41 @@ describe('el oleaje', () => {
       if (v > max) max = v
     }
     expect(max).toBeLessThanOrEqual(1)
+  })
+})
+
+describe('turbulencia del chorro', () => {
+  const fp = ESPECIAL.cfg.pour
+  /** La misma recta que usa el núcleo: ángulo absoluto -> fracción de espuma. */
+  const conAngulo = (phiDeg: number): number => {
+    const a = Math.min(Math.abs(phiDeg), fp.foamRefDeg)
+    return fp.foamUpright + (fp.foamTilted - fp.foamUpright) * (a / fp.foamRefDeg)
+  }
+
+  it('las tres fases, en orden: tumbado revuelve, recto no, cerrado nada', () => {
+    // Es la progresión que pidió el estudio y la que de verdad ocurre: con el
+    // vaso tumbado el chorro apuñala el líquido; al enderezar se forma corona
+    // y el chorro cae sobre un colchón de espuma; con el grifo cerrado no
+    // revuelve nadie.
+    expect(turbulencia({ pouring: true, foamFrac: conAngulo(45) }, fp)).toBeCloseTo(1, 6)
+    expect(turbulencia({ pouring: true, foamFrac: conAngulo(0) }, fp)).toBeCloseTo(0, 6)
+    expect(turbulencia({ pouring: false, foamFrac: conAngulo(45) }, fp)).toBe(0)
+  })
+
+  it('baja de forma monótona conforme se endereza', () => {
+    let previo = Infinity
+    for (const phi of [45, 35, 25, 15, 8, 4, 0]) {
+      const t = turbulencia({ pouring: true, foamFrac: conAngulo(phi) }, fp)
+      expect(t, `${phi}°`).toBeLessThan(previo)
+      previo = t
+    }
+  })
+
+  it('se mantiene en 0..1 aunque la fracción se salga de rango', () => {
+    for (const ff of [-1, 0, 0.5, 1, 99]) {
+      const t = turbulencia({ pouring: true, foamFrac: ff }, fp)
+      expect(t, `${ff}`).toBeGreaterThanOrEqual(0)
+      expect(t, `${ff}`).toBeLessThanOrEqual(1)
+    }
   })
 })

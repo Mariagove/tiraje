@@ -77,6 +77,16 @@ interface Bubble {
   r0: number
   /** Velocidad base de ascenso, px/s. Escala con el radio: flotabilidad. */
   v: number
+  /**
+   * Desfase propio del vaivén turbulento, y cuánto vaga esta burbuja en
+   * concreto.
+   *
+   * Que cada una lleve el suyo es lo que separa «remolino» de «cortina»: con
+   * una sola fase para todas, el enjambre entero se mueve a la vez y se lee
+   * como una bandera, no como un líquido revuelto.
+   */
+  fase: number
+  vagar: number
 }
 
 /** Segmentos con que se traza la superficie ondulada. */
@@ -124,6 +134,49 @@ export function waveShape(u: number, t: number): number {
  * cristal, no del chorro.
  */
 const BUBBLES_AT_REST = 0.3
+
+/**
+ * Cuánto revuelve el chorro el líquido, de 0 a 1. Exportada para poder fijarla
+ * con un test: es la pieza de la que cuelgan las tres fases.
+ *
+ * Se normaliza `foamFrac` entre los dos extremos de la variedad. Con el grifo
+ * cerrado es cero y punto: en reposo no revuelve nadie.
+ */
+export function turbulencia(
+  f: { pouring: boolean; foamFrac: number },
+  pour: { foamUpright: number; foamTilted: number },
+): number {
+  if (!f.pouring) return 0
+  const rango = pour.foamUpright - pour.foamTilted
+  if (rango <= 1e-6) return 0
+  const corona = (f.foamFrac - pour.foamTilted) / rango
+  return 1 - (corona < 0 ? 0 : corona > 1 ? 1 : corona)
+}
+
+/**
+ * La turbulencia del chorro entrando en el líquido, y las tres fases que
+ * describe el estudio:
+ *
+ *   1. Chorro cayendo sobre cerveza, con el vaso tumbado: muchísimas más
+ *      burbujas, por TODO el volumen, y moviéndose de forma desordenada.
+ *   2. Al enderezar y salir la espuma: bajan y se ordenan.
+ *   3. En reposo: lo que ya había.
+ *
+ * No hace falta una variable nueva para distinguirlas, porque el juego ya
+ * calcula la magnitud exacta: **`foamFrac`**, la fracción de lo que entra que
+ * se convierte en espuma. Tumbado vale casi nada —la cerveza resbala por la
+ * pared y el chorro apuñala el líquido— y recto sube al máximo —cae a plomo,
+ * rompe arriba y forma corona—. Y eso es justo lo que pasa de verdad: cuando
+ * hay corona, el chorro cae sobre un colchón de espuma y deja de revolver la
+ * cerveza. La turbulencia es su complementario.
+ */
+/** Cuántas burbujas de más se reservan para el momento de máxima turbulencia. */
+const POOL_TURBULENCIA = 1.6
+const EXTRA_TURBULENCIA = 0.6
+/** Amplitud del vaivén lateral, px/s, a turbulencia máxima. */
+const VAGAR_PX_S = 26
+/** Cuánto varía la velocidad de ascenso con la turbulencia. */
+const JITTER_VERTICAL = 0.55
 
 const STREAM_WIDTH = 28
 
@@ -286,9 +339,16 @@ export class Glass2D implements GlassRenderer {
         r0,
         // Más lentas: la espuma es viscosa y el gas asciende a duras penas.
         v: 5 + r0 * 6 + this.#rnd() * 5,
+        fase: this.#rnd() * Math.PI * 2,
+        vagar: 0.3 + this.#rnd() * 0.7,
       }
     })
-    this.#bubbles = Array.from({ length: this.#tier.bubbles }, () => {
+    // El depósito se reserva MÁS GRANDE que el presupuesto del tier: las de
+    // más sólo se dibujan en el pico de turbulencia, que dura un par de
+    // segundos por caña. En reposo se usa el recuento de siempre, así que un
+    // móvil lento no paga por un momento que casi no ocurre.
+    this.#bubbles = Array.from(
+      { length: Math.round(this.#tier.bubbles * POOL_TURBULENCIA) }, () => {
       // Tamaños repartidos con sesgo a lo pequeño: muchas finas y unas pocas
       // gordas, que es lo que se ve en un vaso. Repartidas de forma uniforme
       // salían todas parecidas y el conjunto se leía como una trama.
@@ -300,6 +360,8 @@ export class Glass2D implements GlassRenderer {
         // Las gordas suben más rápido. No es exacto (la velocidad terminal de
         // una burbuja pequeña va con r²) pero es lo que se lee como cerveza.
         v: 16 + r0 * 16 + this.#rnd() * 14,
+        fase: this.#rnd() * Math.PI * 2,
+        vagar: 0.3 + this.#rnd() * 0.7,
       }
     })
   }
@@ -461,7 +523,20 @@ export class Glass2D implements GlassRenderer {
     // el recuento iba directo con la actividad y al cerrar el grifo el vaso
     // se quedaba muerto de golpe.
     const acti = Math.max(0, Math.min(1, act * 1.15))
-    const live = Math.round(this.#tier.bubbles * (BUBBLES_AT_REST + (1 - BUBBLES_AT_REST) * acti))
+
+    /**
+     * Cuánto revuelve el chorro el líquido, de 0 a 1.
+     *
+     * Sale de `foamFrac`, normalizada entre sus dos extremos de la variedad:
+     * con el vaso tumbado tiende a `foamTilted` y recto a `foamUpright`. El
+     * chorro revuelve cuando NO está haciendo corona, porque en cuanto hay
+     * corona cae sobre un colchón de espuma. Y con el grifo cerrado, cero.
+     */
+    const turb = turbulencia(f, this.#v.cfg.pour)
+
+    const base = this.#tier.bubbles * (BUBBLES_AT_REST + (1 - BUBBLES_AT_REST) * acti)
+    const live = Math.min(
+      this.#bubbles.length, Math.round(base * (1 + EXTRA_TURBULENCIA * turb)))
     if (live > 0 && f.fill - f.foam > 0.01 && beerThickness > 6) {
       const grav = gravityOnScreen(f.phi)
       const dt = 1 / 60
@@ -473,9 +548,13 @@ export class Glass2D implements GlassRenderer {
         const sizeScale = 0.55 + 0.45 * act
         const d = depth(b.x, b.y)
         if (d < 1.5 || d > beerThickness + R) {
-          // Reaparece repartida por la columna de cerveza.
+          // Reaparece repartida por la columna de cerveza. Con el chorro
+          // revolviendo aparecen también ARRIBA del todo, no sólo en el
+          // tercio de abajo: es lo que hace que se vean «por todo el
+          // volumen» en vez de subir en fila desde el fondo.
           const along = (this.#rnd() - 0.5) * W * 1.1
-          const deep = beerThickness * (0.35 + 0.65 * this.#rnd())
+          const desde = 0.35 - 0.30 * turb
+          const deep = beerThickness * (desde + (1 - desde) * this.#rnd())
           b.x = beerTop.x + ct * along - st * deep
           b.y = beerTop.y + st * along + ct * deep
           continue
@@ -484,8 +563,17 @@ export class Glass2D implements GlassRenderer {
         // coalescen. Es lo que las hace leerse como burbujas y no como puntos.
         const rise = 1 - Math.max(0, Math.min(1, d / beerThickness))
         const r = b.r0 * sizeScale * (1 + 1.1 * rise)
-        b.x += -grav.x * b.v * sizeScale * dt
-        b.y += -grav.y * b.v * sizeScale * dt
+
+        // Desorden. Dos cosas a la vez y las dos sólo con el chorro
+        // revolviendo: un vaivén LATERAL —perpendicular a la gravedad, que
+        // aquí no apunta hacia abajo de la pantalla sino hacia abajo del
+        // MUNDO— y una velocidad de ascenso que deja de ser la misma de
+        // siempre. Sin lo segundo el enjambre sube ordenado aunque serpentee.
+        const ang = f.t * 2.4 + b.fase
+        const lateral = turb * b.vagar * VAGAR_PX_S * Math.sin(ang)
+        const vJit = 1 + JITTER_VERTICAL * turb * b.vagar * Math.sin(ang * 1.37 + 1.1)
+        b.x += (-grav.x * b.v * sizeScale * vJit - grav.y * lateral) * dt
+        b.y += (-grav.y * b.v * sizeScale * vJit + grav.x * lateral) * dt
         ctx.beginPath()
         ctx.fillStyle = `rgba(255,255,255,${(0.16 + 0.26 * rise).toFixed(3)})`
         ctx.arc(b.x, b.y, r, 0, Math.PI * 2)
