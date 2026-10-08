@@ -170,13 +170,35 @@ export function turbulencia(
  * hay corona, el chorro cae sobre un colchón de espuma y deja de revolver la
  * cerveza. La turbulencia es su complementario.
  */
-/** Cuántas burbujas de más se reservan para el momento de máxima turbulencia. */
-const POOL_TURBULENCIA = 1.6
-const EXTRA_TURBULENCIA = 0.6
+/**
+ * Cuántas burbujas de más se reservan para el momento de máxima turbulencia.
+ *
+ * Empezó en 1,6 y se quedaba corto: el estudio seguía viendo pocas al principio
+ * del vertido. 2,8 pone el pico en 420 con el presupuesto de tier 0, que son
+ * 150 en reposo. Si un móvil no puede con ellas, el medidor de tier lo detecta
+ * por tiempo de dibujo y baja de nivel solo; no hace falta adivinar aquí.
+ */
+const POOL_TURBULENCIA = 2.8
+const EXTRA_TURBULENCIA = 1.8
 /** Amplitud del vaivén lateral, px/s, a turbulencia máxima. */
 const VAGAR_PX_S = 26
 /** Cuánto varía la velocidad de ascenso con la turbulencia. */
 const JITTER_VERTICAL = 0.55
+
+/**
+ * Lo que se aclaran las burbujas mientras el chorro revuelve.
+ *
+ * Esto importaba tanto como el recuento, y no lo vi: una burbuja se dibuja con
+ * alfa `0,16 + 0,26·subida`, o sea que **las del fondo salen a 0,16** —casi
+ * transparentes sobre el ámbar—. Al repartirlas por todo el volumen, buena
+ * parte de las nuevas caían justo ahí y no se veía ninguna. Más burbujas
+ * invisibles siguen siendo pocas burbujas.
+ *
+ * Y tiene sentido físico: el gas arrastrado por el chorro va en burbujas más
+ * gordas y más juntas que el que rezuma del cristal en reposo.
+ */
+const ALFA_TURBULENCIA = 0.18
+const TAMANO_TURBULENCIA = 0.35
 
 const STREAM_WIDTH = 28
 
@@ -545,7 +567,7 @@ export class Glass2D implements GlassRenderer {
         (x - beerTop.x) * -st + (y - beerTop.y) * ct
       for (let i = 0; i < live; i++) {
         const b = this.#bubbles[i]!
-        const sizeScale = 0.55 + 0.45 * act
+        const sizeScale = (0.55 + 0.45 * act) * (1 + TAMANO_TURBULENCIA * turb)
         const d = depth(b.x, b.y)
         if (d < 1.5 || d > beerThickness + R) {
           // Reaparece repartida por la columna de cerveza. Con el chorro
@@ -575,7 +597,8 @@ export class Glass2D implements GlassRenderer {
         b.x += (-grav.x * b.v * sizeScale * vJit - grav.y * lateral) * dt
         b.y += (-grav.y * b.v * sizeScale * vJit + grav.x * lateral) * dt
         ctx.beginPath()
-        ctx.fillStyle = `rgba(255,255,255,${(0.16 + 0.26 * rise).toFixed(3)})`
+        const alfa = 0.16 + 0.26 * rise + ALFA_TURBULENCIA * turb
+        ctx.fillStyle = `rgba(255,255,255,${alfa.toFixed(3)})`
         ctx.arc(b.x, b.y, r, 0, Math.PI * 2)
         ctx.fill()
       }

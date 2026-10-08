@@ -2234,13 +2234,31 @@ turbulencia es su complementario, y con el grifo cerrado, cero.
 
 | ángulo en pantalla | `foamFrac` | turbulencia | burbujas (tier 0) |
 |---|---|---|---|
-| 45° (tumbado, al abrir) | 0,030 | **1,00** | **240** |
-| 65° | 0,159 | 0,56 | 200 |
-| 82° | 0,268 | 0,18 | 166 |
+| 45° (tumbado, al abrir) | 0,030 | **1,00** | **420** |
+| 65° | 0,159 | 0,56 | 301 |
+| 82° | 0,268 | 0,18 | 199 |
 | 90° (recto, hay corona) | 0,320 | **0,00** | **150** |
 | grifo cerrado | — | 0 | **45** |
 
-De 240 a 45: un factor 5,3 entre el pico y el reposo.
+De 420 a 45: un factor 9,3 entre el pico y el reposo.
+
+**El primer intento se quedó en 240 y el estudio seguía viendo pocas.** Al
+mirarlo, el recuento no era lo único: una burbuja se dibuja con alfa
+`0,16 + 0,26·subida`, o sea que **las del fondo salían a 0,16**, casi
+transparentes sobre el ámbar. Y repartirlas «por todo el volumen» metía
+justamente ahí buena parte de las nuevas. Más burbujas invisibles siguen siendo
+pocas burbujas.
+
+Así que con la turbulencia sube también lo que se ven, y tiene sentido físico:
+el gas que arrastra el chorro va en burbujas más gordas y más juntas que el que
+rezuma del cristal en reposo.
+
+| | burbujas | alfa del fondo | tamaño |
+|---|---|---|---|
+| tumbado, abriendo | 420 | 0,34 | ×1,35 |
+| a medio enderezar | 285 | 0,25 | ×1,18 |
+| recto, con corona | 150 | 0,16 | ×1,00 |
+| grifo cerrado | 45 | 0,16 | ×1,00 |
 
 Qué cambia con la turbulencia, además del recuento:
 
@@ -2256,8 +2274,8 @@ Qué cambia con la turbulencia, además del recuento:
 - **Cada burbuja lleva su propia fase y su propia amplitud.** Con una sola fase
   para todas, el enjambre entero se mueve a la vez: bandera, no remolino.
 
-El depósito se reserva un 60% más grande que el presupuesto del tier, pero las
-de más **sólo se dibujan en el pico**, que dura un par de segundos por caña. En
+El depósito se reserva al 280% del presupuesto del tier, pero las de más **sólo
+se dibujan en el pico**, que dura un par de segundos por caña. En
 reposo se usa el recuento de siempre, así que un móvil lento no paga por un
 momento que casi no ocurre — y si aun así le cuesta, el medidor de tier ya está
 puesto para degradar solo.
